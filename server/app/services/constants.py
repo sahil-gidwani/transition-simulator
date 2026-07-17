@@ -67,3 +67,14 @@ RECENCY_SCALE = 13.0  # seasons spanned by the transition universe
 
 POOL_K = 24  # comps entering the quantile pool; the API returns all of them
 SHOWN_COMPS_DEFAULT = 6  # UI default: closest shown, rest expandable
+
+# --- valuation: range + confidence ----------------------------------------------
+
+MIN_COMPS_FOR_RANGE = 2  # below this: insufficient precedent, NO range (principle 4)
+
+CONF_HIGH_MIN_POOL = 12
+CONF_HIGH_MAX_IQR_LOG = 0.35  # ~= q75/q25 multiplier ratio of 1.42
+CONF_HIGH_MAX_RELAXATION = 0
+CONF_MED_MIN_POOL = 6
+CONF_MED_MAX_IQR_LOG = 0.60  # ~= q75/q25 multiplier ratio of 1.82
+CONF_MED_MAX_RELAXATION = 2
