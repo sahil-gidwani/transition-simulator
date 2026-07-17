@@ -5,13 +5,33 @@
   "workspaces": [
     "client"
   ],
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "prettier": "3.9.5"
+  },
+  "lint-staged": {
+    "client/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "client/**/*.{css,json,html,md,svg}": [
+      "prettier --write"
+    ],
+    "server/**/*.py": [
+      "uv run --project server ruff check --fix",
+      "uv run --project server ruff format"
+    ]
+  },
   "engines": {
     "node": ">=22"
   },
   "volta": {
     "node": "22.22.3"
-  },
-  "devDependencies": {
-    "prettier": "^3.9.5"
   }
 }
