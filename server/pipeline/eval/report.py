@@ -47,6 +47,7 @@ class EvalSummary:
     skips_validation: dict[str, Any]
     n_test: int
     n_validation: int
+    minutes_known_share: float
 
 
 def _pooled(records: pl.DataFrame, label: str, prefix: str = "") -> dict[str, Any]:
@@ -130,6 +131,11 @@ def build_summary(eval_dir: Path, store: DataStore) -> EvalSummary:
         ),
         n_test=test.height,
         n_validation=val_tuned.height,
+        minutes_known_share=(
+            int(test.get_column("minutes_known").sum())
+            + int(val_tuned.get_column("minutes_known").sum())
+        )
+        / (test.height + val_tuned.height),
     )
 
 
@@ -384,8 +390,8 @@ def render_report(summary: EvalSummary) -> str:
         "underestimate fees, with bias varying by tier and value decile - "
         "and Precedent both predicts and conditions on them (circularity).",
         "- Injuries and contract situations are not controlled; playing "
-        "time only partially (minutes_share_pre, non-null for 55% of "
-        "eval-season queries).",
+        "time only partially (minutes_share_pre, non-null for "
+        f"{summary.minutes_known_share:.0%} of eval-season queries).",
         "- Comps availability shrinks as the query moves back in time, so "
         "backtest pools are thinner than serving pools for the same player "
         "today; reported refusal rates are upper bounds for serving.",

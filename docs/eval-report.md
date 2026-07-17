@@ -174,7 +174,7 @@ Agreements: age dominates both; value and destination strength matter in both. D
 ## Known biases (also stated in the README)
 
 - Transfermarkt values are validated but systematically underestimate fees, with bias varying by tier and value decile - and Precedent both predicts and conditions on them (circularity).
-- Injuries and contract situations are not controlled; playing time only partially (minutes_share_pre, non-null for 55% of eval-season queries).
+- Injuries and contract situations are not controlled; playing time only partially (minutes_share_pre, non-null for 53% of eval-season queries).
 - Comps availability shrinks as the query moves back in time, so backtest pools are thinner than serving pools for the same player today; reported refusal rates are upper bounds for serving.
 
 ## Reproducibility

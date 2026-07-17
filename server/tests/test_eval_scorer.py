@@ -12,6 +12,7 @@ import pytest
 from api_factories import make_club_seasons, make_league_seasons, make_store, make_transitions
 
 from app.repositories.store import DataStore
+from app.services import constants
 from app.services.comps import find_comps
 from app.services.constants import DEFAULT_RETRIEVAL, RetrievalConfig
 from app.services.valuation import summarize_pool, weighted_quantile
@@ -115,11 +116,12 @@ def test_numpy_pool_and_quantiles_match_the_real_service(config_index: int) -> N
         result.pool, built.query.value_eur, result.quality.relaxation_level
     )
     cands = candidate_set(built, universe, strengths, 2012)
-    selection, similarities = selected_pool(cands, config)
+    selection, similarities, level = selected_pool(cands, config)
     quantiles = score_query(cands, config)
 
     assert list(cands.player_id[selection]) == [c.player_id for c in result.pool]
     assert similarities == pytest.approx([c.similarity for c in result.pool], abs=1e-9)
+    assert level == result.quality.relaxation_level
     assert value_range is not None and quantiles is not None
     assert quantiles == pytest.approx(
         (
@@ -153,6 +155,40 @@ def test_refusal_parity_on_a_starved_universe() -> None:
     cands = candidate_set(built, universe, strengths, 2012)
     assert value_range is None
     assert score_query(cands, DEFAULT_RETRIEVAL) is None
+
+
+def test_parity_survives_a_nonzero_calibration_shift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A future thresholds freeze may set CAL_SHIFT_* != 0; the numpy twin must
+    # mirror summarize_pool's tier-shifted endpoints or the tune stage's
+    # parity gate would refuse to run.
+    monkeypatch.setattr(constants, "CAL_SHIFT_LOW", 0.1)
+    monkeypatch.setattr(constants, "CAL_SHIFT_MEDIUM", 0.05)
+    store = _store()
+    built = _built(store)
+    universe = store.transitions.comps_universe
+    strengths = store.seasons.strength_frame()
+    universe_t = available_universe(universe, built.transfer_date)
+
+    result = find_comps(
+        built.query, built.dest_league, built.dest_club, universe_t, strengths, 2012
+    )
+    value_range, confidence = summarize_pool(
+        result.pool, built.query.value_eur, result.quality.relaxation_level
+    )
+    cands = candidate_set(built, universe, strengths, 2012)
+    quantiles = score_query(cands, DEFAULT_RETRIEVAL)
+    assert value_range is not None and quantiles is not None
+    assert confidence in ("low", "medium")  # a shifted tier: the test must exercise one
+    assert quantiles == pytest.approx(
+        (
+            value_range.q25_multiplier,
+            value_range.q50_multiplier,
+            value_range.q75_multiplier,
+        ),
+        abs=1e-9,
+    )
 
 
 def test_np_weighted_quantile_matches_serving_math() -> None:

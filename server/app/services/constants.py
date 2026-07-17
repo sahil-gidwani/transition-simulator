@@ -122,8 +122,9 @@ MIN_COMPS_FOR_RANGE = 2  # below this: insufficient precedent, NO range (princip
 # Per-tier calibration: reported endpoints move to quantile levels
 # (0.25 - shift, 0.75 + shift) of the SAME comp pool, so they remain order
 # statistics of the shown comps; confidence is always judged at the nominal
-# levels. PROVENANCE: 0.0 (uncalibrated) until the P5 validation-coverage
-# decision overwrites them - see docs/eval-report.md.
+# levels. PROVENANCE: the validation-coverage decision kept calibration OFF
+# (pooled coverage 53.2%, inside the 45-55 trigger band) - see
+# docs/eval-report.md. A future retune re-decides these.
 CAL_SHIFT_HIGH = 0.0
 CAL_SHIFT_MEDIUM = 0.0
 CAL_SHIFT_LOW = 0.0

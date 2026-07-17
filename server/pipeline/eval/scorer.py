@@ -14,6 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from app.services.constants import MIN_COMPS_FOR_RANGE, LadderStep, RetrievalConfig
+from app.services.valuation import _calibration_shift, _confidence
 from pipeline.eval.candidates import CLUB_TERM_INDICES, CandidateSet
 
 
@@ -66,12 +67,15 @@ def _mask(cands: CandidateSet, step: LadderStep) -> np.ndarray:
     return mask
 
 
-def selected_pool(cands: CandidateSet, config: RetrievalConfig) -> tuple[np.ndarray, np.ndarray]:
-    """(indices into cands, similarities), in pool order - the numpy twin of
-    find_comps' ladder walk + sort + head(pool_k)."""
+def selected_pool(
+    cands: CandidateSet, config: RetrievalConfig
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """(indices into cands, similarities, relaxation level), in pool order -
+    the numpy twin of find_comps' ladder walk + sort + head(pool_k)."""
+    level = 0
     step = config.ladder[0]
     mask = _mask(cands, step)
-    for step in config.ladder:
+    for level, step in enumerate(config.ladder):  # noqa: B007 - used after the loop
         mask = _mask(cands, step)
         if int(mask.sum()) >= config.min_pool_target:
             break
@@ -90,18 +94,23 @@ def selected_pool(cands: CandidateSet, config: RetrievalConfig) -> tuple[np.ndar
     distance = numerator / weight_mass
     order = np.lexsort((cands.transfer_ord[idx], cands.player_id[idx], distance))
     selection = order[: config.pool_k]
-    return idx[selection], np.exp(-distance[selection])
+    return idx[selection], np.exp(-distance[selection]), level
 
 
 def score_query(cands: CandidateSet, config: RetrievalConfig) -> tuple[float, float, float] | None:
     """Predicted (q25, q50, q75) multipliers, or None on refusal - the numpy
-    twin of summarize_pool's range math."""
-    selection, similarities = selected_pool(cands, config)
+    twin of summarize_pool's range math, including the tier-shifted endpoint
+    levels, so the parity gate survives a future nonzero CAL_SHIFT freeze."""
+    selection, similarities, level = selected_pool(cands, config)
     if selection.size < MIN_COMPS_FOR_RANGE:
         return None
     multipliers = cands.multiplier[selection]
+    iqr_log = np_weighted_quantile(np.log(multipliers), similarities, 0.75) - np_weighted_quantile(
+        np.log(multipliers), similarities, 0.25
+    )
+    shift = _calibration_shift(_confidence(int(selection.size), iqr_log, level))
     return (
-        np_weighted_quantile(multipliers, similarities, 0.25),
+        np_weighted_quantile(multipliers, similarities, max(0.05, 0.25 - shift)),
         np_weighted_quantile(multipliers, similarities, 0.50),
-        np_weighted_quantile(multipliers, similarities, 0.75),
+        np_weighted_quantile(multipliers, similarities, min(0.95, 0.75 + shift)),
     )
