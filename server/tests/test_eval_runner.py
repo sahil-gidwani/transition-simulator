@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -10,6 +11,7 @@ import pytest
 from api_factories import make_club_seasons, make_league_seasons, make_store, make_transitions
 
 from app.repositories.store import DataStore
+from app.services.constants import DEFAULT_RETRIEVAL
 from pipeline.eval.records import RECORDS_SCHEMA
 from pipeline.eval.runner import run_backtest
 
@@ -141,8 +143,11 @@ def test_league_level_ablation_withholds_the_destination_club() -> None:
         _comp(102, 1.0, to_tercile=2, to_elo_pct=0.75),
     ]
     store = _store(_transitions([_QUERY_ROW, *comps]))
-    club_row = run_backtest(store, (2020,), club_level=True)[0].row(0, named=True)
-    league_row = run_backtest(store, (2020,), club_level=False)[0].row(0, named=True)
+    # A fixed pool target keeps the ladder off the drop-club level regardless
+    # of what the tuned serving default is.
+    config = replace(DEFAULT_RETRIEVAL, min_pool_target=3)
+    club_row = run_backtest(store, (2020,), config=config, club_level=True)[0].row(0, named=True)
+    league_row = run_backtest(store, (2020,), config=config, club_level=False)[0].row(0, named=True)
     assert club_row["insufficient"] is False
     assert league_row["insufficient"] is False
     assert league_row["q75"] == pytest.approx(1.75)  # equal weights: hand-computed

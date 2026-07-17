@@ -116,6 +116,22 @@ def _full_store(transitions_rows: list[dict[str, Any]] | None = None) -> Any:
                 "delta_pct": 0.0,
                 "v_after": 12_000_000,
             },
+            {
+                "player_id": 104,
+                "player_name": "Flat Two",
+                "v_before": 9_500_000,
+                "multiplier": 1.05,
+                "delta_pct": 0.05,
+                "v_after": 9_975_000,
+            },
+            {
+                "player_id": 105,
+                "player_name": "Riser Three",
+                "v_before": 10_500_000,
+                "multiplier": 1.1,
+                "delta_pct": 0.1,
+                "v_after": 11_550_000,
+            },
         ]
     )
     return make_store(
@@ -157,7 +173,7 @@ def test_league_only_simulation_returns_range_comps_and_narrative() -> None:
     assert prediction["horizon_months"] == 12
     assert prediction["low_eur"] <= prediction["mid_eur"] <= prediction["high_eur"]
     assert body["confidence"] in ("high", "medium", "low")
-    assert body["pool_quality"]["pool_size"] == 4
+    assert body["pool_quality"]["pool_size"] == 6
     assert body["pool_quality"]["club_selected"] is False
     assert body["shown_comps"] == 6
     # Comps arrive most-similar first and include the decliner, shown honestly.

@@ -23,9 +23,41 @@ from app.repositories.players import PlayerRecord
 from app.repositories.seasons import ClubSeason, LeagueSeason
 from app.repositories.transitions import TransitionsRepo
 from app.services.comps import QueryContext, build_query_context, find_comps
-from app.services.constants import DEFAULT_RETRIEVAL, LADDER, POOL_K
+from app.services.constants import DEFAULT_RETRIEVAL, LadderStep, RetrievalConfig
 
 SEASON_MIN = 2012
+
+# A FIXED reference geometry: these tests pin the engine's mechanics (filter
+# edges, ladder order, null policies), which must not drift when the tuned
+# serving defaults in constants.py are re-frozen by the backtest.
+_TEST_CONFIG = RetrievalConfig(
+    w_log_value=1.0,
+    w_age=0.8,
+    w_dest_strength=0.8,
+    w_origin_strength=0.6,
+    w_elo=0.5,
+    w_dest_tercile=0.4,
+    w_origin_tercile=0.2,
+    w_minutes=0.4,
+    w_sub_position=0.3,
+    w_recency=0.3,
+    ladder=(
+        LadderStep("base filters", 3.0, (0.4, 2.5), 1),
+        LadderStep("age band widened to +/-5 years", 5.0, (0.4, 2.5), 1),
+        LadderStep("value bracket widened to 0.25-4x", 5.0, (0.25, 4.0), 1),
+        LadderStep("origin league tier widened to +/-2", 5.0, (0.25, 4.0), 2),
+        LadderStep(
+            "origin league filter dropped; club-level terms ignored",
+            5.0,
+            (0.25, 4.0),
+            None,
+            drop_club_terms=True,
+        ),
+    ),
+    min_pool_target=3,
+    pool_k=24,
+)
+_LADDER = _TEST_CONFIG.ladder
 
 _PLAYER = PlayerRecord(
     player_id=1,
@@ -109,6 +141,7 @@ def _find(
         universe,
         strengths if strengths is not None else _strengths(),
         SEASON_MIN,
+        config=_TEST_CONFIG,
     )
 
 
@@ -122,7 +155,7 @@ def _conforming(n: int, **overrides: Any) -> list[dict[str, Any]]:
 def test_position_group_never_relaxes() -> None:
     result = _find(make_transitions([{"position_group": "MID", "sub_position": None}]))
     assert result.pool == []
-    assert result.quality.relaxation_level == len(LADDER) - 1
+    assert result.quality.relaxation_level == len(_LADDER) - 1
 
 
 def test_age_band_is_inclusive_and_excludes_beyond() -> None:
@@ -156,7 +189,7 @@ def test_value_bracket_is_inclusive_and_excludes_beyond() -> None:
 def test_destination_tier_equality_holds_at_every_ladder_level() -> None:
     result = _find(make_transitions([{"to_tier": 2}]))
     assert result.pool == []
-    assert result.quality.relaxation_level == len(LADDER) - 1
+    assert result.quality.relaxation_level == len(_LADDER) - 1
 
 
 def test_null_destination_tier_is_never_eligible() -> None:
@@ -194,7 +227,7 @@ def test_null_origin_tier_skips_the_origin_filter_and_flags_it() -> None:
     universe = make_transitions([{"player_id": 100, "from_tier": 4}])
     result = _find(universe, _query(origin_tier=None, origin_strength=None))
     assert [c.player_id for c in result.pool] == [100]
-    assert result.quality.relaxation_level == len(LADDER) - 1  # still thin, but eligible
+    assert result.quality.relaxation_level == len(_LADDER) - 1  # still thin, but eligible
     assert result.quality.origin_tier_unknown is True
 
 
@@ -213,7 +246,7 @@ def test_thin_pool_widens_age_first() -> None:
     result = _find(universe)
     assert result.quality.relaxation_level == 1
     assert result.quality.expanded_search is True
-    assert result.quality.relaxation_steps == [LADDER[1].label]
+    assert result.quality.relaxation_steps == [_LADDER[1].label]
     assert 200 in [c.player_id for c in result.pool]
 
 
@@ -231,7 +264,7 @@ def test_then_origin_tier_widens_to_two() -> None:
     result = _find(universe)
     assert result.quality.relaxation_level == 3
     assert 200 in [c.player_id for c in result.pool]
-    assert result.quality.relaxation_steps == [LADDER[1].label, LADDER[2].label, LADDER[3].label]
+    assert result.quality.relaxation_steps == [_LADDER[1].label, _LADDER[2].label, _LADDER[3].label]
 
 
 def test_null_comp_origin_tier_admitted_only_at_the_last_level() -> None:
@@ -240,7 +273,7 @@ def test_null_comp_origin_tier_admitted_only_at_the_last_level() -> None:
     )
     result = _find(universe)
     assert [c.player_id for c in result.pool] == [200]
-    assert result.quality.relaxation_level == len(LADDER) - 1
+    assert result.quality.relaxation_level == len(_LADDER) - 1
 
 
 def test_relaxation_stops_as_soon_as_the_pool_is_big_enough() -> None:
@@ -319,10 +352,10 @@ def test_null_term_neither_penalizes_nor_rewards() -> None:
 
 
 def test_pool_is_capped_at_pool_k() -> None:
-    universe = make_transitions(_conforming(POOL_K + 6))
+    universe = make_transitions(_conforming(_TEST_CONFIG.pool_k + 6))
     result = _find(universe)
-    assert result.quality.pool_size == POOL_K
-    assert len(result.pool) == POOL_K
+    assert result.quality.pool_size == _TEST_CONFIG.pool_k
+    assert len(result.pool) == _TEST_CONFIG.pool_k
 
 
 # --- league strength terms ---------------------------------------------------------
@@ -410,7 +443,7 @@ def test_last_ladder_level_ignores_club_terms_for_ranking() -> None:
         ]
     )
     result = _find(universe, club=_DEST_CLUB)
-    assert result.quality.relaxation_level == len(LADDER) - 1
+    assert result.quality.relaxation_level == len(_LADDER) - 1
     assert result.quality.dest_elo_available is True
     assert result.quality.elo_pool_coverage == 0.0
     by_id = {c.player_id: c for c in result.pool}
@@ -459,7 +492,7 @@ def test_explicit_default_config_matches_the_default_call() -> None:
             {"player_id": 102, "v_before": 15_000_000},
         ]
     )
-    implicit = _find(universe)
+    implicit = find_comps(_query(), _DEST_LEAGUE, None, universe, _strengths(), SEASON_MIN)
     explicit = find_comps(
         _query(),
         _DEST_LEAGUE,
@@ -483,7 +516,7 @@ def test_config_pool_k_caps_the_pool() -> None:
         make_transitions(_conforming(5)),
         _strengths(),
         SEASON_MIN,
-        config=replace(DEFAULT_RETRIEVAL, pool_k=2),
+        config=replace(_TEST_CONFIG, pool_k=2),
     )
     assert result.quality.pool_size == 2
     assert len(result.pool) == 2
@@ -500,7 +533,7 @@ def test_config_min_pool_target_drives_the_ladder() -> None:
         universe,
         _strengths(),
         SEASON_MIN,
-        config=replace(DEFAULT_RETRIEVAL, min_pool_target=4),
+        config=replace(_TEST_CONFIG, min_pool_target=4),
     )
     assert result.quality.relaxation_level == 1
     assert 200 in [c.player_id for c in result.pool]
@@ -523,7 +556,7 @@ def test_config_weights_reorder_the_pool() -> None:
             universe,
             _strengths(),
             SEASON_MIN,
-            config=replace(DEFAULT_RETRIEVAL, w_age=w_age),
+            config=replace(_TEST_CONFIG, w_age=w_age),
         )
         return [c.player_id for c in result.pool]
 
