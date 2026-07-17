@@ -1,0 +1,17 @@
+{
+  "name": "precedent",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "volta": {
+    "node": "22.22.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.5"
+  }
+}

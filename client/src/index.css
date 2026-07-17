@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Boardroom-dark palette */
+  --color-pitch-950: #0a0f14;
+  --color-pitch-900: #10161d;
+  --color-pitch-800: #1b232c;
+  --color-brass-300: #e2c274;
+  --color-brass-400: #d3a94f;
+  --color-ink-100: #e8e6e1;
+  --color-ink-400: #9aa3ad;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-pitch-950);
+    color-scheme: dark;
+  }
+}

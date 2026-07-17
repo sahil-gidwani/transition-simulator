@@ -10,6 +10,7 @@ PROMPTS.md
 node_modules/
 dist/
 coverage/
+*.tsbuildinfo
 
 # Python
 .venv/
