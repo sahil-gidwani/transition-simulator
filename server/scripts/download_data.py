@@ -37,9 +37,8 @@ from pathlib import Path
 
 import httpx
 
-HF_REPO = "ngeorgea/transfermarkt-player-scores"
-# Upstream sync of 2026-06-29; transfers.csv = 175,043 rows (healthy build).
-PINNED_HF_REVISION = "7dbc5b38ba6efdc439933b00c2f4b4a7405dd681"
+from pipeline.config import HF_REPO, PINNED_HF_REVISION
+
 KAGGLE_DATASET = "davidcariboo/player-scores"
 
 TABLES: tuple[str, ...] = (
