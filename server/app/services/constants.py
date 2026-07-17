@@ -78,3 +78,12 @@ CONF_HIGH_MAX_RELAXATION = 0
 CONF_MED_MIN_POOL = 6
 CONF_MED_MAX_IQR_LOG = 0.60  # ~= q75/q25 multiplier ratio of 1.82
 CONF_MED_MAX_RELAXATION = 2
+
+# --- narrative -------------------------------------------------------------------
+
+DIRECTION_UP = 1.05  # q50 multiplier at/above this reads as a rise
+DIRECTION_DOWN = 0.95  # at/below this reads as a decline
+SMALL_POOL_MAX = 5  # pools this small get an explicit caveat
+DECLINER_CAVEAT_MIN_SHARE = 0.2  # decliner share that triggers "X of Y lost value"
+STALE_VALUE_DAYS = 365  # valuations older than this get a staleness note
+NAMED_PRECEDENTS = 3  # closest precedents called out by name

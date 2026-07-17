@@ -89,6 +89,7 @@ class PoolQuality:
     relaxation_level: int
     relaxation_steps: list[str]
     expanded_search: bool
+    club_selected: bool
     elo_pool_coverage: float
     dest_elo_available: bool
     missing_age: bool
@@ -341,6 +342,7 @@ def find_comps(
         relaxation_level=level,
         relaxation_steps=[LADDER[i].label for i in range(1, level + 1)],
         expanded_search=level > 0,
+        club_selected=dest_club is not None,
         elo_pool_coverage=elo_used / len(pool) if pool else 0.0,
         dest_elo_available=dest_club is not None and dest_club.elo_pct is not None,
         missing_age=query.age is None,
