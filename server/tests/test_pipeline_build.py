@@ -318,6 +318,21 @@ def test_funnel_drift_fails_and_leaves_no_artifacts(tmp_path: Path) -> None:
     assert not report.exists()
 
 
+def test_duplicate_valuation_rows_fail_the_uniqueness_gate(tmp_path: Path) -> None:
+    # player_value_history's documented contract: duplicate (player_id, date)
+    # upstream rows abort the build instead of shipping corrupted history.
+    raw_dir = tmp_path / "raw"
+    cols = _write_raw(raw_dir)
+    _write_manual(tmp_path / "manual.csv")
+    vals = pl.read_csv(raw_dir / "player_valuations.csv", try_parse_dates=True)
+    pl.concat([vals, vals.head(1)]).write_csv(raw_dir / "player_valuations.csv")
+    code, out_dir, report = _run(tmp_path, _expectations(cols))
+    assert code == 1
+    assert not list(out_dir.glob("*.parquet"))
+    assert not (out_dir / "meta.json").exists()
+    assert not report.exists()
+
+
 def test_unresolvable_manual_fix_fails(tmp_path: Path) -> None:
     raw_dir = tmp_path / "raw"
     cols = _write_raw(raw_dir)

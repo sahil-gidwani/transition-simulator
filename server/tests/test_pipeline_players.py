@@ -47,6 +47,23 @@ def test_no_valuation_history_means_null_value_and_null_date() -> None:
     assert out["market_value_asof"].to_list() == [None]
 
 
+def test_zero_valuation_is_a_sentinel_not_a_price() -> None:
+    # Upstream writes 0 for "no valuation"; the latest REAL price wins, and a
+    # player with only zero rows carries null value + null date.
+    players = make_players([{"player_id": 1}, {"player_id": 2}])
+    valuations = make_valuations(
+        [
+            {"player_id": 1, "date": date(2025, 1, 1), "market_value_in_eur": 3_000_000},
+            {"player_id": 1, "date": date(2026, 2, 1), "market_value_in_eur": 0},
+            {"player_id": 2, "date": date(2026, 2, 1), "market_value_in_eur": 0},
+        ]
+    )
+    competitions = make_competitions([{"competition_id": "AA1", "type": "domestic_league"}])
+    out = assemble_players(players, valuations, competitions)
+    assert out["market_value_eur"].to_list() == [3_000_000, None]
+    assert out["market_value_asof"].to_list() == [date(2025, 1, 1), None]
+
+
 def test_schema_and_sort_contract() -> None:
     players = make_players(
         [
@@ -83,12 +100,13 @@ def test_value_history_keeps_only_in_scope_players() -> None:
     assert out["player_id"].to_list() == [1]
 
 
-def test_value_history_drops_rows_with_null_date_or_value() -> None:
+def test_value_history_drops_rows_with_null_date_or_non_positive_value() -> None:
     valuations = make_valuations(
         [
             {"player_id": 1, "date": date(2020, 1, 1), "market_value_in_eur": 1_000_000},
             {"player_id": 1, "date": None, "market_value_in_eur": 2_000_000},
             {"player_id": 1, "date": date(2021, 1, 1), "market_value_in_eur": None},
+            {"player_id": 1, "date": date(2022, 1, 1), "market_value_in_eur": 0},
         ]
     )
     out = player_value_history(valuations, _players_final(valuations))

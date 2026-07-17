@@ -37,15 +37,15 @@ PLAYERS_SCHEMA: dict[str, pl.DataType] = {
 def player_value_history(valuations: pl.DataFrame, players_final: pl.DataFrame) -> pl.DataFrame:
     """Every dated valuation for the players shipped in players.parquet.
 
-    Powers the profile page's market-value chart. Rows with a null date or
-    value are dropped; (player_id, date) uniqueness is asserted by a build
-    gate rather than deduped here, so an upstream key regression fails loudly.
+    Powers the profile page's market-value chart. Rows with a null date or a
+    non-positive value are dropped (upstream uses 0 as a no-valuation
+    sentinel, not a price); (player_id, date) uniqueness is asserted by a
+    build gate rather than deduped here, so an upstream key regression fails
+    loudly.
     """
     in_scope = players_final.select(pl.col("player_id").cast(pl.Int64))
     return (
-        valuations.filter(
-            pl.col("date").is_not_null() & pl.col("market_value_in_eur").is_not_null()
-        )
+        valuations.filter(pl.col("date").is_not_null() & (pl.col("market_value_in_eur") > 0))
         .join(in_scope, on="player_id", how="semi")
         .select(
             pl.col("player_id").cast(pl.Int32),
@@ -61,10 +61,10 @@ def assemble_players(
 ) -> pl.DataFrame:
     """One row per player whose current club plays in a covered domestic league."""
     covered = covered_league_ids(competitions)
+    # 0 is upstream's no-valuation sentinel: a player whose latest row is 0
+    # falls back to their last real price (or null), never a EUR 0 value.
     latest_value = (
-        valuations.filter(
-            pl.col("date").is_not_null() & pl.col("market_value_in_eur").is_not_null()
-        )
+        valuations.filter(pl.col("date").is_not_null() & (pl.col("market_value_in_eur") > 0))
         .sort(["player_id", "date"])
         .group_by("player_id", maintain_order=True)
         .agg(
