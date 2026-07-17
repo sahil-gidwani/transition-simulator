@@ -39,8 +39,8 @@ _CAVEATS = """\
   can settle on penalties; shootout goals are not part of these scores, but extra-time goals
   in such rounds are.
 - **League tier**: per-season rank quartiles of leagues by median derived squad value
-  (`(rank-1)*4 // n + 1`). Boundaries move with the market; the EUR ranges per tier are
-  printed below for the latest season.
+  (`(rank-1)*4 // n + 1`). Boundaries move with the market; this report prints the EUR
+  ranges per tier for the latest season.
 - **Squad values**: derived by summing members' latest valuation at season start (July 1),
   capped at 365 days of staleness; the upstream clubs table's market-value field is not used
   (unreliable).

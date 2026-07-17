@@ -2,7 +2,6 @@ elo_name,club_id,tm_name,note
 Lille,1082,Lille Olympique Sporting Club,legal name defeats token matching
 RB Leipzig,23826,RasenBallsport Leipzig,RB abbreviation too short for prefix matching
 Betis,150,Real Betis Balompié S.A.D.,dotted legal suffix leaves stray letter tokens
-CSKA Moskva,2410,PFK CSKA Moskva,seeded from the audit's unmapped shortlist
 Kryliya Sovetov,2696,PFK Krylya Sovetov Samara,transliteration differs between sources
 Lok Moskva,932,"Футбольный клуб ""Локомотив"" Москва",upstream stores the Cyrillic legal name
 Farul,29831,F.C.V. Farul Constanța SA,legal name defeats token matching
