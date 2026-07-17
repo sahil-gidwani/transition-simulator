@@ -141,6 +141,16 @@ def check_transitions_floor(n_non_loan: int, exp: Expectations) -> GateResult:
     )
 
 
+def check_player_values_floor(n_rows: int, exp: Expectations) -> GateResult:
+    return GateResult(
+        "player_values_floor",
+        n_rows >= exp.min_player_values,
+        f">= {exp.min_player_values:,}",
+        f"{n_rows:,}",
+        "dated valuations for in-scope players (profile value history)",
+    )
+
+
 def check_elo_coverage(coverage: float, exp: Expectations) -> GateResult:
     return GateResult(
         "elo_touch_coverage",

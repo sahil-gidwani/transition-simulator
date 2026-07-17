@@ -43,6 +43,7 @@ from pipeline.gates import (
     check_manual_fixes,
     check_minutes_coverage,
     check_non_empty,
+    check_player_values_floor,
     check_players_schema,
     check_table_floors,
     check_total_size,
@@ -61,7 +62,7 @@ from pipeline.transforms.common import (
     covered_league_ids,
 )
 from pipeline.transforms.loans import flag_suspected_loans
-from pipeline.transforms.players import assemble_players
+from pipeline.transforms.players import assemble_players, player_value_history
 from pipeline.transforms.squads import assemble_club_seasons, squad_values
 from pipeline.transforms.transfers import annotate_scope, clean_transfers
 from pipeline.transforms.transitions import (
@@ -311,6 +312,7 @@ def run_build(
     # --- players & profile ------------------------------------------------------
     _log("players and profile stats")
     players_final = assemble_players(players_df, valuations_df, competitions_df)
+    player_values_final = player_value_history(valuations_df, players_final)
     stats = profile_t.player_season_stats(appearances_df, games_df)
     gk = profile_t.gk_stats(appearances_df, games_df, club_games_df)
     pshare = profile_t.profile_minutes_share(appearances_df, games_df, cleaned, covered_games)
@@ -326,6 +328,7 @@ def run_build(
         shutil.rmtree(tmp_dir)
     artifacts = [
         io.write_artifact(players_final, tmp_dir, "players.parquet"),
+        io.write_artifact(player_values_final, tmp_dir, "player_values.parquet"),
         io.write_artifact(club_seasons_final, tmp_dir, "club_seasons.parquet"),
         io.write_artifact(league_seasons_final, tmp_dir, "league_seasons.parquet"),
         io.write_artifact(transitions_df, tmp_dir, "transitions.parquet"),
@@ -350,9 +353,11 @@ def run_build(
     gates = list(input_gates)
     gates += check_funnel(funnel, expectations.funnel)
     gates.append(check_transitions_floor(non_loan_count, expectations))
+    gates.append(check_player_values_floor(player_values_final.height, expectations))
     gates.append(check_elo_coverage(elo_coverage, expectations))
     gates.append(check_minutes_coverage(minutes_coverage, expectations))
     gates.append(check_key_uniqueness(players_final, ["player_id"], "players"))
+    gates.append(check_key_uniqueness(player_values_final, ["player_id", "date"], "player_values"))
     gates.append(check_key_uniqueness(club_seasons_final, ["club_id", "season"], "club_seasons"))
     gates.append(check_key_uniqueness(league_seasons_final, ["league", "season"], "league_seasons"))
     gates.append(
@@ -366,6 +371,7 @@ def run_build(
         check_non_empty(df, name)
         for df, name in [
             (players_final, "players"),
+            (player_values_final, "player_values"),
             (club_seasons_final, "club_seasons"),
             (league_seasons_final, "league_seasons"),
             (transitions_df, "transitions"),

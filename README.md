@@ -66,6 +66,7 @@ The full gate table, funnel, coverage stats and caveats land in
 | artifact | one row per | notes |
 |---|---|---|
 | `players.parquet` | in-scope player | current value carries its own as-of date |
+| `player_values.parquet` | valuation event | full market-value history for profile pages |
 | `club_seasons.parquet` | club-season | derived squad value, tercile, season-start Elo |
 | `league_seasons.parquet` | league-season | strength + tier (per-season rank quartiles) |
 | `transitions.parquet` | qualifying transfer | v_before/v_after, multiplier, transfer-date Elo, `suspected_loan` flag |

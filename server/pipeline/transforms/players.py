@@ -11,6 +11,12 @@ import polars as pl
 
 from pipeline.transforms.common import covered_league_ids, position_group_expr
 
+PLAYER_VALUES_SCHEMA: dict[str, pl.DataType] = {
+    "player_id": pl.Int32(),
+    "date": pl.Date(),
+    "market_value_eur": pl.Int64(),
+}
+
 PLAYERS_SCHEMA: dict[str, pl.DataType] = {
     "player_id": pl.Int32(),
     "name": pl.String(),
@@ -26,6 +32,28 @@ PLAYERS_SCHEMA: dict[str, pl.DataType] = {
     "market_value_asof": pl.Date(),
     "last_season": pl.Int16(),
 }
+
+
+def player_value_history(valuations: pl.DataFrame, players_final: pl.DataFrame) -> pl.DataFrame:
+    """Every dated valuation for the players shipped in players.parquet.
+
+    Powers the profile page's market-value chart. Rows with a null date or
+    value are dropped; (player_id, date) uniqueness is asserted by a build
+    gate rather than deduped here, so an upstream key regression fails loudly.
+    """
+    in_scope = players_final.select(pl.col("player_id").cast(pl.Int64))
+    return (
+        valuations.filter(
+            pl.col("date").is_not_null() & pl.col("market_value_in_eur").is_not_null()
+        )
+        .join(in_scope, on="player_id", how="semi")
+        .select(
+            pl.col("player_id").cast(pl.Int32),
+            pl.col("date"),
+            pl.col("market_value_in_eur").cast(pl.Int64).alias("market_value_eur"),
+        )
+        .sort(["player_id", "date"])
+    )
 
 
 def assemble_players(

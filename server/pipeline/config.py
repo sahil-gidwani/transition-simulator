@@ -119,6 +119,7 @@ class Expectations:
     funnel: FunnelCounts
     # output floors, measured values recorded in meta.json
     min_transitions_non_loan: int
+    min_player_values: int
     min_elo_touch_coverage: float
     min_minutes_nonnull_legacy: float
     max_total_bytes: int
@@ -141,6 +142,7 @@ PINNED_EXPECTATIONS = Expectations(
         non_loan=19_706,
     ),
     min_transitions_non_loan=19_000,
+    min_player_values=600_000,  # measured: 617,351 dated valuations for in-scope players
     min_elo_touch_coverage=0.82,
     min_minutes_nonnull_legacy=0.60,
     max_total_bytes=50 * 1024 * 1024,

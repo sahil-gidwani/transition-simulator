@@ -38,6 +38,7 @@ def _expectations(players_columns: int) -> Expectations:
             raw=4, cleaned=3, in_scope=2, with_v_before=2, observable=2, with_v_after=2, non_loan=2
         ),
         min_transitions_non_loan=1,
+        min_player_values=1,
         min_elo_touch_coverage=0.0,
         min_minutes_nonnull_legacy=0.0,
         max_total_bytes=50 * 1024 * 1024,
@@ -232,6 +233,7 @@ def test_build_succeeds_and_writes_all_artifacts(tmp_path: Path) -> None:
         "elo_mapping.parquet",
         "league_seasons.parquet",
         "meta.json",
+        "player_values.parquet",
         "players.parquet",
         "profile_stats.parquet",
         "transitions.parquet",
@@ -255,6 +257,10 @@ def test_build_succeeds_and_writes_all_artifacts(tmp_path: Path) -> None:
     profile = pl.read_parquet(out_dir / "profile_stats.parquet")
     keeper = profile.filter(pl.col("player_id") == 2).row(0, named=True)
     assert keeper["clean_sheet_rate"] == 1.0
+
+    values = pl.read_parquet(out_dir / "player_values.parquet")
+    assert values.height == 5  # both synthetic players are in scope, all rows dated
+    assert values["player_id"].to_list() == sorted(values["player_id"].to_list())
 
     mapping = pl.read_parquet(out_dir / "elo_mapping.parquet")
     assert mapping.filter(pl.col("club_id") == 10)["stage"].to_list() == ["manual"]
