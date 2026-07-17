@@ -1,0 +1,69 @@
+import { formatEuroCompact, formatSignedPct } from '../../lib/format';
+import type { CompCard } from '../../lib/types';
+
+const W = 120;
+const H = 40;
+const PAD_X = 8;
+const PAD_Y = 8;
+
+const TREND_COLOR = {
+  rise: 'var(--color-rise-400)',
+  decline: 'var(--color-decline-400)',
+  flat: 'var(--color-ink-400)',
+} as const;
+
+type Trend = keyof typeof TREND_COLOR;
+
+function compTrend(deltaPct: number): Trend {
+  if (deltaPct > 0) return 'rise';
+  if (deltaPct < 0) return 'decline';
+  return 'flat';
+}
+
+interface CompSlopeChartProps {
+  comp: CompCard;
+}
+
+/**
+ * Two-point before/after slope in plain SVG (a full chart library per card
+ * would be waste at up to 47 instances). Color is never the only signal:
+ * the slope itself, the signed delta text and data-trend carry it too.
+ */
+export default function CompSlopeChart({ comp }: CompSlopeChartProps) {
+  const trend = compTrend(comp.delta_pct);
+  const color = TREND_COLOR[trend];
+
+  const lo = Math.min(comp.v_before_eur, comp.v_after_eur);
+  const hi = Math.max(comp.v_before_eur, comp.v_after_eur);
+  const y = (value: number) =>
+    hi === lo ? H / 2 : PAD_Y + (1 - (value - lo) / (hi - lo)) * (H - 2 * PAD_Y);
+
+  const y1 = y(comp.v_before_eur);
+  const y2 = y(comp.v_after_eur);
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      role="img"
+      aria-label={`Value ${formatEuroCompact(comp.v_before_eur)} to ${formatEuroCompact(
+        comp.v_after_eur,
+      )}, ${formatSignedPct(comp.delta_pct)}`}
+      data-trend={trend}
+      className="shrink-0"
+    >
+      <line
+        x1={PAD_X}
+        y1={y1}
+        x2={W - PAD_X}
+        y2={y2}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <circle cx={PAD_X} cy={y1} r={4} fill={color} />
+      <circle cx={W - PAD_X} cy={y2} r={4} fill={color} />
+    </svg>
+  );
+}
