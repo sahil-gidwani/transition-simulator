@@ -26,11 +26,12 @@ Correctness requirements, not style preferences — violating one is a bug:
 - `client/` — Vite + React + TypeScript (strict), Tailwind, TanStack Query, Recharts, React Router. Tests: Vitest + React Testing Library.
 - `server/` — FastAPI + Python 3.12, managed with **uv**. Lint/format: ruff. Types: mypy (CI-blocking). Tests: pytest.
   - `app/api/routes/` — thin handlers only: no logic, no data access.
-  - `app/services/` — all domain logic: `comps.py` (matching + relaxation), `valuation.py` (range + confidence), `percentiles.py`, `narrative.py` (deterministic templates, no LLM), plus `players.py`/`destinations.py`/`simulation.py` (read services + orchestrator) and `constants.py` (every retrieval/valuation tunable, with a provenance comment — hand-set priors until the P5 backtest overwrites them).
+  - `app/services/` — all domain logic: `comps.py` (matching + relaxation), `valuation.py` (range + confidence), `percentiles.py`, `narrative.py` (deterministic templates, no LLM), plus `players.py`/`destinations.py`/`simulation.py` (read services + orchestrator) and `constants.py` (every retrieval/valuation tunable; the retrieval weights/ladder/pool size are tuned by the temporal backtest — the provenance docstring carries the method, seed and config hash, and any retune must update it).
   - `app/repositories/` — the ONLY code that touches data files (processed parquet, loaded once via the lifespan into a `DataStore`; tests inject synthetic stores through `create_app(store=...)`).
   - `app/core/` — cross-cutting plumbing: settings, injectable `Clock` (defaults to the system date — staleness is surfaced via as-of dates and caveats, never hidden by pinning time), the shared error surface (`{"error": {code, message, detail}}`; simulating a player with no valuation is a 409 `player_without_value`), search-text normalization.
   - `app/schemas/` — Pydantic request/response models.
   - `pipeline/` — offline build: raw data → `data/processed/` artifacts.
+  - `pipeline/eval/` — the offline temporal backtest + tuning harness (`uv run python -m pipeline.eval <stage>`); it **deliberately imports `app.services`** to evaluate the shipped engine, and writes raw records to `server/data/eval/` (gitignored). The committed deliverables are `docs/eval-report.md` and the tuned constants. Tuning never writes into `app/` — the winning config is frozen by hand in a reviewed commit.
   - **`app/` never imports `pipeline/`** — the serving contract is `data/processed/*.parquet` + `meta.json` (shared constants like `season_min` are read from `meta.json`, not from pipeline code).
 - Root `package.json` — npm workspaces; husky + lint-staged + commitlint live here.
 - `docker-compose.yml` — `docker compose up` brings up the full app with zero manual steps (processed data ships in the repo).
@@ -41,6 +42,7 @@ Correctness requirements, not style preferences — violating one is a bug:
 - Client (in `client/`): `npm run dev` / `build` / `test` / `lint`.
 - Server (in `server/`): `uv sync` · `uv run uvicorn app.main:app --reload` · `uv run pytest` · `uv run ruff check .` · `uv run mypy app`.
 - Pipeline (in `server/`): `uv run python -m pipeline.build` (requires raw data in `server/data/raw/` — see README).
+- Backtest (in `server/`, needs the `eval` group from `uv sync`): `uv run python -m pipeline.eval all` reproduces the post-freeze evaluation; `tune` is the pre-freeze search whose output is frozen by hand (see `docs/eval-report.md` → Reproducibility).
 - Docker: `docker compose up --build`.
 
 ## Data

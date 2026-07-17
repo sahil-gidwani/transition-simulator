@@ -14,6 +14,7 @@ import sys
 from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 
@@ -214,6 +215,56 @@ def _cmd_skyline(args: argparse.Namespace) -> int:
     return 0
 
 
+_REPORT_INPUTS = (
+    "records_test_tuned.parquet",
+    "records_validation_tuned.parquet",
+    "records_validation_handset.parquet",
+    "records_validation_tuned-league.parquet",
+    "records_skyline.parquet",
+    "trials_20260718.json",
+    "thresholds_tuned.json",
+    "skyline_importances.json",
+    "skips_test_tuned.json",
+    "skips_validation_tuned.json",
+)
+
+
+def _cmd_report(args: argparse.Namespace) -> int:
+    from pipeline.eval.report import build_summary, render_report
+
+    missing = [name for name in _REPORT_INPUTS if not (args.eval_dir / name).exists()]
+    if missing:
+        print("missing eval artifacts (run the stages in the report's Reproducibility order):")
+        for name in missing:
+            print(f"  {args.eval_dir / name}")
+        return 1
+    store = load_store(args.data_dir)
+    summary = build_summary(args.eval_dir, store)
+    report_path = SERVER_DIR.parent / "docs" / "eval-report.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(render_report(summary), encoding="utf-8", newline="\n")
+    print(f"-> {report_path}")
+    return 0
+
+
+def _cmd_all(args: argparse.Namespace) -> int:
+    """Post-freeze reproduction. The pre-freeze stages (handset backtest,
+    tune) are manual, reviewed steps - see the report's Reproducibility."""
+    steps: list[tuple[Any, dict[str, Any]]] = [
+        (_cmd_backtest, {"phase": "validation", "tag": "tuned", "dest_level": "club"}),
+        (_cmd_backtest, {"phase": "validation", "tag": "tuned-league", "dest_level": "league"}),
+        (_cmd_backtest, {"phase": "test", "tag": "tuned", "dest_level": "club"}),
+        (_cmd_thresholds, {"tag": "tuned"}),
+        (_cmd_skyline, {}),
+        (_cmd_report, {}),
+    ]
+    for func, extra in steps:
+        code = func(argparse.Namespace(data_dir=args.data_dir, eval_dir=args.eval_dir, **extra))
+        if code != 0:
+            return int(code)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8_stdout()
     parser = argparse.ArgumentParser(prog="python -m pipeline.eval", description=__doc__)
@@ -240,6 +291,14 @@ def main(argv: list[str] | None = None) -> int:
 
     skyline = subparsers.add_parser("skyline", help="LightGBM quantile reference (never served)")
     skyline.set_defaults(func=_cmd_skyline)
+
+    report = subparsers.add_parser("report", help="render docs/eval-report.md from data/eval")
+    report.set_defaults(func=_cmd_report)
+
+    run_all = subparsers.add_parser(
+        "all", help="post-freeze reproduction: backtests + thresholds + skyline + report"
+    )
+    run_all.set_defaults(func=_cmd_all)
 
     args = parser.parse_args(argv)
     result: int = args.func(args)

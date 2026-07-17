@@ -86,11 +86,11 @@ ClubElo name fixes automation cannot make; the build validates every row.
 ## Methodology
 
 **What "comparable" means.** A comp is a historical transition (see the definitions above)
-that passes every hard filter: same position group; age at transfer within ±3 years of the
+that passes every hard filter: same position group; age at transfer within ±2.5 years of the
 player's age today; origin league tier within ±1 of the player's current league; destination
 league tier equal to the target league's; pre-move value within 0.4–2.5× of the player's
-current value; suspected loans excluded; seasons 2012/13 onward. When fewer than 3 comps
-match, the search widens one step at a time — age ±5 years → value bracket 0.25–4× →
+current value; suspected loans excluded; seasons 2012/13 onward. When fewer than 6 comps
+match, the search widens one step at a time — age ±6 years → value bracket 0.25–4× →
 origin tier ±2 → origin-league filter dropped (club-level terms ignored) — and every
 widening is labelled in the response (`pool_quality.relaxation_steps`), never silent.
 
@@ -99,9 +99,10 @@ origin and destination league strength gaps (log median derived squad value, rea
 comp's own season; Elo percentile added when both sides have one), destination/origin club
 tercile gaps (only when a target club is chosen), sub-position mismatch, pre-move
 playing-time gap, and recency. A missing feature drops its term for that comp with weight
-renormalization — nulls never gate eligibility and never penalize. The weights are hand-set
-priors recorded with a provenance comment in `server/app/services/constants.py`; the
-temporal backtest (next milestone) tunes and overwrites them.
+renormalization — nulls never gate eligibility and never penalize. The weights are tuned by
+the temporal backtest (random search on validation seasons 2020–21 under a date-exact
+availability rule) and frozen with a provenance comment and config hash (`ff9f546e0b3c`) in
+`server/app/services/constants.py`.
 
 **The range.** The prediction is the similarity-weighted 25th/50th/75th percentile of the
 comp pool's 12-month value multipliers, applied to the player's current value — a weighted-
@@ -117,3 +118,19 @@ the API says "insufficient precedent" and shows the closest evidence it has inst
 
 **No survivorship bias.** Outcomes never enter the similarity distance: a decliner ranks
 exactly as its similarity earns, and declines are shown, not filtered.
+
+**Validation.** A temporal backtest replays 8,299 held-out transfers from test seasons
+2022–24 through the exact serving code, each simulated at its own transfer date with a
+date-exact availability rule (a comp is usable only once its 12-month outcome was
+observable at that date). The served q25–q75 range covered **50.5% of actual outcomes
+against a nominal 50%**, with a median width of ×1.7 and a 28.5% median absolute error on
+the midpoint — beating the value-unchanged, global-quantile and age×position-quantile
+baselines on every metric while refusing only 0.1% of queries. A LightGBM quantile
+regressor on the same features (built offline as a reference, never served) is ~3% sharper
+on pinball loss but materially miscalibrated (43% coverage): the price of full traceability
+is small, and the comp-pool quantiles keep the uncertainty honest. Weights were tuned on
+validation seasons 2020–21, strictly before all test seasons, and frozen before test was
+scored exactly once. One honest gap, reported rather than hidden: the *high* confidence
+tier under-covers (42% on test) — read it as "strong precedent agreement", not a
+guaranteed 50% band. Full protocol, per-segment tables and known biases:
+[docs/eval-report.md](docs/eval-report.md).
