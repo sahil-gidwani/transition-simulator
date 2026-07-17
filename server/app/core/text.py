@@ -41,3 +41,8 @@ def normalize_search_text(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", text.translate(_FOLD))
     stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
     return _NON_ALNUM.sub(" ", stripped.lower()).strip()
+
+
+def slug_to_title(slug: str) -> str:
+    """League display label from the upstream name slug: "premier-league" -> "Premier League"."""
+    return slug.replace("-", " ").title()
