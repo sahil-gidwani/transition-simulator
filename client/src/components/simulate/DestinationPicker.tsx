@@ -72,7 +72,7 @@ export default function DestinationPicker({
                 <span className="flex shrink-0 items-center gap-1.5">
                   {tercileLabel(club.tercile) ? <Badge>{tercileLabel(club.tercile)}</Badge> : null}
                   {!club.elo_available ? (
-                    <span className="text-xs text-ink-400/70">no Elo</span>
+                    <span className="text-xs text-ink-400">no Elo</span>
                   ) : null}
                 </span>
               </span>

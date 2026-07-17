@@ -1,5 +1,5 @@
 import Badge from '../ui/Badge';
-import { formatEuroCompact } from '../../lib/format';
+import { formatDate, formatEuroCompact } from '../../lib/format';
 import { positionLabel } from '../../lib/labels';
 import type { PlayerSearchResult } from '../../lib/types';
 
@@ -51,7 +51,14 @@ export default function SearchResultsList({
               {result.club_name} · {result.league_name ?? result.league_id}
             </div>
           </div>
-          <span className="shrink-0 font-medium text-brass-300 tabular-nums">
+          <span
+            className="shrink-0 font-medium text-brass-300 tabular-nums"
+            title={
+              result.market_value_asof
+                ? `as of ${formatDate(result.market_value_asof)}`
+                : 'no valuation on record'
+            }
+          >
             {formatEuroCompact(result.market_value_eur)}
           </span>
         </li>

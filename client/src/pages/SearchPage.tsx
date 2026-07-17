@@ -4,6 +4,7 @@ import SearchResultsList from '../components/search/SearchResultsList';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useListboxNav } from '../hooks/useListboxNav';
 import { usePlayerSearch } from '../lib/queries';
 import type { PlayerSearchResult } from '../lib/types';
@@ -15,6 +16,7 @@ function searchOptionId(result: PlayerSearchResult): string {
 }
 
 export default function SearchPage() {
+  useDocumentTitle('Search — Precedent');
   const [input, setInput] = useState('');
   const navigate = useNavigate();
   const q = useDebouncedValue(input, 200);
@@ -46,7 +48,7 @@ export default function SearchPage() {
           // The hero exists to be typed into; focus is not stolen from anything.
           autoFocus
           role="combobox"
-          aria-expanded={searchActive}
+          aria-expanded={searchActive && results.length > 0}
           aria-controls={LISTBOX_ID}
           aria-activedescendant={activeId}
           aria-autocomplete="list"
@@ -58,7 +60,7 @@ export default function SearchPage() {
             reset();
           }}
           onKeyDown={onKeyDown}
-          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-400/60 focus:border-brass-400 focus:outline-none"
+          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-400/80 focus:border-brass-400 focus:outline-none"
         />
 
         {!searchActive ? (
@@ -66,7 +68,7 @@ export default function SearchPage() {
             Type at least two letters — then arrow keys and Enter take you straight to a profile.
           </p>
         ) : isError ? (
-          <div className="mt-6 flex flex-col items-center gap-3 py-6 text-center">
+          <div role="alert" className="mt-6 flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-decline-400">The search request failed.</p>
             <button
               type="button"
@@ -77,7 +79,7 @@ export default function SearchPage() {
             </button>
           </div>
         ) : isPending && results.length === 0 ? (
-          <div className="mt-4 space-y-2" aria-label="Loading results">
+          <div role="status" className="mt-4 space-y-2" aria-label="Loading results">
             {Array.from({ length: 5 }, (_, i) => (
               <SkeletonBlock key={i} className="h-14 w-full" />
             ))}

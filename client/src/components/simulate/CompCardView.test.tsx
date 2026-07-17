@@ -69,6 +69,19 @@ describe('CompCardView', () => {
     expect(screen.getByText('AA1')).toBeInTheDocument();
   });
 
+  it('omits the origin badge when from_league is null (out-of-scope origin)', () => {
+    renderWithProviders(
+      <CompCardView
+        comp={comp({ from_league: null })}
+        leagueNames={new Map([['BB1', 'Beta League']])}
+      />,
+    );
+
+    expect(screen.getByText('Beta League')).toBeInTheDocument();
+    expect(screen.queryByText('AA1')).not.toBeInTheDocument();
+    expect(screen.getByText('Old Club')).toBeInTheDocument();
+  });
+
   it('links the comp to its player profile', () => {
     renderWithProviders(<CompCardView comp={comp({})} />);
 

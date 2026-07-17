@@ -10,6 +10,12 @@ function formatMetricValue(metric: MetricPercentile): string {
 
 interface PercentileBarsProps {
   percentiles: PercentilesResponse;
+  /**
+   * Display label for the league the peer group was drawn from (the latest
+   * STATS season's league, which can differ from the player's current league
+   * after a recent transfer). Null omits the league from the copy.
+   */
+  leagueLabel?: string | null;
 }
 
 /**
@@ -17,7 +23,7 @@ interface PercentileBarsProps {
  * percentiles are already display-oriented (always "better than X% of
  * peers", including lower-is-better metrics), so they render as-is.
  */
-export default function PercentileBars({ percentiles }: PercentileBarsProps) {
+export default function PercentileBars({ percentiles, leagueLabel = null }: PercentileBarsProps) {
   if (!percentiles.has_stats || percentiles.metrics.length === 0) {
     return (
       <EmptyState
@@ -31,7 +37,9 @@ export default function PercentileBars({ percentiles }: PercentileBarsProps) {
   const subtext = [
     percentiles.season != null ? `${formatSeason(percentiles.season)} season` : null,
     percentiles.minutes != null ? `${percentiles.minutes.toLocaleString('en-GB')} min` : null,
-    peerN != null ? `vs ${peerN} same-position peers in the league` : null,
+    peerN != null
+      ? `vs ${peerN} same-position peers${leagueLabel ? ` in ${leagueLabel}` : ''}`
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -55,7 +63,7 @@ export default function PercentileBars({ percentiles }: PercentileBarsProps) {
             <div className="min-w-0">
               <span className="text-sm text-ink-100">{metric.label}</span>
               {metric.direction === 'lower_better' ? (
-                <span className="block text-xs text-ink-400/70">lower is better</span>
+                <span className="block text-xs text-ink-400">lower is better</span>
               ) : null}
             </div>
 
@@ -83,7 +91,7 @@ export default function PercentileBars({ percentiles }: PercentileBarsProps) {
             ) : (
               <div className="col-span-2 text-sm text-ink-400">
                 <span className="tabular-nums">{formatMetricValue(metric)}</span>
-                <span className="ml-2 text-xs text-ink-400/70">percentile withheld</span>
+                <span className="ml-2 text-xs text-ink-400">percentile withheld</span>
               </div>
             )}
           </li>

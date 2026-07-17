@@ -89,6 +89,12 @@ describe('PercentileBars', () => {
     expect(screen.getByText('35%')).toBeInTheDocument();
   });
 
+  it('attributes the peer group to the stats-season league when provided', () => {
+    render(<PercentileBars percentiles={response({})} leagueLabel="Premier League" />);
+
+    expect(screen.getByText(/vs 40 same-position peers in Premier League/i)).toBeInTheDocument();
+  });
+
   it('shows the empty state when the player has no stats', () => {
     render(<PercentileBars percentiles={response({ has_stats: false, metrics: [] })} />);
 

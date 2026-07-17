@@ -8,6 +8,7 @@ import PoolQualityBanner from '../components/simulate/PoolQualityBanner';
 import VerdictPanel from '../components/simulate/VerdictPanel';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ApiError } from '../lib/api';
 import { useDestinations, usePlayer, useSimulation } from '../lib/queries';
 import { deriveSimulatorState } from '../lib/simulatorState';
@@ -15,7 +16,7 @@ import type { DestinationSpec } from '../lib/types';
 
 function SimulationSkeleton() {
   return (
-    <div className="grid gap-6 lg:grid-cols-5" aria-label="Running simulation">
+    <div role="status" className="grid gap-6 lg:grid-cols-5" aria-label="Running simulation">
       <div className="space-y-6 lg:col-span-3">
         <SkeletonBlock className="h-64 w-full" />
         <div className="grid gap-4 xl:grid-cols-2">
@@ -46,6 +47,9 @@ export default function SimulatePage() {
   const playerQuery = usePlayer(playerId);
   const destinationsQuery = useDestinations();
   const simulationQuery = useSimulation(playerId, destination);
+  useDocumentTitle(
+    playerQuery.data ? `Simulate ${playerQuery.data.name} — Precedent` : 'Simulate — Precedent',
+  );
 
   const state = deriveSimulatorState({
     destinationSelected: destination !== null,
@@ -102,12 +106,28 @@ export default function SimulatePage() {
         </p>
       </div>
 
-      <DestinationPicker
-        leagues={destinationsQuery.data?.leagues}
-        leagueId={leagueParam}
-        clubId={clubId}
-        onChange={setDestination}
-      />
+      {destinationsQuery.isError ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 text-sm"
+        >
+          <span className="text-decline-400">Could not load the destination leagues.</span>
+          <button
+            type="button"
+            onClick={() => void destinationsQuery.refetch()}
+            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-ink-100 hover:border-brass-400"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <DestinationPicker
+          leagues={destinationsQuery.data?.leagues}
+          leagueId={leagueParam}
+          clubId={clubId}
+          onChange={setDestination}
+        />
+      )}
 
       {state.kind === 'idle' ? (
         <div className="rounded-2xl border border-dashed border-pitch-800 px-6 py-16 text-center">
@@ -149,6 +169,9 @@ export default function SimulatePage() {
           <div className="space-y-6 lg:col-span-3">
             <VerdictPanel result={state.result} prediction={state.prediction} />
             <CompsPanel
+              // Re-key per destination so the expand-all toggle never leaks
+              // across cached destination switches.
+              key={`${state.result.destination.league_id}-${state.result.destination.club_id ?? 'any'}`}
               comps={state.result.comps}
               shownComps={state.result.shown_comps}
               leagueNames={leagueNames}

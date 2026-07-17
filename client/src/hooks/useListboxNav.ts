@@ -43,6 +43,8 @@ export function useListboxNav<T>({
         if (item !== undefined) {
           event.preventDefault();
           onSelect(item, activeIndex);
+          // A stale highlight must not survive into the next open of the list.
+          setRawIndex(-1);
         }
         break;
       }

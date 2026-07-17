@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useListboxNav } from '../../hooks/useListboxNav';
 
@@ -56,6 +56,17 @@ export default function Combobox<T>({
     onEscape: () => setQuery(null),
   });
 
+  // aria-activedescendant does not scroll on its own; keep the keyboard
+  // highlight visible ('nearest' is a no-op for already-visible hover targets).
+  useEffect(() => {
+    if (!nav.activeId) return;
+    const el = document.getElementById(nav.activeId);
+    // Guarded: jsdom has no scrollIntoView.
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }, [nav.activeId]);
+
   const listboxId = `${id}-listbox`;
 
   return (
@@ -69,7 +80,7 @@ export default function Combobox<T>({
       <input
         id={id}
         role="combobox"
-        aria-expanded={open}
+        aria-expanded={open && listItems.length > 0}
         aria-controls={listboxId}
         aria-activedescendant={nav.activeId}
         aria-autocomplete="list"
@@ -94,21 +105,26 @@ export default function Combobox<T>({
           nav.onKeyDown(event);
         }}
         onBlur={() => setQuery(null)}
-        className="mt-1 w-full rounded-lg border border-pitch-800 bg-pitch-900 px-4 py-2.5 text-ink-100 placeholder:text-ink-400/60 focus:border-brass-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-1 w-full rounded-lg border border-pitch-800 bg-pitch-900 px-4 py-2.5 text-ink-100 placeholder:text-ink-400/80 focus:border-brass-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-pitch-950 disabled:text-ink-400"
       />
       {open ? (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label={label}
-          // Keep focus in the input so blur cannot swallow the option click.
-          onMouseDown={(event) => event.preventDefault()}
-          className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-pitch-800 bg-pitch-900 shadow-xl"
-        >
-          {listItems.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-ink-400">No matches</li>
-          ) : (
-            listItems.map((item, index) => (
+        listItems.length === 0 ? (
+          <div
+            role="status"
+            className="absolute z-10 mt-1 w-full rounded-lg border border-pitch-800 bg-pitch-900 px-4 py-3 text-sm text-ink-400 shadow-xl"
+          >
+            No matches
+          </div>
+        ) : (
+          <ul
+            id={listboxId}
+            role="listbox"
+            aria-label={label}
+            // Keep focus in the input so blur cannot swallow the option click.
+            onMouseDown={(event) => event.preventDefault()}
+            className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-pitch-800 bg-pitch-900 shadow-xl"
+          >
+            {listItems.map((item, index) => (
               <li
                 key={itemKey(item)}
                 id={`${id}-option-${itemKey(item)}`}
@@ -118,14 +134,15 @@ export default function Combobox<T>({
                 onClick={() => {
                   onSelect(item);
                   setQuery(null);
+                  nav.reset();
                 }}
                 className={`cursor-pointer px-4 py-2.5 ${index === nav.activeIndex ? 'bg-pitch-800' : ''}`}
               >
                 {renderItem(item)}
               </li>
-            ))
-          )}
-        </ul>
+            ))}
+          </ul>
+        )
       ) : null}
     </div>
   );

@@ -3,6 +3,7 @@ import IdentityHeader from '../components/player/IdentityHeader';
 import PercentileBars from '../components/player/PercentileBars';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ApiError } from '../lib/api';
 import { usePercentiles, usePlayer } from '../lib/queries';
 
@@ -22,6 +23,7 @@ export default function PlayerProfilePage() {
   const playerId = Number(params.id);
   const playerQuery = usePlayer(playerId);
   const percentilesQuery = usePercentiles(playerId);
+  useDocumentTitle(playerQuery.data ? `${playerQuery.data.name} — Precedent` : null);
 
   if (!Number.isInteger(playerId)) {
     return <EmptyState heading="Player not found" action={<BackToSearch />} />;
@@ -52,7 +54,7 @@ export default function PlayerProfilePage() {
 
   if (playerQuery.isPending) {
     return (
-      <div className="space-y-8" aria-label="Loading profile">
+      <div role="status" className="space-y-8" aria-label="Loading profile">
         <div className="flex items-end justify-between border-b border-pitch-800 pb-8">
           <div className="space-y-3">
             <SkeletonBlock className="h-12 w-72" />
@@ -81,27 +83,51 @@ export default function PlayerProfilePage() {
             Simulate a transfer →
           </Link>
         ) : (
-          <span
-            aria-disabled="true"
-            title="A simulation needs a current market value to anchor the predicted range — none on record."
-            className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-pitch-800 px-5 py-3 text-base font-semibold text-ink-400"
-          >
-            Simulate a transfer →
-          </span>
+          <>
+            <button
+              type="button"
+              disabled
+              aria-describedby="simulate-disabled-reason"
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-pitch-800 px-5 py-3 text-base font-semibold text-ink-400"
+            >
+              Simulate a transfer →
+            </button>
+            <p id="simulate-disabled-reason" className="mt-2 text-sm text-ink-400">
+              Needs a current market value to anchor the predicted range — none on record.
+            </p>
+          </>
         )}
       </div>
 
       {percentilesQuery.isPending ? (
-        <div className="space-y-3" aria-label="Loading percentiles">
+        <div role="status" className="space-y-3" aria-label="Loading percentiles">
           <SkeletonBlock className="h-6 w-56" />
           {Array.from({ length: 4 }, (_, i) => (
             <SkeletonBlock key={i} className="h-6 w-full" />
           ))}
         </div>
       ) : percentilesQuery.isError ? (
-        <p className="text-sm text-ink-400">Peer percentiles are unavailable right now.</p>
+        <div role="alert" className="flex items-center gap-4">
+          <p className="text-sm text-ink-400">Peer percentiles are unavailable right now.</p>
+          <button
+            type="button"
+            onClick={() => void percentilesQuery.refetch()}
+            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-sm text-ink-100 hover:border-brass-400"
+          >
+            Retry
+          </button>
+        </div>
       ) : (
-        <PercentileBars percentiles={percentilesQuery.data} />
+        <PercentileBars
+          percentiles={percentilesQuery.data}
+          leagueLabel={
+            percentilesQuery.data.league_id === null
+              ? null
+              : percentilesQuery.data.league_id === player.league_id
+                ? (player.league_name ?? player.league_id)
+                : percentilesQuery.data.league_id
+          }
+        />
       )}
     </div>
   );

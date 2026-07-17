@@ -6,7 +6,10 @@ import { useHealth } from '../../lib/queries';
 import type { Prediction, SimulationResponse } from '../../lib/types';
 import { CONFIDENCE_COPY } from './confidenceCopy';
 
-// Matches the server's narrative thresholds (DIRECTION_UP / DIRECTION_DOWN).
+// Mirrors the server's narrative thresholds (constants.DIRECTION_UP/DOWN).
+// COUPLING: a server retune of those constants must update these, or the
+// arrow can contradict the scout's read rendered beside it. The clean fix
+// is a served `direction` field — noted as a follow-up, not invented here.
 const DIRECTION_UP = 1.05;
 const DIRECTION_DOWN = 0.95;
 
@@ -75,7 +78,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
 
       <p className="mt-4 max-w-xl text-sm text-ink-400/80">{confidence.note}</p>
 
-      <footer className="mt-6 border-t border-pitch-800 pt-3 text-xs text-ink-400/70">
+      <footer className="mt-6 border-t border-pitch-800 pt-3 text-xs text-ink-400">
         Range = the middle half of outcomes across {result.pool_quality.pool_size} comparable moves,
         weighted by similarity.
         <FreshnessNote />
