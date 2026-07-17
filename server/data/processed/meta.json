@@ -1,0 +1,300 @@
+{
+  "artifacts": {
+    "club_seasons.parquet": {
+      "bytes": 105979,
+      "rows": 9983,
+      "sha256": "572309f6146c400c82067da486044e483163a211208cbb7d703717f9f86c6cdc"
+    },
+    "elo_mapping.parquet": {
+      "bytes": 21551,
+      "rows": 776,
+      "sha256": "65a5538baaa8c2f2a26ac7534801256195ca71c766efa3f620b3b5c891bdb6ba"
+    },
+    "league_seasons.parquet": {
+      "bytes": 10419,
+      "rows": 434,
+      "sha256": "98a5ea8ba2effa83665ba1980cccac368a1e0dec0c1fb1748f7cd033e438f15b"
+    },
+    "players.parquet": {
+      "bytes": 945743,
+      "rows": 44522,
+      "sha256": "f9019b71013d48dbe0f130b08839adf0af3b6ab96f2a4873cb335abfcd56f8ba"
+    },
+    "profile_stats.parquet": {
+      "bytes": 2554110,
+      "rows": 92310,
+      "sha256": "db1691375d39a8742b1cd5a7e14301a55a7d6bac2c5dcc38d8f5bf859981019c"
+    },
+    "transitions.parquet": {
+      "bytes": 1451547,
+      "rows": 37602,
+      "sha256": "1a21d17da69d55837c07e41b86f028531e61af4662d0fd53fd130ed50ef2a16d"
+    }
+  },
+  "built_at": "2026-07-17T16:27:57+00:00",
+  "constants": {
+    "elo_asof_tolerance_days": 45,
+    "loan_max_return_days": 548,
+    "minutes_window_days": 365,
+    "profile_min_minutes": 450,
+    "season_min": 2012,
+    "squad_value_staleness_days": 365,
+    "v_after_window_days": [
+      180,
+      540
+    ],
+    "v_before_window_days": [
+      1,
+      180
+    ]
+  },
+  "coverage": {
+    "club_seasons_league_source_games": 3902,
+    "club_seasons_league_source_snapshot": 6081,
+    "elo_stage_touches_0_reep_id_bridge": 1675,
+    "elo_stage_touches_1_exact_normalized": 15032,
+    "elo_stage_touches_2_token_subset": 13496,
+    "elo_stage_touches_3_token_prefix": 1485,
+    "elo_stage_touches_4_acronym": 10,
+    "elo_stage_touches_5_team_mapping": 697,
+    "elo_stage_touches_6_difflib": 97,
+    "elo_stage_touches_manual": 747,
+    "elo_stage_touches_unmapped": 6173,
+    "elo_touch_coverage": 0.8434,
+    "minutes_share_nonnull_legacy_2013_plus": 0.8453
+  },
+  "funnel": {
+    "cleaned": 174917,
+    "in_scope": 46601,
+    "non_loan": 19706,
+    "observable": 39510,
+    "raw": 175043,
+    "transitions_2012_plus": 37602,
+    "transitions_non_loan_2012_plus": 19407,
+    "with_v_after": 38284,
+    "with_v_before": 42817
+  },
+  "gates": [
+    {
+      "actual": "huggingface ngeorgea/transfermarkt-player-scores @ 7dbc5b38ba6efdc439933b00c2f4b4a7405dd681",
+      "detail": "",
+      "expected": "huggingface ngeorgea/transfermarkt-player-scores @ 7dbc5b38ba6efdc439933b00c2f4b4a7405dd681",
+      "name": "manifest_pin",
+      "passed": true
+    },
+    {
+      "actual": "175,043",
+      "detail": "",
+      "expected": ">= 150,000",
+      "name": "transfers_min_rows",
+      "passed": true
+    },
+    {
+      "actual": "656,301",
+      "detail": "",
+      "expected": ">= 500,000",
+      "name": "valuations_min_rows",
+      "passed": true
+    },
+    {
+      "actual": "48,380",
+      "detail": "",
+      "expected": ">= 30,000",
+      "name": "players_min_rows",
+      "passed": true
+    },
+    {
+      "actual": "26 columns, international_caps present",
+      "detail": "",
+      "expected": "26 columns incl. international_caps",
+      "name": "players_schema",
+      "passed": true
+    },
+    {
+      "actual": "2026-06-12",
+      "detail": "",
+      "expected": "2026-06-12",
+      "name": "valuation_freshness",
+      "passed": true
+    },
+    {
+      "actual": "ok",
+      "detail": "",
+      "expected": "8 rows all resolve",
+      "name": "manual_fixes_resolve",
+      "passed": true
+    },
+    {
+      "actual": "175,043",
+      "detail": "",
+      "expected": "175,043",
+      "name": "funnel_raw",
+      "passed": true
+    },
+    {
+      "actual": "174,917",
+      "detail": "",
+      "expected": "174,917",
+      "name": "funnel_cleaned",
+      "passed": true
+    },
+    {
+      "actual": "46,601",
+      "detail": "",
+      "expected": "46,601",
+      "name": "funnel_in_scope",
+      "passed": true
+    },
+    {
+      "actual": "42,817",
+      "detail": "",
+      "expected": "42,817",
+      "name": "funnel_with_v_before",
+      "passed": true
+    },
+    {
+      "actual": "39,510",
+      "detail": "",
+      "expected": "39,510",
+      "name": "funnel_observable",
+      "passed": true
+    },
+    {
+      "actual": "38,284",
+      "detail": "",
+      "expected": "38,284",
+      "name": "funnel_with_v_after",
+      "passed": true
+    },
+    {
+      "actual": "19,706",
+      "detail": "",
+      "expected": "19,706",
+      "name": "funnel_non_loan",
+      "passed": true
+    },
+    {
+      "actual": "19,407",
+      "detail": "",
+      "expected": ">= 19,000",
+      "name": "transitions_non_loan_floor",
+      "passed": true
+    },
+    {
+      "actual": "0.8434",
+      "detail": "touch-weighted share of the transition universe with a mapped ClubElo club",
+      "expected": ">= 0.82",
+      "name": "elo_touch_coverage",
+      "passed": true
+    },
+    {
+      "actual": "0.8453",
+      "detail": "non-null minutes_share_pre among legacy-league transitions since 2013",
+      "expected": ">= 0.60",
+      "name": "minutes_share_legacy_coverage",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (player_id)",
+      "name": "players_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (club_id, season)",
+      "name": "club_seasons_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (league, season)",
+      "name": "league_seasons_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (player_id, transfer_date)",
+      "name": "transitions_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (player_id, season, league)",
+      "name": "profile_stats_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "unique",
+      "detail": "",
+      "expected": "unique on (club_id)",
+      "name": "elo_mapping_key_unique",
+      "passed": true
+    },
+    {
+      "actual": "44,522 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "players_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "9,983 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "club_seasons_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "434 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "league_seasons_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "37,602 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "transitions_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "92,310 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "profile_stats_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "776 rows",
+      "detail": "",
+      "expected": "> 0 rows",
+      "name": "elo_mapping_non_empty",
+      "passed": true
+    },
+    {
+      "actual": "4.9 MB",
+      "detail": "",
+      "expected": "< 50 MB",
+      "name": "processed_total_size",
+      "passed": true
+    }
+  ],
+  "polars_version": "1.42.1",
+  "source": {
+    "repo": "ngeorgea/transfermarkt-player-scores",
+    "revision": "7dbc5b38ba6efdc439933b00c2f4b4a7405dd681",
+    "source": "huggingface"
+  },
+  "valuation_freshness": {
+    "censor_horizon": "2025-12-14",
+    "max_valuation_date": "2026-06-12"
+  },
+  "warnings": []
+}
