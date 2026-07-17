@@ -2,7 +2,8 @@
 
 Query-side context (destinations, the player's current club/league) always
 comes from the LATEST season's rows; historical strength (for comp-side
-distance terms) is exposed as a (league, season, strength) frame.
+distance terms) is exposed as a (league, season, strength) frame. The
+offline backtest builds season-exact query contexts via league_at/club_at.
 """
 
 from __future__ import annotations
@@ -100,6 +101,24 @@ class SeasonsRepo:
     def club_latest(self, club_id: int) -> ClubSeason | None:
         rows = self._club_seasons.filter(
             (pl.col("club_id") == club_id) & (pl.col("season") == self.latest_season)
+        )
+        if rows.is_empty():
+            return None
+        return _club(rows.row(0, named=True))
+
+    def league_at(self, league: str, season: int) -> LeagueSeason | None:
+        """League context as-of a specific season (backtest queries are historical)."""
+        rows = self._league_seasons.filter(
+            (pl.col("league") == league) & (pl.col("season") == season)
+        )
+        if rows.is_empty():
+            return None
+        return _league(rows.row(0, named=True))
+
+    def club_at(self, club_id: int, season: int) -> ClubSeason | None:
+        """Club context as-of a specific season (backtest queries are historical)."""
+        rows = self._club_seasons.filter(
+            (pl.col("club_id") == club_id) & (pl.col("season") == season)
         )
         if rows.is_empty():
             return None
