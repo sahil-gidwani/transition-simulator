@@ -5,6 +5,7 @@ description = "Precedent API - transfer valuations backed by named precedent"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.139.2",
+    "polars>=1.20",
     "pydantic-settings>=2.14.2",
     "uvicorn[standard]>=0.51.0",
 ]
@@ -40,5 +41,4 @@ dev = [
 ]
 data = [
     "kagglehub>=0.3",
-    "polars>=1.20",
 ]

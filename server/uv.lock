@@ -482,6 +482,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "polars" },
     { name = "pydantic-settings" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -489,7 +490,6 @@ dependencies = [
 [package.dev-dependencies]
 data = [
     { name = "kagglehub" },
-    { name = "polars" },
 ]
 dev = [
     { name = "httpx" },
@@ -501,15 +501,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.139.2" },
+    { name = "polars", specifier = ">=1.20" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
 ]
 
 [package.metadata.requires-dev]
-data = [
-    { name = "kagglehub", specifier = ">=0.3" },
-    { name = "polars", specifier = ">=1.20" },
-]
+data = [{ name = "kagglehub", specifier = ">=0.3" }]
 dev = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", specifier = ">=2.3.0" },
