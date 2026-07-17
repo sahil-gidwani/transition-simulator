@@ -29,6 +29,12 @@ from pipeline.eval.search import (
     runtime_parity_failures,
 )
 from pipeline.eval.splits import TEST_SEASONS, VALIDATION_SEASONS
+from pipeline.eval.thresholds import (
+    calibration_shifts,
+    hand_set_thresholds,
+    propose_conf_thresholds,
+    render_thresholds_snippet,
+)
 
 EVAL_DIR_DEFAULT = SERVER_DIR / "data" / "eval"
 
@@ -145,6 +151,47 @@ def _cmd_tune(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_thresholds(args: argparse.Namespace) -> int:
+    records_path = args.eval_dir / f"records_validation_{args.tag}.parquet"
+    if not records_path.exists():
+        print(f"missing {records_path} - run `backtest --phase validation --tag {args.tag}` first")
+        return 1
+    records = pl.read_parquet(records_path)
+    proposal = propose_conf_thresholds(records)
+    chosen = proposal.thresholds if proposal.thresholds is not None else hand_set_thresholds()
+    decision = calibration_shifts(records, chosen)
+
+    print(f"records: {records_path}")
+    print(f"honest grid settings: {proposal.n_honest}/{proposal.n_candidates}")
+    print("tier table under the chosen setting:")
+    _print_frame(proposal.stats)
+    print(
+        f"pooled validation coverage: {decision.pooled_coverage:.4f} "
+        f"(calibration needed: {decision.needed})"
+    )
+    print(f"nominal tier coverage: {decision.tier_coverage}")
+    snippet = render_thresholds_snippet(proposal, decision)
+    payload = {
+        "tag": args.tag,
+        "kept_hand_set": proposal.thresholds is None,
+        "thresholds": asdict(chosen),
+        "n_honest": proposal.n_honest,
+        "n_candidates": proposal.n_candidates,
+        "pooled_coverage": decision.pooled_coverage,
+        "calibration_needed": decision.needed,
+        "shifts": decision.shifts,
+        "tier_coverage": decision.tier_coverage,
+        "constants_snippet": snippet,
+    }
+    args.eval_dir.mkdir(parents=True, exist_ok=True)
+    out_path = args.eval_dir / f"thresholds_{args.tag}.json"
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print(f"-> {out_path}")
+    print("--- constants.py replacement block (freeze via a reviewed commit) ---")
+    print(snippet)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8_stdout()
     parser = argparse.ArgumentParser(prog="python -m pipeline.eval", description=__doc__)
@@ -162,6 +209,12 @@ def main(argv: list[str] | None = None) -> int:
     tune.add_argument("--n-configs", type=int, default=N_CONFIGS_DEFAULT)
     tune.add_argument("--seed", type=int, default=SEED_DEFAULT)
     tune.set_defaults(func=_cmd_tune)
+
+    thresholds = subparsers.add_parser(
+        "thresholds", help="confidence-tier honesty grid + calibration decision"
+    )
+    thresholds.add_argument("--tag", default="tuned", help="validation records tag to read")
+    thresholds.set_defaults(func=_cmd_thresholds)
 
     args = parser.parse_args(argv)
     result: int = args.func(args)

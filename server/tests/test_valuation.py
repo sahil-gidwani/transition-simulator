@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from app.services import constants
 from app.services.comps import ScoredComp
 from app.services.valuation import summarize_pool, weighted_quantile
 
@@ -140,3 +141,66 @@ def test_medium_confidence_band() -> None:
     pool = [_comp(1.0 + i * 0.03) for i in range(7)]  # 7 comps, moderately tight
     _, confidence = summarize_pool(pool, 10_000_000, 0)
     assert confidence == "medium"
+
+
+# --- calibration shifts ------------------------------------------------------------
+
+_CAL_POOL_MULTIPLIERS = (0.8, 1.0, 1.2, 1.4)
+
+
+def _cal_pool() -> list[ScoredComp]:
+    return [_comp(m) for m in _CAL_POOL_MULTIPLIERS]
+
+
+def test_zero_shift_reports_the_nominal_quantiles() -> None:
+    value_range, confidence = summarize_pool(_cal_pool(), 10_000_000, 4)
+    assert value_range is not None
+    assert confidence == "low"  # pool of 4, fully relaxed
+    weights = [1.0] * 4
+    assert value_range.q25_multiplier == pytest.approx(
+        weighted_quantile(list(_CAL_POOL_MULTIPLIERS), weights, 0.25)
+    )
+    assert value_range.q75_multiplier == pytest.approx(
+        weighted_quantile(list(_CAL_POOL_MULTIPLIERS), weights, 0.75)
+    )
+
+
+def test_calibration_widens_endpoints_but_not_the_center_or_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    baseline, _ = summarize_pool(_cal_pool(), 10_000_000, 4)
+    monkeypatch.setattr(constants, "CAL_SHIFT_LOW", 0.10)
+    shifted, confidence = summarize_pool(_cal_pool(), 10_000_000, 4)
+    assert baseline is not None and shifted is not None
+    assert confidence == "low"  # the tier is judged at nominal levels
+    weights = [1.0] * 4
+    assert shifted.q25_multiplier == pytest.approx(
+        weighted_quantile(list(_CAL_POOL_MULTIPLIERS), weights, 0.15)
+    )
+    assert shifted.q75_multiplier == pytest.approx(
+        weighted_quantile(list(_CAL_POOL_MULTIPLIERS), weights, 0.85)
+    )
+    assert shifted.q25_multiplier < baseline.q25_multiplier
+    assert shifted.q75_multiplier > baseline.q75_multiplier
+    assert shifted.q50_multiplier == pytest.approx(baseline.q50_multiplier)
+    assert shifted.iqr_log == pytest.approx(baseline.iqr_log)  # dispersion stays nominal
+
+
+def test_extreme_shifts_clamp_to_the_pool_extremes(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Levels clamp at 0.05/0.95, and endpoints remain order statistics of the
+    # shown comps: they can never leave the pool's value range.
+    monkeypatch.setattr(constants, "CAL_SHIFT_LOW", 0.5)
+    shifted, _ = summarize_pool(_cal_pool(), 10_000_000, 4)
+    assert shifted is not None
+    assert shifted.q25_multiplier == min(_CAL_POOL_MULTIPLIERS)
+    assert shifted.q75_multiplier == max(_CAL_POOL_MULTIPLIERS)
+
+
+def test_unshifted_tiers_are_untouched(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(constants, "CAL_SHIFT_LOW", 0.10)
+    pool = [_comp(1.0 + i * 0.01) for i in range(12)]  # high-tier pool
+    baseline_range, _ = summarize_pool(pool, 10_000_000, 0)
+    monkeypatch.setattr(constants, "CAL_SHIFT_LOW", 0.0)
+    unshifted_range, _ = summarize_pool(pool, 10_000_000, 0)
+    assert baseline_range is not None and unshifted_range is not None
+    assert baseline_range == unshifted_range  # only the low shift was set

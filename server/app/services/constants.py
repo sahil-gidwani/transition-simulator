@@ -114,6 +114,15 @@ DEFAULT_RETRIEVAL = RetrievalConfig(
 
 MIN_COMPS_FOR_RANGE = 2  # below this: insufficient precedent, NO range (principle 4)
 
+# Per-tier calibration: reported endpoints move to quantile levels
+# (0.25 - shift, 0.75 + shift) of the SAME comp pool, so they remain order
+# statistics of the shown comps; confidence is always judged at the nominal
+# levels. PROVENANCE: 0.0 (uncalibrated) until the P5 validation-coverage
+# decision overwrites them - see docs/eval-report.md.
+CAL_SHIFT_HIGH = 0.0
+CAL_SHIFT_MEDIUM = 0.0
+CAL_SHIFT_LOW = 0.0
+
 CONF_HIGH_MIN_POOL = 12
 CONF_HIGH_MAX_IQR_LOG = 0.35  # ~= q75/q25 multiplier ratio of 1.42
 CONF_HIGH_MAX_RELAXATION = 0

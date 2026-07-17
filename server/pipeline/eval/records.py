@@ -41,6 +41,10 @@ RECORDS_SCHEMA: dict[str, pl.DataType | type[pl.DataType]] = {
     "from_tier": pl.Int8,
     "to_tier": pl.Int8,
     "minutes_known": pl.Boolean,
+    # The pool itself, so any quantile level (e.g. calibration candidates)
+    # is recomputable offline - the record stays traceable like the API.
+    "pool_multipliers": pl.List(pl.Float64),
+    "pool_similarities": pl.List(pl.Float64),
 }
 
 
@@ -75,6 +79,8 @@ class PredictionRecord:
     from_tier: int | None
     to_tier: int
     minutes_known: bool
+    pool_multipliers: list[float]
+    pool_similarities: list[float]
 
 
 def records_frame(records: list[PredictionRecord]) -> pl.DataFrame:

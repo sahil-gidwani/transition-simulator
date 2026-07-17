@@ -82,6 +82,8 @@ def test_scored_query_records_engine_and_baselines() -> None:
     assert row["b1_q50"] == pytest.approx(expected.quantile(0.5, interpolation="linear"))
     assert row["b2_fallback"] is True  # bucket of 5 < MIN_BUCKET
     assert row["b2_q50"] == row["b1_q50"]
+    assert sorted(row["pool_multipliers"]) == pytest.approx(multipliers)
+    assert len(row["pool_similarities"]) == 5
     assert records.schema == pl.Schema(RECORDS_SCHEMA)
 
 

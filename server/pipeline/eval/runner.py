@@ -94,6 +94,8 @@ def run_backtest(
                 from_tier=built.from_tier,
                 to_tier=built.to_tier,
                 minutes_known=built.minutes_known,
+                pool_multipliers=[comp.multiplier for comp in result.pool],
+                pool_similarities=[comp.similarity for comp in result.pool],
             )
         )
     return records_frame(records), skips

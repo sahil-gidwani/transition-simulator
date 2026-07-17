@@ -3,49 +3,15 @@
 from __future__ import annotations
 
 import math
-from datetime import date
 from typing import Any
 
 import pytest
+from eval_factories import make_record as _record
 
 from pipeline.eval.metrics import add_segments, age_band_label, aggregate
 from pipeline.eval.records import PredictionRecord, records_frame
 
 E = math.e
-
-
-def _record(**overrides: Any) -> PredictionRecord:
-    fields: dict[str, Any] = {
-        "player_id": 1,
-        "transfer_date": date(2022, 7, 1),
-        "season": 2022,
-        "v_before": 10_000_000,
-        "v_after": 12_000_000,
-        "actual_multiplier": 1.2,
-        "q25": 0.9,
-        "q50": 1.1,
-        "q75": 1.3,
-        "insufficient": False,
-        "pool_size": 24,
-        "relaxation_level": 0,
-        "confidence": "high",
-        "iqr_log": 0.2,
-        "n_available": 5_000,
-        "b1_q25": None,
-        "b1_q50": None,
-        "b1_q75": None,
-        "b2_q25": None,
-        "b2_q50": None,
-        "b2_q75": None,
-        "b2_fallback": True,
-        "age_at_transfer": 25.0,
-        "position_group": "ATT",
-        "from_tier": 1,
-        "to_tier": 1,
-        "minutes_known": True,
-    }
-    fields.update(overrides)
-    return PredictionRecord(**fields)
 
 
 def _pooled(records: list[PredictionRecord], **kwargs: Any) -> dict[str, Any]:

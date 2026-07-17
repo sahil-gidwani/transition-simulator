@@ -1,10 +1,12 @@
 """Range + confidence from the comp pool's weighted multiplier quantiles.
 
-The range IS the pool: weighted q25/q50/q75 of the shown comps' multipliers
+The range IS the pool: weighted quantiles of the shown comps' multipliers
 applied to the player's current value - never a model output. Confidence
 comes from pool size, dispersion (IQR of log multipliers) and how far the
 relaxation ladder had to climb. Fewer than MIN_COMPS_FOR_RANGE usable comps
-means NO range at all.
+means NO range at all. Backtest calibration may widen a tier's reported
+endpoints to (0.25 - shift, 0.75 + shift), but they stay order statistics
+of the same pool - traceability is never traded away.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 from typing import Literal
 
+from app.services import constants
 from app.services.comps import ScoredComp
 from app.services.constants import (
     CONF_HIGH_MAX_IQR_LOG,
@@ -91,6 +94,16 @@ def _confidence(pool_size: int, iqr_log: float, relaxation_level: int) -> Confid
     return "low"
 
 
+def _calibration_shift(confidence: Confidence) -> float:
+    # Module-attribute access so the tuned values apply without re-import.
+    shifts = {
+        "high": constants.CAL_SHIFT_HIGH,
+        "medium": constants.CAL_SHIFT_MEDIUM,
+        "low": constants.CAL_SHIFT_LOW,
+    }
+    return shifts.get(confidence, 0.0)
+
+
 def summarize_pool(
     pool: Sequence[ScoredComp], current_value: int, relaxation_level: int
 ) -> tuple[ValueRange | None, Confidence]:
@@ -98,11 +111,15 @@ def summarize_pool(
         return None, "insufficient"
     multipliers = [comp.multiplier for comp in pool]
     weights = [comp.similarity for comp in pool]
-    q25 = weighted_quantile(multipliers, weights, 0.25)
     q50 = weighted_quantile(multipliers, weights, 0.50)
-    q75 = weighted_quantile(multipliers, weights, 0.75)
     logs = [math.log(m) for m in multipliers]
+    # Dispersion and confidence are always judged at the nominal 25/75
+    # levels; calibration must not move a pool between tiers.
     iqr_log = weighted_quantile(logs, weights, 0.75) - weighted_quantile(logs, weights, 0.25)
+    confidence = _confidence(len(pool), iqr_log, relaxation_level)
+    shift = _calibration_shift(confidence)
+    q25 = weighted_quantile(multipliers, weights, max(0.05, 0.25 - shift))
+    q75 = weighted_quantile(multipliers, weights, min(0.95, 0.75 + shift))
     value_range = ValueRange(
         q25_multiplier=q25,
         q50_multiplier=q50,
@@ -112,4 +129,4 @@ def summarize_pool(
         q75_eur=round(current_value * q75),
         iqr_log=iqr_log,
     )
-    return value_range, _confidence(len(pool), iqr_log, relaxation_level)
+    return value_range, confidence
