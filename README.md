@@ -16,12 +16,12 @@ npm install
 # Server (fetches Python 3.12 automatically)
 cd server && uv sync && cd ..
 
-# Terminal 1 - API on :8000
-cd server && uv run uvicorn app.main:app --reload
-
-# Terminal 2 - client on :5173 (proxies /api to the server)
-npm run dev -w client
+# Both dev servers in one command: client on :5173, API on :8000
+npm run dev
 ```
+
+Or run them separately: `npm run dev -w client` and `npm run dev:api`. Other root scripts:
+`npm run test`, `npm run lint`, `npm run typecheck` — each covers client and server.
 
 Open http://localhost:5173. Environment variables are documented in `.env.example`;
 everything defaults sanely with no `.env` present.

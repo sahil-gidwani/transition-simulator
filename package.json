@@ -6,11 +6,21 @@
     "client"
   ],
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "concurrently -k -n client,api -c cyan,magenta \"npm run dev -w client\" \"npm run dev:api\"",
+    "dev:api": "cd server && uv run python -m app",
+    "start": "npm run dev",
+    "test": "npm run test -w client && npm run test:api",
+    "test:api": "cd server && uv run pytest",
+    "lint": "npm run lint -w client && npm run lint:api",
+    "lint:api": "cd server && uv run ruff check . && uv run ruff format --check .",
+    "typecheck": "npm run typecheck -w client && npm run typecheck:api",
+    "typecheck:api": "cd server && uv run mypy app"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
+    "concurrently": "^10.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "3.9.5"
