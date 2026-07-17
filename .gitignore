@@ -1,0 +1,27 @@
+# Local-only working docs
+*.pdf
+PROMPTS.md
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Data (large raw source files; processed artifacts ARE committed)
+server/data/raw/
+
+# OS / editor
+.DS_Store
+Thumbs.db
