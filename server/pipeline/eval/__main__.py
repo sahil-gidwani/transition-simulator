@@ -21,6 +21,13 @@ from app.repositories.store import load_store
 from pipeline.config import PROCESSED_DIR_DEFAULT, SERVER_DIR
 from pipeline.eval.metrics import aggregate
 from pipeline.eval.runner import run_backtest
+from pipeline.eval.search import (
+    N_CONFIGS_DEFAULT,
+    SEED_DEFAULT,
+    render_constants_snippet,
+    run_search,
+    runtime_parity_failures,
+)
 from pipeline.eval.splits import TEST_SEASONS, VALIDATION_SEASONS
 
 EVAL_DIR_DEFAULT = SERVER_DIR / "data" / "eval"
@@ -64,6 +71,80 @@ def _cmd_backtest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_tune(args: argparse.Namespace) -> int:
+    store = load_store(args.data_dir)
+    print("parity gate: real service vs numpy scorer on sampled validation queries...")
+    failures = runtime_parity_failures(store, seed=args.seed + 1)
+    if failures:
+        print(f"PARITY GATE FAILED ({len(failures)} mismatches):")
+        for failure in failures[:20]:
+            print(f"  {failure}")
+        return 1
+    print("parity gate passed")
+
+    result = run_search(store, n_configs=args.n_configs, seed=args.seed, log=True)
+    args.eval_dir.mkdir(parents=True, exist_ok=True)
+    trials_payload = {
+        "seed": result.seed,
+        "n_configs": args.n_configs,
+        "n_queries": result.n_queries,
+        "n_skipped": result.n_skipped,
+        "winner_index": result.winner.index,
+        "trials": [
+            {
+                "index": t.index,
+                "hash": t.digest,
+                "score": t.score,
+                "insufficient_rate": t.insufficient_rate,
+                "coverage": t.coverage,
+                "config": asdict(t.config),
+            }
+            for t in result.trials
+        ],
+    }
+    trials_path = args.eval_dir / f"trials_{result.seed}.json"
+    trials_path.write_text(json.dumps(trials_payload, indent=2), encoding="utf-8")
+    snippet = render_constants_snippet(result, args.n_configs)
+    winner_path = args.eval_dir / f"winner_{result.winner.digest}.json"
+    winner_path.write_text(
+        json.dumps(
+            {
+                "hash": result.winner.digest,
+                "seed": result.seed,
+                "n_configs": args.n_configs,
+                "score": result.winner.score,
+                "insufficient_rate": result.winner.insufficient_rate,
+                "coverage": result.winner.coverage,
+                "config": asdict(result.winner.config),
+                "constants_snippet": snippet,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    print(f"queries={result.n_queries} skipped={result.n_skipped} trials={len(result.trials)}")
+    print(f"-> {trials_path}")
+    print(f"-> {winner_path}")
+    print("top 10 by validation pinball (log, refusals imputed at B1):")
+    for t in sorted(result.trials, key=lambda t: (t.score, t.index))[:10]:
+        marker = " <- winner" if t.index == result.winner.index else ""
+        if t.index == 0:
+            marker += " (hand-set)"
+        print(
+            f"  #{t.index:>3} hash={t.digest} score={t.score:.5f} "
+            f"insufficient={t.insufficient_rate:.4f} coverage={t.coverage:.4f}{marker}"
+        )
+    hand = result.trials[0]
+    print(
+        f"hand-set reference: score={hand.score:.5f} "
+        f"insufficient={hand.insufficient_rate:.4f} coverage={hand.coverage:.4f}"
+    )
+    print("--- constants.py replacement block (freeze via a reviewed commit) ---")
+    print(snippet)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8_stdout()
     parser = argparse.ArgumentParser(prog="python -m pipeline.eval", description=__doc__)
@@ -76,6 +157,11 @@ def main(argv: list[str] | None = None) -> int:
     backtest.add_argument("--dest-level", choices=("club", "league"), default="club")
     backtest.add_argument("--tag", default="handset", help="suffix for output filenames")
     backtest.set_defaults(func=_cmd_backtest)
+
+    tune = subparsers.add_parser("tune", help="random search over retrieval configs")
+    tune.add_argument("--n-configs", type=int, default=N_CONFIGS_DEFAULT)
+    tune.add_argument("--seed", type=int, default=SEED_DEFAULT)
+    tune.set_defaults(func=_cmd_tune)
 
     args = parser.parse_args(argv)
     result: int = args.func(args)

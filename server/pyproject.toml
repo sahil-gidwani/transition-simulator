@@ -42,3 +42,6 @@ dev = [
 data = [
     "kagglehub>=0.3",
 ]
+eval = [
+    "numpy>=2.1",
+]

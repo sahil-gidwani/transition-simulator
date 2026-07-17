@@ -15,6 +15,8 @@ next to every cell, never hidden.
 
 from __future__ import annotations
 
+import math
+
 import polars as pl
 
 TAUS: tuple[float, float, float] = (0.25, 0.50, 0.75)
@@ -73,6 +75,16 @@ def add_segments(records: pl.DataFrame) -> pl.DataFrame:
 def _pinball(y: pl.Expr, yhat: pl.Expr, tau: float) -> pl.Expr:
     diff = y - yhat
     return pl.when(diff >= 0).then(tau * diff).otherwise((tau - 1) * diff)
+
+
+def pinball_log_scalar(actual_log: float, quantiles: tuple[float, float, float]) -> float:
+    """Mean log pinball across TAUS for one query - the tuning objective's
+    per-query term, matching the frame metric formula exactly."""
+    total = 0.0
+    for tau, quantile in zip(TAUS, quantiles, strict=True):
+        diff = actual_log - math.log(quantile)
+        total += tau * diff if diff >= 0 else (tau - 1) * diff
+    return total / len(TAUS)
 
 
 def aggregate(

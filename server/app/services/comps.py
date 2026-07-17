@@ -238,9 +238,12 @@ def _score(
         how="left",
     )
     terms = _distance_terms(query, dest_league, dest_club, drop_club_terms, config)
+    # Terms over Float32 source columns (age, elo, minutes) would otherwise
+    # multiply by the weight in Float32; cast so the whole distance is
+    # uniform double-precision arithmetic.
     numerator = reduce(
         operator.add,
-        [pl.when(d.is_not_null()).then(d * w).otherwise(0.0) for d, w in terms],
+        [pl.when(d.is_not_null()).then(d.cast(pl.Float64) * w).otherwise(0.0) for d, w in terms],
     )
     weight_mass = reduce(
         operator.add,
