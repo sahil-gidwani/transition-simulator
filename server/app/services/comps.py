@@ -71,7 +71,7 @@ class ScoredComp:
     sub_position: str | None
     from_club_name: str
     to_club_name: str
-    from_league: str
+    from_league: str | None  # null when the origin filter was dropped (last ladder level)
     to_league: str
     v_before: int
     v_after: int
