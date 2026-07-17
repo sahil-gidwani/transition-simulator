@@ -29,6 +29,10 @@ strict = true
 packages = ["app", "pipeline"]
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = "lightgbm.*"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -43,5 +47,6 @@ data = [
     "kagglehub>=0.3",
 ]
 eval = [
+    "lightgbm>=4.6",
     "numpy>=2.1",
 ]

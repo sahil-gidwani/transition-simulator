@@ -192,6 +192,28 @@ def _cmd_thresholds(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_skyline(args: argparse.Namespace) -> int:
+    # Lazy import: the backtest/tune stages must run without lightgbm.
+    from pipeline.eval.skyline import run_skyline
+
+    store = load_store(args.data_dir)
+    seasons = VALIDATION_SEASONS + TEST_SEASONS
+    records, importances = run_skyline(store, seasons)
+    args.eval_dir.mkdir(parents=True, exist_ok=True)
+    records_path = args.eval_dir / "records_skyline.parquet"
+    records.write_parquet(records_path)
+    importances_path = args.eval_dir / "skyline_importances.json"
+    importances_path.write_text(json.dumps(importances.to_dicts(), indent=2), encoding="utf-8")
+    print(f"skyline records={records.height} -> {records_path}")
+    print("test-season pooled metrics:")
+    _print_frame(aggregate(records.filter(pl.col("season").is_in(list(TEST_SEASONS))), []))
+    print("validation-season pooled metrics:")
+    _print_frame(aggregate(records.filter(pl.col("season").is_in(list(VALIDATION_SEASONS))), []))
+    print("gain importances (mean across folds and quantiles):")
+    _print_frame(importances)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _utf8_stdout()
     parser = argparse.ArgumentParser(prog="python -m pipeline.eval", description=__doc__)
@@ -215,6 +237,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     thresholds.add_argument("--tag", default="tuned", help="validation records tag to read")
     thresholds.set_defaults(func=_cmd_thresholds)
+
+    skyline = subparsers.add_parser("skyline", help="LightGBM quantile reference (never served)")
+    skyline.set_defaults(func=_cmd_skyline)
 
     args = parser.parse_args(argv)
     result: int = args.func(args)
