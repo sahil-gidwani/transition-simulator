@@ -17,7 +17,9 @@ Correctness requirements, not style preferences — violating one is a bug:
 3. **Ranges, never false precision.** Output is a range + confidence tier (High/Medium/Low/Insufficient) driven by pool size and dispersion.
 4. **Small N is said out loud.** Thin pools are labelled ("expanded search", "insufficient precedent"); with <2 usable comps there is NO range at all.
 5. **One consistent horizon.** "Value after" = valuation nearest to 12 months post-transfer within a 6–18 month window — for every comp, everywhere.
-6. **Stated similarity.** The definition of "similar" (position group, age band, value bracket, league tier derived from squad values, club tercile) is explicit in the README and applied uniformly.
+6. **Stated similarity.** The definition of "similar" (position group, age band, value bracket, league tier derived from squad values, club tercile + Elo where available) is explicit in the README and applied uniformly.
+7. **Real data only.** Every player, value, comp and stat shown by the product comes from the processed real datasets — no placeholder, synthetic or invented data ever ships in the API or UI. (Synthetic data lives exclusively in test fixtures.) Stale upstream data is surfaced (values carry an as-of date), never papered over.
+8. **Evaluated, not asserted.** The comps engine's range and confidence tiers are validated by a temporal backtest (coverage, interval width, pinball loss vs naive baselines) with a leakage-safe, date-exact comp-availability rule; distance weights carry provenance from that backtest.
 
 ## Stack & layout
 
@@ -41,9 +43,11 @@ Correctness requirements, not style preferences — violating one is a bug:
 
 ## Data
 
-- Raw: Kaggle "Football Data from Transfermarkt" (`davidcariboo/player-scores`) → `server/data/raw/` (gitignored).
-- Processed: `server/data/processed/` — lean parquet, committed; the only thing the server reads.
-- Glossary: **transition** = historical transfer with known value before and after · **v_before** = last valuation ≤6 months pre-transfer · **v_after** = valuation nearest +12 months (6–18 window) · **multiplier** = v_after / v_before · **comp** = a transition matched to a query · **relaxation ladder** = staged filter-widening when comps are scarce, always surfaced in `pool_quality` · **league tier** = 1–4 bucket from log median club squad value · **club tercile** = squad-value rank within league-season (top/mid/bottom).
+- Primary: Kaggle "Football Data from Transfermarkt" (`davidcariboo/player-scores`) → `server/data/raw/` (gitignored). **Version-pinned**: the pipeline records the exact dataset version and enforces hard audit gates (row counts, valuation freshness, funnel size) because upstream builds have shipped regressions — see `docs/data-notes.md`. Coverage: first-tier leagues (~30 countries), games/appearances 2012+, valuations 2000+. Transfers carry no loan flag (loans parse to fee=0 like free transfers) — loans are detected structurally and excluded from the comps universe.
+- Club/league strength is **derived, multi-factor**: squad values computed from `player_valuations` aggregation (the upstream clubs table's market-value field is unreliable) → league tiers + club terciles; ClubElo history (via public mirrors; credited to clubelo.com) adds an as-of-date Elo percentile for European clubs, with a flagged fallback where unavailable.
+- Enrichment (optional, nullable, never gates comp eligibility): Understat xG (big-5 + RU leagues, 2014+); EA FC edition attributes (FIFA 15–FC 24 archives, joined by normalized name + DOB). Cross-provider IDs: reep register (CC0) and the FBref↔Transfermarkt mapping from worldfootballR.
+- Processed: `server/data/processed/` — lean parquet, committed; the only thing the server reads. The served app performs **no network calls at runtime**; data acquisition is an offline pipeline concern (some steps may require an unrestricted network).
+- Glossary: **transition** = historical transfer with known value before and after · **v_before** = last valuation ≤6 months pre-transfer · **v_after** = valuation nearest +12 months (6–18 window) · **v_after_date** = when that valuation happened (drives the backtest availability rule) · **multiplier** = v_after / v_before · **comp** = a transition matched to a query · **relaxation ladder** = staged filter-widening when comps are scarce, always surfaced in `pool_quality` · **league tier** = 1–4 bucket from log median derived club squad value · **club tercile** = squad-value rank within league-season (top/mid/bottom) · **minutes_share_pre** = share of possible league minutes in the 365 days pre-transfer (partial playing-time control).
 
 ## Engineering conventions
 
