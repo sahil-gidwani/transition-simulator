@@ -85,5 +85,35 @@ ClubElo name fixes automation cannot make; the build validates every row.
 
 ## Methodology
 
-_To be written: how comparable transitions are selected, how the value range and confidence
-tier are derived, and the exact definition of the 12-month horizon._
+**What "comparable" means.** A comp is a historical transition (see the definitions above)
+that passes every hard filter: same position group; age at transfer within ±3 years of the
+player's age today; origin league tier within ±1 of the player's current league; destination
+league tier equal to the target league's; pre-move value within 0.4–2.5× of the player's
+current value; suspected loans excluded; seasons 2012/13 onward. When fewer than 3 comps
+match, the search widens one step at a time — age ±5 years → value bracket 0.25–4× →
+origin tier ±2 → origin-league filter dropped (club-level terms ignored) — and every
+widening is labelled in the response (`pool_quality.relaxation_steps`), never silent.
+
+**Ranking.** Matched comps are ordered by a weighted distance over: log-value gap, age gap,
+origin and destination league strength gaps (log median derived squad value, read at the
+comp's own season; Elo percentile added when both sides have one), destination/origin club
+tercile gaps (only when a target club is chosen), sub-position mismatch, pre-move
+playing-time gap, and recency. A missing feature drops its term for that comp with weight
+renormalization — nulls never gate eligibility and never penalize. The weights are hand-set
+priors recorded with a provenance comment in `server/app/services/constants.py`; the
+temporal backtest (next milestone) tunes and overwrites them.
+
+**The range.** The prediction is the similarity-weighted 25th/50th/75th percentile of the
+comp pool's 12-month value multipliers, applied to the player's current value — a weighted-
+neighbour quantile, not a model output, so every number traces back to the named comps in
+the response (the API returns the full quantile pool; the UI shows the closest six by
+default). **The 12-month horizon** is identical for every comp everywhere: "value after" is
+the valuation nearest 12 months post-transfer within a 6–18-month window.
+
+**Confidence and refusal.** High/Medium/Low is driven by pool size, dispersion (IQR of log
+multipliers) and how far the search had to widen (thresholds documented in
+`server/app/services/constants.py`). Fewer than 2 usable comps means **no range at all** —
+the API says "insufficient precedent" and shows the closest evidence it has instead.
+
+**No survivorship bias.** Outcomes never enter the similarity distance: a decliner ranks
+exactly as its similarity earns, and declines are shown, not filtered.
