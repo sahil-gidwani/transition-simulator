@@ -16,9 +16,9 @@
       "sha256": "ce0688dba896f13e6b44eb9bcc3fdd8fef07c79e5724cd1596888a3e81df48cc"
     },
     "player_values.parquet": {
-      "bytes": 1341741,
-      "rows": 617351,
-      "sha256": "24f449f0968d02d4623daed82630c1d615d0dbf289da12d76e1b24b3be4539f2"
+      "bytes": 1341862,
+      "rows": 617350,
+      "sha256": "62a774f6c0e55019c48be6d691e47d5de78b28784f76346322ee165c16147516"
     },
     "players.parquet": {
       "bytes": 945743,
@@ -36,7 +36,7 @@
       "sha256": "1a21d17da69d55837c07e41b86f028531e61af4662d0fd53fd130ed50ef2a16d"
     }
   },
-  "built_at": "2026-07-17T17:23:35+00:00",
+  "built_at": "2026-07-17T18:49:58+00:00",
   "constants": {
     "elo_asof_tolerance_days": 45,
     "loan_max_return_days": 548,
@@ -186,7 +186,7 @@
       "passed": true
     },
     {
-      "actual": "617,351",
+      "actual": "617,350",
       "detail": "dated valuations for in-scope players (profile value history)",
       "expected": ">= 600,000",
       "name": "player_values_floor",
@@ -263,7 +263,7 @@
       "passed": true
     },
     {
-      "actual": "617,351 rows",
+      "actual": "617,350 rows",
       "detail": "",
       "expected": "> 0 rows",
       "name": "player_values_non_empty",
