@@ -64,6 +64,21 @@ def test_search_query_below_two_normalized_chars_returns_empty() -> None:
     assert client.get("/api/players/search", params={"q": " ç "}).json() == []
 
 
+def test_multi_token_query_spans_the_name_boundary() -> None:
+    # The dominant real query shape: first name + partial last name.
+    client = _client_with_players(
+        [
+            {"player_id": 1, "name": "Mesut Özil"},
+            {"player_id": 2, "name": "Mesut Another"},
+        ]
+    )
+    results = client.get("/api/players/search", params={"q": "mesut oz"}).json()
+    assert [r["name"] for r in results] == ["Mesut Özil"]
+    # Substrings crossing a token boundary still match (rank: contains).
+    inner = client.get("/api/players/search", params={"q": "sut ozi"}).json()
+    assert [r["name"] for r in inner] == ["Mesut Özil"]
+
+
 def test_search_caps_results_at_twenty() -> None:
     rows = [{"player_id": i, "name": f"Clone Player {i:02d}"} for i in range(1, 26)]
     client = _client_with_players(rows)

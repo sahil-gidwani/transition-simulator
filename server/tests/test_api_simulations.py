@@ -16,7 +16,7 @@ from api_factories import (
 from fastapi.testclient import TestClient
 
 
-def _full_store() -> Any:
+def _full_store(transitions_rows: list[dict[str, Any]] | None = None) -> Any:
     players = make_players_processed(
         [
             {"player_id": 1, "name": "Sim Target"},
@@ -81,7 +81,9 @@ def _full_store() -> Any:
         ]
     )
     transitions = make_transitions(
-        [
+        transitions_rows
+        if transitions_rows is not None
+        else [
             {
                 "player_id": 100,
                 "player_name": "Riser One",
@@ -216,6 +218,91 @@ def test_no_precedent_yields_insufficient_with_no_range() -> None:
     assert body["pool_quality"]["expanded_search"] is True
     assert "Insufficient precedent" in body["narrative"]
     assert "€" not in body["narrative"]
+
+
+def test_prediction_is_the_weighted_quantile_of_exactly_the_returned_comps() -> None:
+    # Principle 1, end to end: with more matches than POOL_K, the served range
+    # must be recomputable from precisely the comps in the response - never
+    # from the pre-cap universe or a truncated subset.
+    from app.services.constants import POOL_K
+    from app.services.valuation import weighted_quantile
+
+    rows = [
+        {
+            "player_id": 100 + i,
+            "player_name": f"Comp {i:02d}",
+            "v_before": 8_000_000 + i * 300_000,
+            "multiplier": 0.6 + i * 0.05,
+            "delta_pct": 0.6 + i * 0.05 - 1.0,
+            "v_after": round((8_000_000 + i * 300_000) * (0.6 + i * 0.05)),
+        }
+        for i in range(POOL_K + 6)
+    ]
+    response = _post(make_client(_full_store(rows)), 1, "BB1")
+
+    assert response.status_code == 200
+    body = response.json()
+    comps = body["comps"]
+    assert body["pool_quality"]["pool_size"] == POOL_K
+    assert len(comps) == POOL_K
+    multipliers = [c["multiplier"] for c in comps]
+    similarities = [c["similarity"] for c in comps]
+    value = body["player"]["market_value_eur"]
+    prediction = body["prediction"]
+    assert prediction["low_eur"] == round(
+        value * weighted_quantile(multipliers, similarities, 0.25)
+    )
+    assert prediction["mid_eur"] == round(
+        value * weighted_quantile(multipliers, similarities, 0.50)
+    )
+    assert prediction["high_eur"] == round(
+        value * weighted_quantile(multipliers, similarities, 0.75)
+    )
+
+
+def test_max_relaxation_with_two_comps_still_produces_an_honest_range() -> None:
+    # Both comps qualify only once the origin filter drops (last ladder level).
+    rows: list[dict[str, Any]] = [
+        {
+            "player_id": 100 + i,
+            "from_tier": None,
+            "from_league": None,
+            "from_tercile": None,
+            "multiplier": 0.9 + i * 0.2,
+            "delta_pct": 0.9 + i * 0.2 - 1.0,
+            "v_after": round(10_000_000 * (0.9 + i * 0.2)),
+        }
+        for i in range(2)
+    ]
+    response = _post(make_client(_full_store(rows)), 1, "BB1", club_id=21)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["insufficient_precedent"] is False
+    assert body["prediction"] is not None
+    assert body["confidence"] == "low"
+    quality = body["pool_quality"]
+    assert quality["relaxation_level"] == 4
+    assert "origin league filter dropped" in quality["relaxation_steps"][-1]
+    assert quality["expanded_search"] is True
+    # Club terms are ignored at this level even though the club has a rating.
+    assert quality["dest_elo_available"] is True
+    assert quality["elo_pool_coverage"] == 0.0
+    assert all(c["from_league"] is None for c in body["comps"])  # serializes cleanly
+
+
+def test_single_comp_is_insufficient_but_names_the_evidence() -> None:
+    rows = [{"player_id": 100, "player_name": "Only Match"}]
+    response = _post(make_client(_full_store(rows)), 1, "BB1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["insufficient_precedent"] is True
+    assert body["prediction"] is None
+    assert body["confidence"] == "insufficient"
+    assert [c["player_name"] for c in body["comps"]] == ["Only Match"]
+    assert "Only Match" in body["narrative"]
+    assert "no responsible value range" in body["narrative"]
 
 
 def test_malformed_body_uses_the_error_schema() -> None:

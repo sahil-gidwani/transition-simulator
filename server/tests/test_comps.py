@@ -89,10 +89,26 @@ def _strengths() -> pl.DataFrame:
     )
 
 
+def _strengths_from(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    return pl.DataFrame(
+        rows, schema={"league": pl.String, "season": pl.Int16, "strength": pl.Float64}
+    )
+
+
 def _find(
-    universe: pl.DataFrame, query: QueryContext | None = None, club: ClubSeason | None = None
+    universe: pl.DataFrame,
+    query: QueryContext | None = None,
+    club: ClubSeason | None = None,
+    strengths: pl.DataFrame | None = None,
 ):  # type: ignore[no-untyped-def]
-    return find_comps(query or _query(), _DEST_LEAGUE, club, universe, _strengths(), SEASON_MIN)
+    return find_comps(
+        query or _query(),
+        _DEST_LEAGUE,
+        club,
+        universe,
+        strengths if strengths is not None else _strengths(),
+        SEASON_MIN,
+    )
 
 
 def _conforming(n: int, **overrides: Any) -> list[dict[str, Any]]:
@@ -308,6 +324,98 @@ def test_pool_is_capped_at_pool_k() -> None:
     assert len(result.pool) == POOL_K
 
 
+# --- league strength terms ---------------------------------------------------------
+
+
+def test_destination_strength_gap_outweighs_an_equal_origin_gap() -> None:
+    # X's gap is on the DESTINATION side, Y's identical gap on the ORIGIN side;
+    # W_DEST_STRENGTH > W_ORIGIN_STRENGTH so Y must rank ahead of X. A swapped
+    # from/to strength join inverts this order, so this test pins the sides.
+    strengths = _strengths_from(
+        [
+            {"league": "AA1", "season": 2023, "strength": 18.0},
+            {"league": "BB1", "season": 2023, "strength": 18.0},
+            {"league": "XD1", "season": 2023, "strength": 16.0},
+            {"league": "YO1", "season": 2023, "strength": 16.0},
+        ]
+    )
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_league": "XD1"},  # dest gap 2, origin gap 0
+            {"player_id": 101, "from_league": "YO1"},  # dest gap 0, origin gap 2
+            {"player_id": 102},  # both gaps 0: sanity anchor
+        ]
+    )
+    result = _find(universe, strengths=strengths)
+    assert [c.player_id for c in result.pool] == [102, 101, 100]
+
+
+def test_comp_strength_is_read_at_the_comp_season_not_the_latest() -> None:
+    # BB1 was far weaker in 2022; a 2022 comp must carry THAT season's gap.
+    # A season-misaligned join makes both comps near-equal (recency alone).
+    strengths = _strengths_from(
+        [
+            {"league": "AA1", "season": 2022, "strength": 18.0},
+            {"league": "AA1", "season": 2023, "strength": 18.0},
+            {"league": "BB1", "season": 2022, "strength": 10.0},
+            {"league": "BB1", "season": 2023, "strength": 18.0},
+        ]
+    )
+    universe = make_transitions(
+        [
+            {"player_id": 100},  # season 2023: dest strength 18 -> gap 0
+            {"player_id": 101, "season": 2022, "transfer_date": date(2022, 7, 1)},  # gap 8
+        ]
+    )
+    result = _find(universe, strengths=strengths)
+    by_id = {c.player_id: c for c in result.pool}
+    assert by_id[101].distance - by_id[100].distance > 1.0  # far beyond the recency delta
+
+
+def test_missing_strength_rows_never_drop_a_comp() -> None:
+    strengths = _strengths_from([{"league": "BB1", "season": 2023, "strength": 18.0}])
+    universe = make_transitions([{"player_id": 100, "from_league": "ZZ9"}])
+    result = _find(universe, strengths=strengths)
+    assert [c.player_id for c in result.pool] == [100]  # null strength: term drops, row stays
+
+
+def test_null_comp_sub_position_is_neutral_in_ranking() -> None:
+    # The documented policy for a null comp feature: the term drops with
+    # renormalization. A refactor to ne_missing()/fill_null would silently
+    # score unknown sub-positions as full mismatches.
+    shared: dict[str, Any] = {"season": 2025, "transfer_date": date(2025, 7, 1)}
+    universe = make_transitions(
+        [
+            {"player_id": 100, **shared},  # exact sub-position match
+            {"player_id": 101, "sub_position": None, **shared},  # unknown: neutral
+            {"player_id": 102, "sub_position": "Right Winger", **shared},  # true mismatch
+        ]
+    )
+    result = _find(universe)
+    by_id = {c.player_id: c for c in result.pool}
+    assert by_id[100].distance == pytest.approx(by_id[101].distance)
+    assert by_id[102].distance > by_id[101].distance
+
+
+def test_last_ladder_level_ignores_club_terms_for_ranking() -> None:
+    # Two comps admitted only at the last level, differing ONLY in club-side
+    # context. The level's label promises club terms are ignored: distances
+    # must match and Elo coverage read zero despite the club having a rating.
+    base: dict[str, Any] = {"from_tier": None, "from_league": None, "from_tercile": None}
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_tercile": 2, "to_elo_pct": 0.7, **base},
+            {"player_id": 101, "to_tercile": 3, "to_elo_pct": 0.1, **base},
+        ]
+    )
+    result = _find(universe, club=_DEST_CLUB)
+    assert result.quality.relaxation_level == len(LADDER) - 1
+    assert result.quality.dest_elo_available is True
+    assert result.quality.elo_pool_coverage == 0.0
+    by_id = {c.player_id: c for c in result.pool}
+    assert by_id[100].distance == pytest.approx(by_id[101].distance)
+
+
 # --- Elo fallback -----------------------------------------------------------------
 
 
@@ -367,6 +475,18 @@ def test_build_query_context_resolves_origin_and_minutes() -> None:
 
 def test_build_query_context_without_value_raises_409() -> None:
     store = _store_for_context({"market_value_eur": None, "market_value_asof": None})
+    player = store.players.get(1)
+    assert player is not None
+    with pytest.raises(ApiError) as excinfo:
+        build_query_context(player, store, FixedClock(date(2026, 7, 17)))
+    assert excinfo.value.status_code == 409
+    assert excinfo.value.code == "player_without_value"
+
+
+def test_build_query_context_with_zero_value_raises_409_not_a_crash() -> None:
+    # Upstream uses 0 as a no-valuation sentinel; if a future vintage ships it
+    # as a latest value, simulations must refuse cleanly, not hit log(0).
+    store = _store_for_context({"market_value_eur": 0})
     player = store.players.get(1)
     assert player is not None
     with pytest.raises(ApiError) as excinfo:

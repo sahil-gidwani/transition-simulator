@@ -42,3 +42,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code, content=_body("http_error", str(exc.detail))
         )
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
+        # Keep the envelope even for bugs; the message stays generic on purpose.
+        return JSONResponse(
+            status_code=500, content=_body("internal_error", "Internal server error")
+        )

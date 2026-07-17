@@ -70,7 +70,11 @@ class SeasonsRepo:
         """Latest-season leagues, strongest first (tier asc, strength desc, league asc)."""
         rows = (
             self._league_seasons.filter(pl.col("season") == self.latest_season)
-            .sort(["tier", "strength", "league"], descending=[False, True, False])
+            .sort(
+                ["tier", "strength", "league"],
+                descending=[False, True, False],
+                nulls_last=True,  # a null-strength league must not top its tier
+            )
             .iter_rows(named=True)
         )
         return [_league(row) for row in rows]

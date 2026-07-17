@@ -74,6 +74,22 @@ def test_destinations_serve_latest_season_sorted() -> None:
     assert zeta["elo_available"] is True
 
 
+def test_null_strength_league_sorts_last_within_its_tier() -> None:
+    # strength is nullable by the artifact contract (non-positive median squad
+    # value); an unknown-strength league must never top its tier.
+    store = make_store(
+        league_seasons=make_league_seasons(
+            [
+                {"league": "AA1", "tier": 1, "strength": 18.0},
+                {"league": "NN1", "tier": 1, "strength": None},
+                {"league": "BB1", "tier": 1, "strength": 19.0},
+            ]
+        ),
+    )
+    body = make_client(store).get("/api/destinations").json()
+    assert [lg["league_id"] for lg in body["leagues"]] == ["BB1", "AA1", "NN1"]
+
+
 def test_league_without_slug_falls_back_to_code() -> None:
     body = make_client(_store()).get("/api/destinations").json()
     cc1 = next(lg for lg in body["leagues"] if lg["league_id"] == "CC1")

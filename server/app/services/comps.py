@@ -104,7 +104,9 @@ class CompsResult:
 
 
 def build_query_context(player: PlayerRecord, store: DataStore, clock: Clock) -> QueryContext:
-    if player.market_value_eur is None:
+    # <= 0 guards a future data vintage shipping upstream's 0 sentinel as a
+    # latest value: that must stay a 409, never a math.log domain error.
+    if player.market_value_eur is None or player.market_value_eur <= 0:
         raise ApiError(
             409,
             "player_without_value",
