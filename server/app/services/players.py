@@ -1,13 +1,14 @@
-"""Player-facing read services: search (and, further on, profile assembly)."""
+"""Player-facing read services: search and profile assembly."""
 
 from __future__ import annotations
 
 from datetime import date
 
 from app.core.clock import Clock
+from app.core.errors import ApiError
 from app.core.text import normalize_search_text, slug_to_title
 from app.repositories.store import DataStore
-from app.schemas.players import PlayerSearchResult
+from app.schemas.players import PlayerProfileResponse, PlayerSearchResult, ValuePointOut
 from app.services.constants import SEARCH_LIMIT, SEARCH_MIN_QUERY_CHARS
 
 
@@ -42,3 +43,32 @@ def search_players(query: str, store: DataStore, clock: Clock) -> list[PlayerSea
             )
         )
     return results
+
+
+def get_player_profile(player_id: int, store: DataStore, clock: Clock) -> PlayerProfileResponse:
+    rec = store.players.get(player_id)
+    if rec is None:
+        raise ApiError(404, "player_not_found", f"No player with id {player_id}")
+    league = store.seasons.league_latest(rec.current_league)
+    return PlayerProfileResponse(
+        player_id=rec.player_id,
+        name=rec.name,
+        position_group=rec.position_group,
+        sub_position=rec.sub_position,
+        date_of_birth=rec.date_of_birth,
+        age=age_on(rec.date_of_birth, clock.today()),
+        foot=rec.foot,
+        height_cm=rec.height_cm,
+        club_id=rec.current_club_id,
+        club_name=rec.current_club_name,
+        league_id=rec.current_league,
+        league_name=slug_to_title(league.league_name) if league and league.league_name else None,
+        league_tier=league.tier if league else None,
+        last_season=rec.last_season,
+        market_value_eur=rec.market_value_eur,
+        market_value_asof=rec.market_value_asof,
+        value_history=[
+            ValuePointOut(date=point.date, value_eur=point.value_eur)
+            for point in store.players.value_history(player_id)
+        ],
+    )
