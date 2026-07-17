@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import polars as pl
 
-from pipeline.config import PROFILE_MIN_MINUTES
+from pipeline.config import PROFILE_MIN_MINUTES, SEASON_START_MONTH
 from pipeline.transforms.common import position_group_expr
+from pipeline.transforms.minutes import minutes_share
 
 _KEYS = ["player_id", "season", "league"]
 _PEER_GROUP = ["league", "season", "position_group"]
@@ -60,6 +61,55 @@ def player_season_stats(appearances: pl.DataFrame, games: pl.DataFrame) -> pl.Da
             for name, metric in per90.items()
         ]
     ).sort(_KEYS)
+
+
+def profile_minutes_share(
+    appearances: pl.DataFrame,
+    games: pl.DataFrame,
+    cleaned_transfers: pl.DataFrame,
+    covered_games: pl.DataFrame,
+) -> pl.DataFrame:
+    """minutes_share per (player, season, league) over the July-June season window.
+
+    The base club is the club of the player's first appearance in that
+    league-season; transfer boundaries inside the season split the window, and
+    only that league's covered games count toward possible minutes. Nullable
+    by design: no covered games means coverage unknown, never zero.
+    """
+    meta = appearances.join(_domestic_game_meta(games), on="game_id", how="inner")
+    keys = (
+        meta.sort("date")
+        .group_by(_KEYS, maintain_order=True)
+        .agg(base_club_id=pl.col("player_club_id").first())
+        .with_row_index("anchor_id")
+        .with_columns(
+            anchor_id=pl.col("anchor_id").cast(pl.Int64),
+            window_start=pl.date(pl.col("season"), SEASON_START_MONTH, 1),
+            window_end=pl.date(pl.col("season") + 1, SEASON_START_MONTH, 1),
+        )
+    )
+    shares: list[pl.DataFrame] = []
+    for (league,) in keys.select("league").unique().sort("league").iter_rows():
+        anchors = keys.filter(pl.col("league") == league).select(
+            "anchor_id", "player_id", "window_start", "window_end", "base_club_id"
+        )
+        shares.append(
+            minutes_share(
+                anchors,
+                cleaned_transfers,
+                covered_games.filter(pl.col("league") == league),
+                appearances,
+                [str(league)],
+            )
+        )
+    if not shares:
+        return keys.select(*_KEYS).with_columns(minutes_share=pl.lit(None, dtype=pl.Float64))
+    return (
+        pl.concat(shares)
+        .join(keys.select("anchor_id", *_KEYS), on="anchor_id", how="inner")
+        .select(*_KEYS, "minutes_share")
+        .sort(_KEYS)
+    )
 
 
 def gk_stats(

@@ -194,3 +194,23 @@ def test_minutes_share_column_joined_when_provided_else_null() -> None:
     )
     with_share = _assembled(apps, games, club_games, players, share)
     assert with_share["minutes_share"].to_list() == [0.75]
+
+
+def test_profile_minutes_share_per_league_season() -> None:
+    from factories import make_transfers
+
+    from pipeline.transforms.minutes import covered_league_games
+    from pipeline.transforms.profile import profile_minutes_share
+
+    games = _games(2)  # two covered games for club 10 in league AA1, season 2020
+    apps = make_appearances(
+        [
+            {"game_id": 100, "player_id": 1, "minutes_played": 90},
+            {"game_id": 101, "player_id": 1, "minutes_played": 45},
+        ]
+    )
+    covered = covered_league_games(games, apps)
+    out = profile_minutes_share(apps, games, make_transfers([]), covered)
+    row = out.row(0, named=True)
+    assert (row["player_id"], row["season"], row["league"]) == (1, 2020, "AA1")
+    assert row["minutes_share"] == pytest.approx(135 / 180)
