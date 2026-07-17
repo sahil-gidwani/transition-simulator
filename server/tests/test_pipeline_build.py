@@ -262,6 +262,11 @@ def test_build_succeeds_and_writes_all_artifacts(tmp_path: Path) -> None:
     assert values.height == 5  # both synthetic players are in scope, all rows dated
     assert values["player_id"].to_list() == sorted(values["player_id"].to_list())
 
+    leagues = pl.read_parquet(out_dir / "league_seasons.parquet")
+    aa1 = leagues.filter(pl.col("league") == "AA1").row(0, named=True)
+    assert aa1["league_name"] == "league-a"  # factories' competitions name slug
+    assert aa1["country"] == "Aland"
+
     mapping = pl.read_parquet(out_dir / "elo_mapping.parquet")
     assert mapping.filter(pl.col("club_id") == 10)["stage"].to_list() == ["manual"]
 

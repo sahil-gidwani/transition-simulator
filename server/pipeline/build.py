@@ -104,6 +104,8 @@ LEAGUE_SEASONS_SCHEMA: dict[str, pl.DataType] = {
     "tier": pl.Int8(),
     "median_elo": pl.Float32(),
     "elo_club_coverage": pl.Float32(),
+    "league_name": pl.String(),
+    "country": pl.String(),
 }
 
 ELO_MAPPING_SCHEMA: dict[str, pl.DataType] = {
@@ -264,7 +266,7 @@ def run_build(
         club_seasons_enriched, CLUB_SEASONS_SCHEMA, ["season", "league", "club_id"]
     )
 
-    league_seasons_work = leagues_t.league_seasons(club_seasons_enriched)
+    league_seasons_work = leagues_t.league_seasons(club_seasons_enriched, competitions_df)
     league_seasons_final = _cast(league_seasons_work, LEAGUE_SEASONS_SCHEMA, ["season", "league"])
 
     # --- transitions ------------------------------------------------------------
