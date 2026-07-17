@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -22,7 +23,7 @@ from app.repositories.players import PlayerRecord
 from app.repositories.seasons import ClubSeason, LeagueSeason
 from app.repositories.transitions import TransitionsRepo
 from app.services.comps import QueryContext, build_query_context, find_comps
-from app.services.constants import LADDER, POOL_K
+from app.services.constants import DEFAULT_RETRIEVAL, LADDER, POOL_K
 
 SEASON_MIN = 2012
 
@@ -445,6 +446,89 @@ def test_missing_destination_elo_flags_the_fallback() -> None:
     result = _find(make_transitions(_conforming(3, to_elo_pct=0.5)), club=club)
     assert result.quality.dest_elo_available is False
     assert result.quality.elo_pool_coverage == 0.0
+
+
+# --- retrieval config threading ----------------------------------------------------
+
+
+def test_explicit_default_config_matches_the_default_call() -> None:
+    universe = make_transitions(
+        [
+            {"player_id": 100, "v_before": 20_000_000},
+            {"player_id": 101, "v_before": 10_000_000},
+            {"player_id": 102, "v_before": 15_000_000},
+        ]
+    )
+    implicit = _find(universe)
+    explicit = find_comps(
+        _query(),
+        _DEST_LEAGUE,
+        None,
+        universe,
+        _strengths(),
+        SEASON_MIN,
+        config=DEFAULT_RETRIEVAL,
+    )
+    assert [(c.player_id, c.distance) for c in explicit.pool] == [
+        (c.player_id, c.distance) for c in implicit.pool
+    ]
+    assert explicit.quality == implicit.quality
+
+
+def test_config_pool_k_caps_the_pool() -> None:
+    result = find_comps(
+        _query(),
+        _DEST_LEAGUE,
+        None,
+        make_transitions(_conforming(5)),
+        _strengths(),
+        SEASON_MIN,
+        config=replace(DEFAULT_RETRIEVAL, pool_k=2),
+    )
+    assert result.quality.pool_size == 2
+    assert len(result.pool) == 2
+
+
+def test_config_min_pool_target_drives_the_ladder() -> None:
+    # Three base-conforming comps satisfy the default target of 3 but not a
+    # target of 4: the ladder must climb until +/-5y admits the fourth.
+    universe = make_transitions([*_conforming(3), {"player_id": 200, "age_at_transfer": 29.5}])
+    result = find_comps(
+        _query(),
+        _DEST_LEAGUE,
+        None,
+        universe,
+        _strengths(),
+        SEASON_MIN,
+        config=replace(DEFAULT_RETRIEVAL, min_pool_target=4),
+    )
+    assert result.quality.relaxation_level == 1
+    assert 200 in [c.player_id for c in result.pool]
+
+
+def test_config_weights_reorder_the_pool() -> None:
+    # Comp 100 wins on value, comp 101 wins on age; all other terms tie.
+    universe = make_transitions(
+        [
+            {"player_id": 100, "v_before": 10_000_000, "age_at_transfer": 27.5},
+            {"player_id": 101, "v_before": 18_000_000, "age_at_transfer": 25.0},
+        ]
+    )
+
+    def order(w_age: float) -> list[int]:
+        result = find_comps(
+            _query(),
+            _DEST_LEAGUE,
+            None,
+            universe,
+            _strengths(),
+            SEASON_MIN,
+            config=replace(DEFAULT_RETRIEVAL, w_age=w_age),
+        )
+        return [c.player_id for c in result.pool]
+
+    assert order(0.0) == [100, 101]  # age ignored: exact value wins
+    assert order(5.0) == [101, 100]  # age dominant: exact age wins
 
 
 # --- build_query_context -----------------------------------------------------------

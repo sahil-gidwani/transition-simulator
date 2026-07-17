@@ -26,24 +26,13 @@ from app.repositories.seasons import ClubSeason, LeagueSeason
 from app.repositories.store import DataStore
 from app.services.constants import (
     AGE_SCALE,
-    LADDER,
+    DEFAULT_RETRIEVAL,
     LN_VALUE_SCALE,
-    MIN_POOL_TARGET,
-    POOL_K,
     RECENCY_SCALE,
     STRENGTH_SCALE,
     TERCILE_SCALE,
-    W_AGE,
-    W_DEST_STRENGTH,
-    W_DEST_TERCILE,
-    W_ELO,
-    W_LOG_VALUE,
-    W_MINUTES,
-    W_ORIGIN_STRENGTH,
-    W_ORIGIN_TERCILE,
-    W_RECENCY,
-    W_SUB_POSITION,
     LadderStep,
+    RetrievalConfig,
 )
 
 
@@ -170,46 +159,56 @@ def _distance_terms(
     dest_league: LeagueSeason,
     dest_club: ClubSeason | None,
     drop_club_terms: bool,
+    config: RetrievalConfig,
 ) -> list[tuple[pl.Expr, float]]:
     terms: list[tuple[pl.Expr, float]] = [
-        ((pl.col("v_before").log() - math.log(query.value_eur)).abs() / LN_VALUE_SCALE, W_LOG_VALUE)
+        (
+            (pl.col("v_before").log() - math.log(query.value_eur)).abs() / LN_VALUE_SCALE,
+            config.w_log_value,
+        )
     ]
     if query.age is not None:
-        terms.append(((pl.col("age_at_transfer") - query.age).abs() / AGE_SCALE, W_AGE))
+        terms.append(((pl.col("age_at_transfer") - query.age).abs() / AGE_SCALE, config.w_age))
     if dest_league.strength is not None:
         terms.append(
-            ((pl.col("to_strength") - dest_league.strength).abs() / STRENGTH_SCALE, W_DEST_STRENGTH)
+            (
+                (pl.col("to_strength") - dest_league.strength).abs() / STRENGTH_SCALE,
+                config.w_dest_strength,
+            )
         )
     if query.origin_strength is not None:
         terms.append(
             (
                 (pl.col("from_strength") - query.origin_strength).abs() / STRENGTH_SCALE,
-                W_ORIGIN_STRENGTH,
+                config.w_origin_strength,
             )
         )
     if not drop_club_terms and dest_club is not None:
         if dest_club.elo_pct is not None:
-            terms.append(((pl.col("to_elo_pct") - dest_club.elo_pct).abs(), W_ELO))
+            terms.append(((pl.col("to_elo_pct") - dest_club.elo_pct).abs(), config.w_elo))
         terms.append(
-            ((pl.col("to_tercile") - dest_club.tercile).abs() / TERCILE_SCALE, W_DEST_TERCILE)
+            (
+                (pl.col("to_tercile") - dest_club.tercile).abs() / TERCILE_SCALE,
+                config.w_dest_tercile,
+            )
         )
     if not drop_club_terms and query.origin_tercile is not None:
         terms.append(
             (
                 (pl.col("from_tercile") - query.origin_tercile).abs() / TERCILE_SCALE,
-                W_ORIGIN_TERCILE,
+                config.w_origin_tercile,
             )
         )
     if query.minutes_share is not None:
-        terms.append(((pl.col("minutes_share_pre") - query.minutes_share).abs(), W_MINUTES))
+        terms.append(((pl.col("minutes_share_pre") - query.minutes_share).abs(), config.w_minutes))
     if query.player.sub_position is not None:
         terms.append(
             (
                 (pl.col("sub_position") != query.player.sub_position).cast(pl.Float64),
-                W_SUB_POSITION,
+                config.w_sub_position,
             )
         )
-    terms.append((((query.latest_season - pl.col("season")) / RECENCY_SCALE), W_RECENCY))
+    terms.append((((query.latest_season - pl.col("season")) / RECENCY_SCALE), config.w_recency))
     return terms
 
 
@@ -220,6 +219,7 @@ def _score(
     dest_club: ClubSeason | None,
     drop_club_terms: bool,
     strengths: pl.DataFrame,
+    config: RetrievalConfig,
 ) -> pl.DataFrame:
     """Renormalized weighted distance: per comp, missing terms drop from both
     the numerator and the weight mass, so a null never penalizes."""
@@ -237,7 +237,7 @@ def _score(
         on=["from_league", "season"],
         how="left",
     )
-    terms = _distance_terms(query, dest_league, dest_club, drop_club_terms)
+    terms = _distance_terms(query, dest_league, dest_club, drop_club_terms, config)
     numerator = reduce(
         operator.add,
         [pl.when(d.is_not_null()).then(d * w).otherwise(0.0) for d, w in terms],
@@ -303,17 +303,20 @@ def find_comps(
     universe: pl.DataFrame,
     strengths: pl.DataFrame,
     season_min: int,
+    config: RetrievalConfig = DEFAULT_RETRIEVAL,
 ) -> CompsResult:
     level = 0
-    step = LADDER[0]
+    step = config.ladder[0]
     filtered = _hard_filter(universe, query, dest_league.tier, step, season_min)
-    for level, step in enumerate(LADDER):  # noqa: B007 - level/step used after the loop
+    for level, step in enumerate(config.ladder):  # noqa: B007 - level/step used after the loop
         filtered = _hard_filter(universe, query, dest_league.tier, step, season_min)
-        if filtered.height >= MIN_POOL_TARGET:
+        if filtered.height >= config.min_pool_target:
             break
 
-    scored = _score(filtered, query, dest_league, dest_club, step.drop_club_terms, strengths)
-    pool_df = scored.sort(["distance", "player_id", "transfer_date"]).head(POOL_K)
+    scored = _score(
+        filtered, query, dest_league, dest_club, step.drop_club_terms, strengths, config
+    )
+    pool_df = scored.sort(["distance", "player_id", "transfer_date"]).head(config.pool_k)
 
     pool = [
         ScoredComp(
@@ -342,7 +345,7 @@ def find_comps(
     quality = PoolQuality(
         pool_size=len(pool),
         relaxation_level=level,
-        relaxation_steps=[LADDER[i].label for i in range(1, level + 1)],
+        relaxation_steps=[config.ladder[i].label for i in range(1, level + 1)],
         expanded_search=level > 0,
         club_selected=dest_club is not None,
         elo_pool_coverage=elo_used / len(pool) if pool else 0.0,

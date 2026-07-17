@@ -68,6 +68,48 @@ RECENCY_SCALE = 13.0  # seasons spanned by the transition universe
 POOL_K = 24  # comps entering the quantile pool; the API returns all of them
 SHOWN_COMPS_DEFAULT = 6  # UI default: closest shown, rest expandable
 
+
+@dataclass(frozen=True)
+class RetrievalConfig:
+    """The comps engine's tunable surface, threaded through find_comps.
+
+    Serving always passes DEFAULT_RETRIEVAL (assembled from the constants in
+    this module); the offline backtest scores candidate configs through the
+    exact same code path. Scales are not part of the config - each is
+    redundant with its weight (w/scale is one effective coefficient).
+    """
+
+    w_log_value: float
+    w_age: float
+    w_dest_strength: float
+    w_origin_strength: float
+    w_elo: float
+    w_dest_tercile: float
+    w_origin_tercile: float
+    w_minutes: float
+    w_sub_position: float
+    w_recency: float
+    ladder: tuple[LadderStep, ...]
+    min_pool_target: int
+    pool_k: int
+
+
+DEFAULT_RETRIEVAL = RetrievalConfig(
+    w_log_value=W_LOG_VALUE,
+    w_age=W_AGE,
+    w_dest_strength=W_DEST_STRENGTH,
+    w_origin_strength=W_ORIGIN_STRENGTH,
+    w_elo=W_ELO,
+    w_dest_tercile=W_DEST_TERCILE,
+    w_origin_tercile=W_ORIGIN_TERCILE,
+    w_minutes=W_MINUTES,
+    w_sub_position=W_SUB_POSITION,
+    w_recency=W_RECENCY,
+    ladder=LADDER,
+    min_pool_target=MIN_POOL_TARGET,
+    pool_k=POOL_K,
+)
+
 # --- valuation: range + confidence ----------------------------------------------
 
 MIN_COMPS_FOR_RANGE = 2  # below this: insufficient precedent, NO range (principle 4)
