@@ -9,6 +9,12 @@
   --color-brass-400: #d3a94f;
   --color-ink-100: #e8e6e1;
   --color-ink-400: #9aa3ad;
+  /* Verdict semantics. rise/decline are CVD-validated against the pitch surfaces
+     (deutan ΔE 10.7) and never appear color-alone: slope geometry, signed
+     percentages and arrows carry the same signal. */
+  --color-rise-400: #2dd4bf;
+  --color-decline-400: #f87171;
+  --color-caution-400: #fb923c;
 }
 
 @layer base {
