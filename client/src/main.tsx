@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import PageLayout from './components/layout/PageLayout';
 import './index.css';
 import { ApiError } from './lib/api';
+import PlayerProfilePage from './pages/PlayerProfilePage';
 import SearchPage from './pages/SearchPage';
 
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
           <Route element={<PageLayout />}>
             <Route path="/" element={<Navigate to="/search" replace />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/players/:id" element={<PlayerProfilePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
