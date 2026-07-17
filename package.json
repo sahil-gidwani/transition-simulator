@@ -15,7 +15,7 @@
     "lint": "npm run lint -w client && npm run lint:api",
     "lint:api": "cd server && uv run ruff check . && uv run ruff format --check .",
     "typecheck": "npm run typecheck -w client && npm run typecheck:api",
-    "typecheck:api": "cd server && uv run mypy app"
+    "typecheck:api": "cd server && uv run mypy"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
