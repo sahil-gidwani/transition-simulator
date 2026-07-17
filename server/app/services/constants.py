@@ -8,7 +8,62 @@ otherwise.
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass
+
 # --- search -------------------------------------------------------------------
 
 SEARCH_MIN_QUERY_CHARS = 2  # shorter normalized queries return no results
 SEARCH_LIMIT = 20
+
+# --- comps: hard filters + relaxation ladder ------------------------------------
+
+
+@dataclass(frozen=True)
+class LadderStep:
+    """One relaxation level; steps are cumulative widenings of the base filters."""
+
+    label: str
+    age_band: float  # comp age_at_transfer within query age +/- this
+    value_bracket: tuple[float, float]  # comp v_before / query value within this
+    origin_tier_band: int | None  # |comp from_tier - origin tier| <= this; None = dropped
+    drop_club_terms: bool = False  # tercile/Elo ranking terms ignored at this level
+
+
+MIN_POOL_TARGET = 3  # fewer matches than this fires the next ladder step
+
+LADDER: tuple[LadderStep, ...] = (
+    LadderStep("base filters", 3.0, (0.4, 2.5), 1),
+    LadderStep("age band widened to +/-5 years", 5.0, (0.4, 2.5), 1),
+    LadderStep("value bracket widened to 0.25-4x", 5.0, (0.25, 4.0), 1),
+    LadderStep("origin league tier widened to +/-2", 5.0, (0.25, 4.0), 2),
+    LadderStep(
+        "origin league filter dropped; club-level terms ignored",
+        5.0,
+        (0.25, 4.0),
+        None,
+        drop_club_terms=True,
+    ),
+)
+
+# --- comps: distance weights + scales (term distances are dimensionless ~[0,1]) --
+
+W_LOG_VALUE = 1.0  # |ln v_before - ln value| / LN_VALUE_SCALE
+W_AGE = 0.8  # |age gap| / AGE_SCALE
+W_DEST_STRENGTH = 0.8  # |strength(to_league @ comp season) - strength(dest @ latest)|
+W_ORIGIN_STRENGTH = 0.6  # same, origin side
+W_ELO = 0.5  # |comp to_elo_pct - dest club elo_pct| (both already 0-1)
+W_DEST_TERCILE = 0.4  # |comp to_tercile - dest club tercile| / TERCILE_SCALE
+W_ORIGIN_TERCILE = 0.2  # |comp from_tercile - query club tercile| / TERCILE_SCALE
+W_MINUTES = 0.4  # |minutes_share_pre - query minutes_share| (both 0-1)
+W_SUB_POSITION = 0.3  # 0 if same sub-position else 1
+W_RECENCY = 0.3  # (latest season - comp season) / RECENCY_SCALE
+
+LN_VALUE_SCALE = math.log(2.5)  # the base bracket edge maps to distance 1.0
+AGE_SCALE = 3.0
+STRENGTH_SCALE = 1.0  # strength is ln(median squad value); 1.0 = one e-fold
+TERCILE_SCALE = 2.0
+RECENCY_SCALE = 13.0  # seasons spanned by the transition universe
+
+POOL_K = 24  # comps entering the quantile pool; the API returns all of them
+SHOWN_COMPS_DEFAULT = 6  # UI default: closest shown, rest expandable
