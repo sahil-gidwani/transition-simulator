@@ -1,8 +1,10 @@
 from importlib.metadata import PackageNotFoundError, version
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.schemas.health import HealthResponse
+from app.repositories.store import DataStore, get_store
+from app.schemas.health import DataBuildInfo, HealthResponse
 
 router = APIRouter()
 
@@ -15,5 +17,17 @@ def _server_version() -> str:
 
 
 @router.get("/health")
-def get_health() -> HealthResponse:
-    return HealthResponse(status="ok", version=_server_version())
+def get_health(store: Annotated[DataStore, Depends(get_store)]) -> HealthResponse:
+    info = store.build_info
+    return HealthResponse(
+        status="ok",
+        version=_server_version(),
+        data=DataBuildInfo(
+            repo=info.repo,
+            revision=info.revision,
+            built_at=info.built_at,
+            max_valuation_date=info.max_valuation_date,
+            censor_horizon=info.censor_horizon,
+            comps_universe_size=info.comps_universe_size,
+        ),
+    )
