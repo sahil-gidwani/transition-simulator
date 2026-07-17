@@ -23,6 +23,9 @@ __pycache__/
 # Data (large raw source files; processed artifacts ARE committed)
 server/data/raw/
 
+# Backtest outputs (reproducible via `uv run python -m pipeline.eval`)
+server/data/eval/
+
 # OS / editor
 .DS_Store
 Thumbs.db
