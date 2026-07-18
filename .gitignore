@@ -36,3 +36,6 @@ docker/certs/*
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Submission meta, never committed
+docs/video-script.md
