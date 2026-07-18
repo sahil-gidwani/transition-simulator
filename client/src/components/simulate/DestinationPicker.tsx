@@ -22,7 +22,7 @@ export default function DestinationPicker({
       <div
         role="status"
         aria-label="Loading destination leagues"
-        className="glass-panel grid gap-4 rounded-xl p-4 sm:grid-cols-2"
+        className="glass-panel relative z-30 grid gap-4 rounded-xl p-4 sm:grid-cols-2"
       >
         <SkeletonBlock className="h-16 w-full" />
         <SkeletonBlock className="h-16 w-full" />
@@ -34,7 +34,10 @@ export default function DestinationPicker({
   const selectedClub = selectedLeague?.clubs.find((club) => club.club_id === clubId) ?? null;
 
   return (
-    <div className="glass-panel grid gap-4 rounded-xl p-4 sm:grid-cols-2">
+    // z-30: the glass panel's backdrop-filter makes this a stacking context,
+    // trapping the combobox dropdowns (z-10) inside it — without a raised
+    // z-index the later-in-DOM verdict/narrative panels paint over them.
+    <div className="glass-panel relative z-30 grid gap-4 rounded-xl p-4 sm:grid-cols-2">
       <Combobox<DestinationLeague>
         id="destination-league"
         label="Destination league"

@@ -105,7 +105,11 @@
 }
 
 /* Elevated glass surface — reserved for the header, the verdict/insufficient
-   hero cards and the destination picker. Never on dense card grids. */
+   hero cards and the destination picker. Never on dense card grids.
+   NOTE: backdrop-filter makes every glass panel its own stacking context —
+   z-index inside one cannot escape it. Semantic z scale: in-panel dropdowns
+   z-10 → raised panels that spawn overlays (destination picker) z-30 →
+   sticky header z-40 → film-grain overlay z-50 (pointer-transparent). */
 @utility glass-panel {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background-color: rgba(19, 25, 31, 0.72);
