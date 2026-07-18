@@ -28,7 +28,17 @@ everything defaults sanely with no `.env` present.
 
 ### Docker
 
-Coming soon — `docker compose up` will bring up the full app with zero manual steps.
+One command, zero configuration — the processed data ships in the repo, so nothing is
+downloaded and no keys are needed:
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:8080. nginx serves the built client and proxies `/api` to the API
+container, so the browser talks to a single origin. Set `PRECEDENT_APP_PORT` in `.env` to
+publish a different port. If your network uses a TLS-inspecting proxy, see
+[docker/certs/README.md](docker/certs/README.md).
 
 ## Data & pipeline
 
