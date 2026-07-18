@@ -61,6 +61,64 @@ describe('PoolQualityBanner', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('says when an Elo-rated club was compared against a mostly Elo-less pool', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: true,
+          dest_elo_available: true,
+          elo_pool_coverage: 0.1,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Similarity caveats')).toBeInTheDocument();
+    expect(
+      screen.getByText(/available for only 10% of these comparable moves/i),
+    ).toBeInTheDocument();
+  });
+
+  it('stays quiet about Elo coverage when most of the pool carries a rating', () => {
+    const { container } = render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: true,
+          dest_elo_available: true,
+          elo_pool_coverage: 0.8,
+        })}
+      />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('leaves low Elo coverage to the fallback note when the club itself has no rating', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: true,
+          dest_elo_available: false,
+          elo_pool_coverage: 0.1,
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/squad-value tiers stood in/i)).toBeInTheDocument();
+    expect(screen.queryByText(/carried the rest/i)).not.toBeInTheDocument();
+  });
+
+  it('does not raise the Elo-coverage caveat for league-only simulations', () => {
+    const { container } = render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: false,
+          dest_elo_available: false,
+          elo_pool_coverage: 0,
+        })}
+      />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
   it('surfaces query-side similarity degradations (stated-similarity principle)', () => {
     render(
       <PoolQualityBanner poolQuality={poolQuality({ missing_age: true, missing_minutes: true })} />,

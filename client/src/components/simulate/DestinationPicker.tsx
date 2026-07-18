@@ -19,7 +19,11 @@ export default function DestinationPicker({
 }: DestinationPickerProps) {
   if (!leagues) {
     return (
-      <div className="grid gap-4 rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 sm:grid-cols-2">
+      <div
+        role="status"
+        aria-label="Loading destination leagues"
+        className="grid gap-4 rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 sm:grid-cols-2"
+      >
         <SkeletonBlock className="h-16 w-full" />
         <SkeletonBlock className="h-16 w-full" />
       </div>

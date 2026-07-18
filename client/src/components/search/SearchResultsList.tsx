@@ -51,15 +51,15 @@ export default function SearchResultsList({
               {result.club_name} · {result.league_name ?? result.league_id}
             </div>
           </div>
-          <span
-            className="shrink-0 font-medium text-brass-300 tabular-nums"
-            title={
-              result.market_value_asof
+          <span className="shrink-0 text-right">
+            <span className="block font-medium text-brass-300 tabular-nums">
+              {formatEuroCompact(result.market_value_eur)}
+            </span>
+            <span className="block text-xs whitespace-nowrap text-ink-400">
+              {result.market_value_asof
                 ? `as of ${formatDate(result.market_value_asof)}`
-                : 'no valuation on record'
-            }
-          >
-            {formatEuroCompact(result.market_value_eur)}
+                : 'no valuation on record'}
+            </span>
           </span>
         </li>
       ))}

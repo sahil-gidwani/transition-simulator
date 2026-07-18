@@ -169,9 +169,9 @@ export default function SimulatePage() {
           <div className="space-y-6 lg:col-span-3">
             <VerdictPanel result={state.result} prediction={state.prediction} />
             <CompsPanel
-              // Re-key per destination so the expand-all toggle never leaks
-              // across cached destination switches.
-              key={`${state.result.destination.league_id}-${state.result.destination.club_id ?? 'any'}`}
+              // Re-key per player+destination so the expand-all toggle never
+              // leaks across cached destination or player switches.
+              key={`${playerId}-${state.result.destination.league_id}-${state.result.destination.club_id ?? 'any'}`}
               comps={state.result.comps}
               shownComps={state.result.shown_comps}
               leagueNames={leagueNames}

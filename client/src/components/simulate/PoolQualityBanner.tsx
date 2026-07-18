@@ -5,12 +5,21 @@ interface PoolQualityBannerProps {
 }
 
 /**
+ * Below this share of Elo-scored comps, an Elo-rated destination club is
+ * being compared against a mostly Elo-less pool — the "Elo where available"
+ * part of the similarity definition quietly stopped doing its job, so the
+ * banner has to say so.
+ */
+const LOW_ELO_POOL_COVERAGE = 0.5;
+
+/**
  * Surfaces how the comp pool was assembled when that needs saying: the
  * relaxation ladder that widened the search, the Elo fallback for
- * destination clubs without a strength rating, and any query-side nulls
- * that silently weakened the similarity definition (stated-similarity
- * principle: if a filter was skipped, say so). Renders nothing when the
- * base filters produced the pool cleanly.
+ * destination clubs without a strength rating, thin Elo coverage across
+ * the pool itself, and any query-side nulls that silently weakened the
+ * similarity definition (stated-similarity principle: if a filter was
+ * skipped, say so). Renders nothing when the base filters produced the
+ * pool cleanly.
  */
 export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProps) {
   const eloFallback = poolQuality.club_selected && !poolQuality.dest_elo_available;
@@ -26,6 +35,17 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
   }
   if (poolQuality.origin_tier_unknown) {
     similarityCaveats.push('Origin league tier unknown — the origin-tier filter was skipped.');
+  }
+  if (
+    poolQuality.club_selected &&
+    poolQuality.dest_elo_available &&
+    poolQuality.elo_pool_coverage < LOW_ELO_POOL_COVERAGE
+  ) {
+    similarityCaveats.push(
+      `Club-strength (Elo) ratings were available for only ${Math.round(
+        poolQuality.elo_pool_coverage * 100,
+      )}% of these comparable moves — squad-value tiers carried the rest.`,
+    );
   }
 
   if (!poolQuality.expanded_search && !eloFallback && similarityCaveats.length === 0) return null;
