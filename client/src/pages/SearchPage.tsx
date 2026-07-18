@@ -79,9 +79,19 @@ export default function SearchPage() {
             </button>
           </div>
         ) : isPending && results.length === 0 ? (
-          <div role="status" className="mt-4 space-y-2" aria-label="Loading results">
+          <div
+            role="status"
+            aria-label="Loading results"
+            className="mt-4 divide-y divide-pitch-800 overflow-hidden rounded-xl border border-pitch-800"
+          >
             {Array.from({ length: 5 }, (_, i) => (
-              <SkeletonBlock key={i} className="h-14 w-full" />
+              <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
+                <div className="flex-1 space-y-2">
+                  <SkeletonBlock className="h-4 w-44" />
+                  <SkeletonBlock className="h-3 w-64" />
+                </div>
+                <SkeletonBlock className="h-5 w-16" />
+              </div>
             ))}
           </div>
         ) : results.length === 0 ? (

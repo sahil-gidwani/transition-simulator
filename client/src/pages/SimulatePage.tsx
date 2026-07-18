@@ -18,15 +18,25 @@ function SimulationSkeleton() {
   return (
     <div role="status" className="grid gap-6 lg:grid-cols-5" aria-label="Running simulation">
       <div className="space-y-6 lg:col-span-3">
-        <SkeletonBlock className="h-64 w-full" />
+        {/* Mirrors the verdict hero: header row, big range, range band, footnote. */}
+        <div className="space-y-5 rounded-2xl border border-pitch-800 bg-pitch-900 p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <SkeletonBlock className="h-4 w-64" />
+            <SkeletonBlock className="h-6 w-32 rounded-full" />
+          </div>
+          <SkeletonBlock className="mx-auto h-16 w-3/4" />
+          <SkeletonBlock className="h-8 w-full" />
+          <SkeletonBlock className="h-4 w-52" />
+        </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {Array.from({ length: 4 }, (_, i) => (
-            <SkeletonBlock key={i} className="h-40 w-full" />
+            <SkeletonBlock key={i} className="h-44 w-full rounded-xl" />
           ))}
         </div>
       </div>
       <div className="space-y-6 lg:col-span-2">
-        <SkeletonBlock className="h-40 w-full" />
+        <SkeletonBlock className="h-44 w-full rounded-xl" />
+        <SkeletonBlock className="h-28 w-full rounded-xl" />
       </div>
     </div>
   );

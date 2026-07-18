@@ -59,10 +59,18 @@ export default function PlayerProfilePage() {
           <div className="space-y-3">
             <SkeletonBlock className="h-12 w-72" />
             <SkeletonBlock className="h-4 w-56" />
+            <SkeletonBlock className="h-4 w-40" />
           </div>
-          <SkeletonBlock className="h-24 w-56" />
+          <SkeletonBlock className="h-20 w-56" />
         </div>
-        <SkeletonBlock className="h-48 w-full" />
+        <SkeletonBlock className="h-12 w-56 rounded-lg" />
+        <SkeletonBlock className="h-64 w-full rounded-2xl" />
+        <div className="space-y-3">
+          <SkeletonBlock className="h-6 w-56" />
+          {Array.from({ length: 4 }, (_, i) => (
+            <SkeletonBlock key={i} className="h-6 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
