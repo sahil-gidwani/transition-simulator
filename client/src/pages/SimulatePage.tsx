@@ -18,10 +18,10 @@ import type { DestinationSpec } from '../lib/types';
 
 function SimulationSkeleton() {
   return (
-    <div role="status" className="grid gap-6 lg:grid-cols-5" aria-label="Running simulation">
-      <div className="space-y-6 lg:col-span-3">
+    <div role="status" className="space-y-6" aria-label="Running simulation">
+      <div className="grid gap-6 lg:grid-cols-5">
         {/* Mirrors the verdict hero: header row, big range, range band, footnote. */}
-        <div className="space-y-5 rounded-2xl border border-pitch-800 bg-pitch-900 p-6 sm:p-8">
+        <div className="space-y-5 rounded-2xl border border-pitch-800 bg-pitch-900 p-6 sm:p-8 lg:col-span-3">
           <div className="flex items-center justify-between gap-3">
             <SkeletonBlock className="h-4 w-64" />
             <SkeletonBlock className="h-6 w-32 rounded-full" />
@@ -30,15 +30,16 @@ function SimulationSkeleton() {
           <SkeletonBlock className="h-8 w-full" />
           <SkeletonBlock className="h-4 w-52" />
         </div>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {Array.from({ length: 4 }, (_, i) => (
-            <SkeletonBlock key={i} className="h-44 w-full rounded-xl" />
-          ))}
+        <div className="space-y-6 lg:col-span-2">
+          <SkeletonBlock className="h-44 w-full rounded-xl" />
+          <SkeletonBlock className="h-28 w-full rounded-xl" />
         </div>
       </div>
-      <div className="space-y-6 lg:col-span-2">
-        <SkeletonBlock className="h-44 w-full rounded-xl" />
-        <SkeletonBlock className="h-28 w-full rounded-xl" />
+      {/* Mirrors the full-width precedent grid. */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <SkeletonBlock key={i} className="h-44 w-full rounded-xl" />
+        ))}
       </div>
     </div>
   );
@@ -175,23 +176,25 @@ export default function SimulatePage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            <VerdictPanel result={state.result} prediction={state.prediction} />
-            <CompsPanel
-              // Re-key per player+destination so the expand-all toggle never
-              // leaks across cached destination or player switches.
-              key={`${playerId}-${state.result.destination.league_id}-${state.result.destination.club_id ?? 'any'}`}
-              comps={state.result.comps}
-              shownComps={state.result.shown_comps}
-              leagueNames={leagueNames}
-            />
+        <>
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <VerdictPanel result={state.result} prediction={state.prediction} />
+            </div>
+            <div className="space-y-6 lg:col-span-2">
+              <NarrativeStrip narrative={state.result.narrative} />
+              <PoolQualityBanner poolQuality={state.result.pool_quality} />
+            </div>
           </div>
-          <div className="space-y-6 lg:col-span-2">
-            <NarrativeStrip narrative={state.result.narrative} />
-            <PoolQualityBanner poolQuality={state.result.pool_quality} />
-          </div>
-        </div>
+          <CompsPanel
+            // Re-key per player+destination so the expand-all toggle never
+            // leaks across cached destination or player switches.
+            key={`${playerId}-${state.result.destination.league_id}-${state.result.destination.club_id ?? 'any'}`}
+            comps={state.result.comps}
+            shownComps={state.result.shown_comps}
+            leagueNames={leagueNames}
+          />
+        </>
       )}
     </div>
   );
