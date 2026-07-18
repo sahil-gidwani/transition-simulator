@@ -30,7 +30,9 @@ interface CountUpProps {
 export function CountUp({ value, format, from = null, durationS = 0.8, className }: CountUpProps) {
   const reduced = usePrefersReducedMotion();
   const willAnimate = !reduced && from !== null && from !== value;
-  const key = `${from ?? 'static'}->${value}`;
+  // `reduced` is part of the key so a mid-animation OS toggle invalidates the
+  // in-flight frame and the render falls back to the exact final value.
+  const key = `${from ?? 'static'}->${value}:${reduced}`;
   const [frame, setFrame] = useState<Frame | null>(null);
 
   useEffect(() => {
@@ -52,7 +54,10 @@ export function CountUp({ value, format, from = null, durationS = 0.8, className
         : format(value);
 
   return (
-    <span className={className} style={{ minWidth: `${format(value).length}ch` }}>
+    <span
+      className={`inline-block ${className ?? ''}`}
+      style={{ minWidth: `${format(value).length}ch` }}
+    >
       {text}
     </span>
   );
@@ -78,7 +83,8 @@ export function CountUpRange({
 }: CountUpRangeProps) {
   const reduced = usePrefersReducedMotion();
   const willAnimate = !reduced && from !== null;
-  const key = `${from ?? 'static'}->${low}-${high}`;
+  // `reduced` in the key: see CountUp above.
+  const key = `${from ?? 'static'}->${low}-${high}:${reduced}`;
   const [frame, setFrame] = useState<Frame | null>(null);
 
   useEffect(() => {
@@ -103,7 +109,10 @@ export function CountUpRange({
         : format(low, high);
 
   return (
-    <span className={className} style={{ minWidth: `${format(low, high).length}ch` }}>
+    <span
+      className={`inline-block ${className ?? ''}`}
+      style={{ minWidth: `${format(low, high).length}ch` }}
+    >
       {text}
     </span>
   );

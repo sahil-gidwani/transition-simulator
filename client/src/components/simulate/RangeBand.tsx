@@ -62,14 +62,26 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
         />
       </div>
 
-      {/* Band-end labels */}
+      {/* Band-end labels; a band too narrow for two labels gets one merged
+          range label instead of superimposed text. */}
       <div className="relative mt-2 h-5 text-xs text-ink-400 tabular-nums">
-        <span className="absolute whitespace-nowrap" style={labelStyle(layout.lowPct)}>
-          {formatEuroCompact(low)}
-        </span>
-        <span className="absolute whitespace-nowrap" style={labelStyle(layout.highPct)}>
-          {formatEuroCompact(high)}
-        </span>
+        {layout.highPct - layout.lowPct < 14 ? (
+          <span
+            className="absolute whitespace-nowrap"
+            style={labelStyle((layout.lowPct + layout.highPct) / 2)}
+          >
+            {formatRange(low, high)}
+          </span>
+        ) : (
+          <>
+            <span className="absolute whitespace-nowrap" style={labelStyle(layout.lowPct)}>
+              {formatEuroCompact(low)}
+            </span>
+            <span className="absolute whitespace-nowrap" style={labelStyle(layout.highPct)}>
+              {formatEuroCompact(high)}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

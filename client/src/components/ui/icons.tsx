@@ -65,6 +65,17 @@ export function SealCheck({ className }: IconProps) {
   );
 }
 
+/** Caution / weak evidence (a ringed exclamation). */
+export function AlertRing({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="6" cy="6" r="4.5" />
+      <path d="M6 3.8v2.7" />
+      <path d="M6 8.5h.01" />
+    </Icon>
+  );
+}
+
 /** Search widened (chevrons pushed outward). */
 export function Widen({ className }: IconProps) {
   return (

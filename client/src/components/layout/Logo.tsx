@@ -40,11 +40,13 @@ function Mark({ className, label }: MarkProps) {
 interface LogoProps {
   variant?: 'lockup' | 'mark';
   className?: string;
+  /** Purely ornamental placement: renders aria-hidden with no accessible name. */
+  decorative?: boolean;
 }
 
-export default function Logo({ variant = 'lockup', className }: LogoProps) {
+export default function Logo({ variant = 'lockup', className, decorative = false }: LogoProps) {
   if (variant === 'mark') {
-    return <Mark className={className ?? 'h-7 w-7'} label="Precedent" />;
+    return <Mark className={className ?? 'h-7 w-7'} label={decorative ? undefined : 'Precedent'} />;
   }
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ''}`}>

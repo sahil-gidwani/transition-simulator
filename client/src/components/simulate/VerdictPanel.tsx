@@ -1,6 +1,6 @@
 import Badge from '../ui/Badge';
 import Chip from '../ui/Chip';
-import { ArrowDownRight, ArrowFlat, ArrowUpRight, Clock, SealCheck } from '../ui/icons';
+import { AlertRing, ArrowDownRight, ArrowFlat, ArrowUpRight, Clock, SealCheck } from '../ui/icons';
 import { CountUpRange } from '../motion/CountUp';
 import { formatDate, formatEuroCompact, formatRange, formatSignedPct } from '../../lib/format';
 import { tierLabel } from '../../lib/labels';
@@ -51,7 +51,13 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
             {tierLabel(result.destination.tier)}
           </Badge>
         </p>
-        <Chip tone={confidence.tone} title={confidence.note} icon={<SealCheck />} elevated>
+        <Chip
+          tone={confidence.tone}
+          title={confidence.note}
+          // Weak-evidence tiers must not wear a verified-looking seal.
+          icon={confidence.tone === 'caution' ? <AlertRing /> : <SealCheck />}
+          elevated
+        >
           {confidence.label}
         </Chip>
       </div>

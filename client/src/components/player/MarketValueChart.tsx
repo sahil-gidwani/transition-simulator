@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -29,14 +29,43 @@ interface Datum {
   value: number;
 }
 
-function yearTicks(data: Datum[]): number[] {
-  const first = new Date(data[0]!.ts).getFullYear() + 1;
-  const last = new Date(data[data.length - 1]!.ts).getFullYear();
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Ticks are placed at UTC midnights, so labels must read UTC fields — local
+ * getFullYear() would shift every label a year early west of UTC (the same
+ * trap formatDate documents).
+ */
+interface TimeAxis {
+  ticks: number[];
+  format: (ts: number) => string;
+}
+
+function timeAxis(data: Datum[]): TimeAxis {
+  const first = new Date(data[0]!.ts).getUTCFullYear() + 1;
+  const last = new Date(data[data.length - 1]!.ts).getUTCFullYear();
   const years: number[] = [];
   for (let y = first; y <= last; y += 1) years.push(Date.UTC(y, 0, 1));
+  if (years.length === 0) {
+    // History inside a single calendar year: evenly spaced month labels
+    // instead of an unlabelled axis.
+    const lo = data[0]!.ts;
+    const hi = data[data.length - 1]!.ts;
+    const ticks = [lo, lo + (hi - lo) / 2, hi];
+    return {
+      ticks,
+      format: (ts) => {
+        const d = new Date(ts);
+        return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      },
+    };
+  }
   // Thin to at most ~8 labels so ticks never cramp.
   const step = Math.max(1, Math.ceil(years.length / 8));
-  return years.filter((_, i) => i % step === 0);
+  return {
+    ticks: years.filter((_, i) => i % step === 0),
+    format: (ts) => String(new Date(ts).getUTCFullYear()),
+  };
 }
 
 function ChartTooltip({ active, payload }: { active?: boolean; payload?: { payload: Datum }[] }) {
@@ -56,15 +85,20 @@ export default function MarketValueChart({ history }: MarketValueChartProps) {
   const gradientId = useId();
   const reduced = usePrefersReducedMotion();
 
-  const data: Datum[] = history
-    .map((p) => ({ ts: Date.parse(p.date), date: p.date, value: p.value_eur }))
-    .filter((d) => Number.isFinite(d.ts))
-    .sort((a, b) => a.ts - b.ts);
+  const { data, axis } = useMemo(() => {
+    const points: Datum[] = history
+      .map((p) => ({ ts: Date.parse(p.date), date: p.date, value: p.value_eur }))
+      .filter((d) => Number.isFinite(d.ts))
+      .sort((a, b) => a.ts - b.ts);
+    return { data: points, axis: points.length >= 2 ? timeAxis(points) : null };
+  }, [history]);
 
-  if (data.length < 2) {
+  if (data.length < 2 || axis === null) {
     return (
       <p className="text-sm text-ink-500">
-        Not enough valuation history to chart — the market value above is the whole record.
+        {data.length === 0
+          ? 'No valuation history on record to chart.'
+          : 'Not enough valuation history to chart — the market value above is the whole record.'}
       </p>
     );
   }
@@ -94,8 +128,8 @@ export default function MarketValueChart({ history }: MarketValueChartProps) {
             type="number"
             scale="time"
             domain={['dataMin', 'dataMax']}
-            ticks={yearTicks(data)}
-            tickFormatter={(ts: number) => String(new Date(ts).getFullYear())}
+            ticks={axis.ticks}
+            tickFormatter={axis.format}
             tick={{ fill: 'var(--color-ink-500)', fontSize: 12 }}
             axisLine={{ stroke: 'var(--color-pitch-800)' }}
             tickLine={false}

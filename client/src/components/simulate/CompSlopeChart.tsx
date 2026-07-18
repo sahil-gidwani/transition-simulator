@@ -58,7 +58,16 @@ export default function CompSlopeChart({ comp }: CompSlopeChartProps) {
       className="shrink-0"
     >
       <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+        {/* userSpaceOnUse: an objectBoundingBox gradient is never painted on a
+            zero-height bbox, which a flat (held-value) comp's horizontal line is. */}
+        <linearGradient
+          id={gradientId}
+          gradientUnits="userSpaceOnUse"
+          x1={PAD_X}
+          y1="0"
+          x2={W - PAD_X}
+          y2="0"
+        >
           <stop offset="0%" stopColor={color} stopOpacity={0.45} />
           <stop offset="100%" stopColor={color} stopOpacity={1} />
         </linearGradient>

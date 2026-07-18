@@ -142,7 +142,7 @@ export default function SimulatePage() {
 
       {state.kind === 'idle' ? (
         <div className="rounded-2xl border border-dashed border-pitch-700 px-6 py-16 text-center">
-          <Logo variant="mark" className="mx-auto h-10 w-10 opacity-40" />
+          <Logo variant="mark" decorative className="mx-auto h-10 w-10 opacity-40" />
           <p className="mx-auto mt-4 max-w-xl text-lg text-ink-400">
             Pick a destination league to see the verdict — the predicted range, the named moves
             behind it, and the scout&apos;s read appear here.
