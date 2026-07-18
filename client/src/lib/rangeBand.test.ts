@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rangeBandLayout } from './rangeBand';
+import { outcomeDots, rangeBandLayout } from './rangeBand';
 
 describe('rangeBandLayout', () => {
   it('orders low ≤ mid ≤ high and keeps everything inside the track', () => {
@@ -42,5 +42,34 @@ describe('rangeBandLayout', () => {
   it('positions now between low and high when it falls inside the range', () => {
     const l = rangeBandLayout({ low: 10, mid: 20, high: 30, now: 20 });
     expect(l.nowPct).toBe(l.midPct);
+  });
+});
+
+describe('outcomeDots', () => {
+  const input = { low: 100, mid: 150, high: 200, now: 100 };
+  // domain: span 100, pad 8 -> [92, 208]
+
+  it('positions in-domain outcomes on the same padded domain as the band', () => {
+    const [dot] = outcomeDots(input, [150]);
+    expect(dot.pct).toBeCloseTo(50, 5);
+    expect(dot.clamped).toBe(false);
+  });
+
+  it('pins outliers to the edge and marks them clamped', () => {
+    const [lowOut, highOut] = outcomeDots(input, [10, 400]);
+    expect(lowOut).toEqual({ pct: 0, clamped: true });
+    expect(highOut).toEqual({ pct: 100, clamped: true });
+  });
+
+  it('treats domain-edge values as in scale', () => {
+    const [atMin, atMax] = outcomeDots(input, [92, 208]);
+    expect(atMin).toEqual({ pct: 0, clamped: false });
+    expect(atMax).toEqual({ pct: 100, clamped: false });
+  });
+
+  it('centers everything on a degenerate domain', () => {
+    const flat = { low: 100, mid: 100, high: 100, now: 100 };
+    expect(outcomeDots(flat, [100])).toEqual([{ pct: 50, clamped: false }]);
+    expect(outcomeDots(flat, [130])).toEqual([{ pct: 50, clamped: true }]);
   });
 });

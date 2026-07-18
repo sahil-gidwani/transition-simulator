@@ -10,6 +10,7 @@ import {
   horizonMonthYear,
 } from '../../lib/format';
 import { tierLabel } from '../../lib/labels';
+import { compTrend } from '../../lib/trend';
 import { useHealth } from '../../lib/queries';
 import type { Direction, Prediction, SimulationResponse } from '../../lib/types';
 import { CONFIDENCE_COPY } from './confidenceCopy';
@@ -98,6 +99,16 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
           mid={prediction.mid_eur}
           high={prediction.high_eur}
           now={now ?? prediction.mid_eur}
+          // Each comp's implied outcome for THIS player: its multiplier
+          // applied to the current value — the range visibly IS the comps.
+          outcomes={
+            now != null
+              ? result.comps.map((comp) => ({
+                  value: comp.multiplier * now,
+                  trend: compTrend(comp.delta_pct),
+                }))
+              : []
+          }
         />
       </div>
 

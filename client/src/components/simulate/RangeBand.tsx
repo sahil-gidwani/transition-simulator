@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { formatEuroCompact, formatRange } from '../../lib/format';
-import { rangeBandLayout } from '../../lib/rangeBand';
+import { outcomeDots, rangeBandLayout } from '../../lib/rangeBand';
+import type { Trend } from '../../lib/trend';
 
 /**
  * Graphic form of the predicted range: a neutral yale band spanning
@@ -8,13 +9,27 @@ import { rangeBandLayout } from '../../lib/rangeBand';
  * tangerine midpoint tick, and the player's current value as an outlined
  * marker. Low/high label the band ends; the midpoint value is stated in
  * the copy directly above, so labels never collide on tight ranges.
+ * Below the track, one dot per comp shows that move's implied outcome for
+ * this player — the range visibly IS these players.
  */
+export interface RangeBandOutcome {
+  value: number;
+  trend: Trend;
+}
+
 interface RangeBandProps {
   low: number;
   mid: number;
   high: number;
   now: number;
+  outcomes?: RangeBandOutcome[];
 }
+
+const DOT_COLOR: Record<Trend, string> = {
+  rise: 'bg-rise-400',
+  decline: 'bg-decline-400',
+  flat: 'bg-ink-400',
+};
 
 /**
  * Near the track edges a centered label would hang outside the container
@@ -26,15 +41,22 @@ function labelStyle(pct: number): CSSProperties {
   return { left: `${pct}%`, transform: 'translateX(-50%)' };
 }
 
-export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
+export default function RangeBand({ low, mid, high, now, outcomes = [] }: RangeBandProps) {
   const layout = rangeBandLayout({ low, mid, high, now });
+  const dots = outcomeDots(
+    { low, mid, high, now },
+    outcomes.map((outcome) => outcome.value),
+  );
+  const beyondScale = dots.filter((dot) => dot.clamped).length;
 
   return (
     <div
       role="img"
       aria-label={`Predicted range ${formatRange(low, high)} with midpoint ${formatEuroCompact(
         mid,
-      )}; current value ${formatEuroCompact(now)}`}
+      )}; current value ${formatEuroCompact(now)}${
+        outcomes.length > 0 ? `; ${outcomes.length} comparable outcomes shown as dots` : ''
+      }`}
     >
       {/* Now caption */}
       <div className="relative h-5 text-xs text-ink-400">
@@ -62,6 +84,23 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
         />
       </div>
 
+      {/* Comp-outcome dots: each comp's multiplier applied to this player's
+          current value. Outliers beyond the padded domain pin to the edge
+          at half opacity — never disguised as data at the edge. */}
+      {outcomes.length > 0 ? (
+        <div data-testid="outcome-dots" className="relative mt-1.5 h-2">
+          {dots.map((dot, index) => (
+            <span
+              key={index}
+              className={`absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+                DOT_COLOR[outcomes[index].trend]
+              } ${dot.clamped ? 'opacity-40' : 'opacity-80'}`}
+              style={{ left: `${dot.pct}%` }}
+            />
+          ))}
+        </div>
+      ) : null}
+
       {/* Band-end labels; a band too narrow for two labels gets one merged
           range label instead of superimposed text. */}
       <div className="relative mt-2 h-5 text-xs text-ink-400 tabular-nums">
@@ -83,6 +122,13 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
           </>
         )}
       </div>
+
+      {outcomes.length > 0 ? (
+        <p className="mt-1 text-center text-[11px] text-ink-500">
+          each dot: one comparable move&apos;s implied outcome for this player
+          {beyondScale > 0 ? ` (${beyondScale} beyond this scale, pinned to the edge)` : ''}
+        </p>
+      ) : null}
     </div>
   );
 }
