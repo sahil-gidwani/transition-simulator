@@ -14,11 +14,20 @@ class PlayerSearchResult(BaseModel):
     league_name: str | None
     market_value_eur: int | None
     market_value_asof: date | None
+    # Fraction vs the latest valuation 12+ months ago (0.2 = +20%); null when
+    # no baseline that old exists.
+    value_delta_12m: float | None
 
 
 class ValuePointOut(BaseModel):
     date: date
     value_eur: int
+
+
+class TransferEventOut(BaseModel):
+    date: date
+    from_club: str
+    to_club: str
 
 
 class PlayerProfileResponse(BaseModel):
@@ -39,3 +48,5 @@ class PlayerProfileResponse(BaseModel):
     market_value_eur: int | None
     market_value_asof: date | None
     value_history: list[ValuePointOut]
+    # The player's own qualifying (non-loan) moves — the chart's annotations.
+    transfers: list[TransferEventOut]

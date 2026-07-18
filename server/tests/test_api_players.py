@@ -10,6 +10,7 @@ from api_factories import (
     make_player_values,
     make_players_processed,
     make_store,
+    make_transitions,
 )
 
 
@@ -73,3 +74,41 @@ def test_profile_unknown_player_is_404_with_error_schema() -> None:
     body = response.json()
     assert body["error"]["code"] == "player_not_found"
     assert "999" in body["error"]["message"]
+
+
+def test_profile_lists_the_players_own_qualifying_transfers() -> None:
+    store = make_store(
+        players=make_players_processed([{"player_id": 1, "name": "Mover Man"}]),
+        transitions=make_transitions(
+            [
+                {
+                    "player_id": 1,
+                    "transfer_date": date(2021, 7, 1),
+                    "season": 2021,
+                    "from_club_name": "First FC",
+                    "to_club_name": "Second FC",
+                },
+                {
+                    "player_id": 1,
+                    "transfer_date": date(2024, 1, 15),
+                    "season": 2023,
+                    "from_club_name": "Second FC",
+                    "to_club_name": "Third FC",
+                },
+                # A loan leg never annotates the chart.
+                {
+                    "player_id": 1,
+                    "transfer_date": date(2022, 7, 1),
+                    "season": 2022,
+                    "suspected_loan": True,
+                },
+                {"player_id": 2, "transfer_date": date(2023, 7, 1)},
+            ]
+        ),
+        league_seasons=make_league_seasons([{"league": "AA1"}]),
+    )
+    body = make_client(store).get("/api/players/1").json()
+    assert body["transfers"] == [
+        {"date": "2021-07-01", "from_club": "First FC", "to_club": "Second FC"},
+        {"date": "2024-01-15", "from_club": "Second FC", "to_club": "Third FC"},
+    ]

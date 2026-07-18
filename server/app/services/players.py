@@ -8,7 +8,12 @@ from app.core.clock import Clock
 from app.core.errors import ApiError
 from app.core.text import normalize_search_text, slug_to_title
 from app.repositories.store import DataStore
-from app.schemas.players import PlayerProfileResponse, PlayerSearchResult, ValuePointOut
+from app.schemas.players import (
+    PlayerProfileResponse,
+    PlayerSearchResult,
+    TransferEventOut,
+    ValuePointOut,
+)
 from app.services.constants import SEARCH_LIMIT, SEARCH_MIN_QUERY_CHARS
 
 
@@ -28,6 +33,11 @@ def search_players(query: str, store: DataStore, clock: Clock) -> list[PlayerSea
     for rec in store.players.search(query_norm, SEARCH_LIMIT):
         league = store.seasons.league_latest(rec.current_league)
         league_name = slug_to_title(league.league_name) if league and league.league_name else None
+        delta_12m: float | None = None
+        if rec.market_value_eur is not None and rec.market_value_asof is not None:
+            baseline = store.players.value_12m_before(rec.player_id, rec.market_value_asof)
+            if baseline:  # a zero baseline has no meaningful ratio
+                delta_12m = rec.market_value_eur / baseline - 1
         results.append(
             PlayerSearchResult(
                 player_id=rec.player_id,
@@ -40,6 +50,7 @@ def search_players(query: str, store: DataStore, clock: Clock) -> list[PlayerSea
                 league_name=league_name,
                 market_value_eur=rec.market_value_eur,
                 market_value_asof=rec.market_value_asof,
+                value_delta_12m=delta_12m,
             )
         )
     return results
@@ -70,5 +81,13 @@ def get_player_profile(player_id: int, store: DataStore, clock: Clock) -> Player
         value_history=[
             ValuePointOut(date=point.date, value_eur=point.value_eur)
             for point in store.players.value_history(player_id)
+        ],
+        transfers=[
+            TransferEventOut(
+                date=row["transfer_date"],
+                from_club=row["from_club_name"],
+                to_club=row["to_club_name"],
+            )
+            for row in store.transitions.player_transfers(player_id).iter_rows(named=True)
         ],
     )

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 import polars as pl
@@ -97,3 +97,15 @@ class PlayersRepo:
             ValuePoint(date=d, value_eur=v)
             for d, v in rows.select("date", "market_value_eur").iter_rows()
         ]
+
+    def value_12m_before(self, player_id: int, asof: date) -> int | None:
+        """Latest valuation dated at least 12 months before asof — the
+        baseline behind the 12-month trend shown next to a current value."""
+        cutoff = asof - timedelta(days=365)
+        rows = self._values.filter(
+            (pl.col("player_id") == player_id) & (pl.col("date") <= cutoff)
+        ).sort("date")
+        if rows.is_empty():
+            return None
+        value = rows.row(-1, named=True)["market_value_eur"]
+        return int(value) if value is not None else None

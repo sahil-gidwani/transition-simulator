@@ -3,6 +3,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -10,17 +11,18 @@ import {
 } from 'recharts';
 import { formatDate, formatEuroCompact } from '../../lib/format';
 import { usePrefersReducedMotion } from '../../lib/motion';
-import type { ValuePoint } from '../../lib/types';
+import type { TransferEvent, ValuePoint } from '../../lib/types';
 
 /**
  * Full market-value history as a gradient area chart. Single series (title
  * names it — no legend), yale for magnitude, tangerine only on the hover
- * marker. Transfer markers are deliberately omitted: the profile payload
- * carries valuations only, and inventing transfer dates would violate the
- * real-data-only principle.
+ * marker. The player's own qualifying transfers (real rows from the
+ * transitions artifact — never invented dates) annotate the timeline as
+ * labelled reference lines.
  */
 interface MarketValueChartProps {
   history: ValuePoint[];
+  transfers?: TransferEvent[];
 }
 
 interface Datum {
@@ -81,7 +83,7 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
   );
 }
 
-export default function MarketValueChart({ history }: MarketValueChartProps) {
+export default function MarketValueChart({ history, transfers = [] }: MarketValueChartProps) {
   const gradientId = useId();
   const reduced = usePrefersReducedMotion();
 
@@ -92,6 +94,17 @@ export default function MarketValueChart({ history }: MarketValueChartProps) {
       .sort((a, b) => a.ts - b.ts);
     return { data: points, axis: points.length >= 2 ? timeAxis(points) : null };
   }, [history]);
+
+  // Only transfers inside the charted time range annotate; anything outside
+  // would render on the axis edge and lie about when it happened.
+  const markers = useMemo(() => {
+    if (data.length < 2) return [];
+    const lo = data[0]!.ts;
+    const hi = data[data.length - 1]!.ts;
+    return transfers
+      .map((transfer) => ({ ...transfer, ts: Date.parse(transfer.date) }))
+      .filter((transfer) => Number.isFinite(transfer.ts) && transfer.ts >= lo && transfer.ts <= hi);
+  }, [transfers, data]);
 
   if (data.length < 2 || axis === null) {
     return (
@@ -144,6 +157,24 @@ export default function MarketValueChart({ history }: MarketValueChartProps) {
             tickLine={false}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-pitch-700)' }} />
+          {markers.map((marker) => (
+            <ReferenceLine
+              key={`${marker.ts}-${marker.to_club}`}
+              x={marker.ts}
+              stroke="var(--color-tangerine-300)"
+              strokeOpacity={0.45}
+              strokeDasharray="4 4"
+              label={{
+                value: `→ ${marker.to_club}`,
+                position: 'insideTopLeft',
+                angle: -90,
+                dx: 10,
+                dy: 4,
+                fill: 'var(--color-ink-500)',
+                fontSize: 10,
+              }}
+            />
+          ))}
           <Area
             type="monotone"
             dataKey="value"

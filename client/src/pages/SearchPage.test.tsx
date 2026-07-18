@@ -16,6 +16,7 @@ const haaland: PlayerSearchResult = {
   league_name: 'Premier League',
   market_value_eur: 180_000_000,
   market_value_asof: '2026-06-01',
+  value_delta_12m: 0.125,
 };
 
 function renderSearch() {

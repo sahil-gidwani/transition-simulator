@@ -27,11 +27,20 @@ export interface PlayerSearchResult {
   league_name: string | null;
   market_value_eur: number | null;
   market_value_asof: string | null;
+  /** Fraction vs the latest valuation 12+ months ago; null without a baseline. */
+  value_delta_12m: number | null;
 }
 
 export interface ValuePoint {
   date: string;
   value_eur: number;
+}
+
+/** One of the player's own qualifying (non-loan) moves — chart annotations. */
+export interface TransferEvent {
+  date: string;
+  from_club: string;
+  to_club: string;
 }
 
 export interface PlayerProfile {
@@ -52,9 +61,10 @@ export interface PlayerProfile {
   market_value_eur: number | null;
   market_value_asof: string | null;
   value_history: ValuePoint[];
+  transfers: TransferEvent[];
 }
 
-export type Direction = 'higher_better' | 'lower_better';
+export type MetricDirection = 'higher_better' | 'lower_better';
 
 export interface MetricPercentile {
   metric: string;
@@ -62,7 +72,7 @@ export interface MetricPercentile {
   value: number | null;
   /** Already display-oriented: always "better than X% of peers". Never re-invert. */
   percentile: number | null;
-  direction: Direction;
+  direction: MetricDirection;
   peer_n: number;
 }
 

@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from api_factories import make_client, make_league_seasons, make_players_processed, make_store
+from datetime import date
+
+import pytest
+from api_factories import (
+    make_client,
+    make_league_seasons,
+    make_player_values,
+    make_players_processed,
+    make_store,
+)
 
 
 def _client_with_players(rows: list[dict[str, object]]) -> object:
@@ -99,6 +108,7 @@ def test_search_result_shape_includes_value_asof_and_league_label() -> None:
         "league_name": "Premier League",
         "market_value_eur": 10_000_000,
         "market_value_asof": "2026-06-01",
+        "value_delta_12m": None,  # the fixture has no valuation 12+ months back
     }
 
 
@@ -109,3 +119,30 @@ def test_search_missing_query_param_uses_error_schema() -> None:
     body = response.json()
     assert body["error"]["code"] == "validation_error"
     assert body["error"]["detail"]
+
+
+def test_search_computes_the_12_month_value_delta_when_a_baseline_exists() -> None:
+    store = make_store(
+        players=make_players_processed(
+            [
+                {
+                    "player_id": 7,
+                    "name": "Trend Check",
+                    "market_value_eur": 12_000_000,
+                    "market_value_asof": date(2026, 6, 1),
+                }
+            ]
+        ),
+        league_seasons=make_league_seasons([{"league": "AA1", "league_name": "premier-league"}]),
+        player_values=make_player_values(
+            [
+                # 2025-05-01 is >12 months before the 2026-06-01 as-of: baseline.
+                {"player_id": 7, "date": date(2025, 5, 1), "market_value_eur": 10_000_000},
+                # Newer points must not shadow the 12-month-old baseline.
+                {"player_id": 7, "date": date(2026, 1, 1), "market_value_eur": 11_000_000},
+                {"player_id": 7, "date": date(2026, 6, 1), "market_value_eur": 12_000_000},
+            ]
+        ),
+    )
+    (row,) = make_client(store).get("/api/players/search", params={"q": "trend"}).json()
+    assert row["value_delta_12m"] == pytest.approx(0.2)

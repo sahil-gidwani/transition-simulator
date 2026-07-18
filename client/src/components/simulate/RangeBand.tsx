@@ -89,15 +89,19 @@ export default function RangeBand({ low, mid, high, now, outcomes = [] }: RangeB
           at half opacity — never disguised as data at the edge. */}
       {outcomes.length > 0 ? (
         <div data-testid="outcome-dots" className="relative mt-1.5 h-2">
-          {dots.map((dot, index) => (
-            <span
-              key={index}
-              className={`absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${
-                DOT_COLOR[outcomes[index].trend]
-              } ${dot.clamped ? 'opacity-40' : 'opacity-80'}`}
-              style={{ left: `${dot.pct}%` }}
-            />
-          ))}
+          {outcomes.map((outcome, index) => {
+            const dot = dots[index];
+            if (!dot) return null; // outcomeDots is index-aligned by construction
+            return (
+              <span
+                key={index}
+                className={`absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+                  DOT_COLOR[outcome.trend]
+                } ${dot.clamped ? 'opacity-40' : 'opacity-80'}`}
+                style={{ left: `${dot.pct}%` }}
+              />
+            );
+          })}
         </div>
       ) : null}
 

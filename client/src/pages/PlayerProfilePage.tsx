@@ -3,12 +3,15 @@ import { secondaryAction, secondaryActionCompact } from '../components/ui/action
 import IdentityHeader from '../components/player/IdentityHeader';
 import MarketValueChart from '../components/player/MarketValueChart';
 import PercentileBars from '../components/player/PercentileBars';
+import Chip from '../components/ui/Chip';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ApiError } from '../lib/api';
-import { formatEuroCompact } from '../lib/format';
+import { formatEuroCompact, formatSignedPct } from '../lib/format';
 import { usePercentiles, usePlayer } from '../lib/queries';
+import { compTrend } from '../lib/trend';
+import { valueFacts } from '../lib/valueFacts';
 
 function BackToSearch() {
   return (
@@ -75,6 +78,8 @@ export default function PlayerProfilePage() {
 
   const player = playerQuery.data;
   const canSimulate = player.market_value_eur != null;
+  const facts = valueFacts(player.value_history);
+  const trend12m = facts?.delta12mPct != null ? compTrend(facts.delta12mPct) : null;
 
   return (
     <div className="space-y-8">
@@ -122,9 +127,28 @@ export default function PlayerProfilePage() {
 
       <div className="grid gap-6 xl:grid-cols-5">
         <section className="rounded-2xl border border-pitch-800 bg-pitch-900/40 p-6 xl:col-span-3">
-          <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
+            {facts ? (
+              <div className="flex flex-wrap gap-1.5">
+                <Chip>
+                  peak {formatEuroCompact(facts.peakValue)} ({facts.peakDate.slice(0, 4)})
+                </Chip>
+                {facts.sincePeakPct < 0 ? (
+                  <Chip tone="decline">{formatSignedPct(facts.sincePeakPct)} since peak</Chip>
+                ) : (
+                  <Chip tone="rise">at peak</Chip>
+                )}
+                {facts.delta12mPct != null && trend12m != null ? (
+                  <Chip tone={trend12m === 'flat' ? 'neutral' : trend12m}>
+                    {formatSignedPct(facts.delta12mPct)} in 12 mo
+                  </Chip>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <div className="mt-4">
-            <MarketValueChart history={player.value_history} />
+            <MarketValueChart history={player.value_history} transfers={player.transfers} />
           </div>
         </section>
 

@@ -50,7 +50,7 @@ describe('outcomeDots', () => {
   // domain: span 100, pad 8 -> [92, 208]
 
   it('positions in-domain outcomes on the same padded domain as the band', () => {
-    const [dot] = outcomeDots(input, [150]);
+    const dot = outcomeDots(input, [150])[0]!;
     expect(dot.pct).toBeCloseTo(50, 5);
     expect(dot.clamped).toBe(false);
   });

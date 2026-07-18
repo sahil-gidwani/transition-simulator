@@ -1,8 +1,15 @@
 import Badge from '../ui/Badge';
 import { Clock } from '../ui/icons';
-import { formatDate, formatEuroCompact } from '../../lib/format';
+import { formatDate, formatEuroCompact, formatSignedPct } from '../../lib/format';
 import { positionLabel } from '../../lib/labels';
+import { compTrend } from '../../lib/trend';
 import type { PlayerSearchResult } from '../../lib/types';
+
+const TREND_TEXT = {
+  rise: 'text-rise-400',
+  decline: 'text-decline-400',
+  flat: 'text-ink-500',
+} as const;
 
 interface SearchResultsListProps {
   id: string;
@@ -59,6 +66,14 @@ export default function SearchResultsList({
           <span className="shrink-0 text-right">
             <span className="block font-medium text-tangerine-200 tabular-nums">
               {formatEuroCompact(result.market_value_eur)}
+              {result.value_delta_12m != null ? (
+                <span
+                  className={`ml-2 text-xs font-normal tabular-nums ${TREND_TEXT[compTrend(result.value_delta_12m)]}`}
+                  title="Change over the last 12 months"
+                >
+                  {formatSignedPct(result.value_delta_12m)}
+                </span>
+              ) : null}
             </span>
             <span className="flex items-center justify-end gap-1 text-xs whitespace-nowrap text-ink-500">
               {result.market_value_asof ? (
