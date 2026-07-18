@@ -81,7 +81,10 @@ export interface DestinationClub {
   club_id: number;
   name: string;
   /** Squad-value rank within the league-season: 1 = top third, 3 = bottom third. */
-  tercile: number;
+  tercile: number | null;
+  squad_value_eur: number;
+  /** Within-league squad-value percentile, 1.0 = richest. */
+  club_value_pct: number | null;
   elo_available: boolean;
 }
 
@@ -89,7 +92,10 @@ export interface DestinationLeague {
   league_id: string;
   name: string;
   country: string | null;
-  tier: number;
+  tier: number | null;
+  /** ln(median derived squad value); null below the membership floor. */
+  strength: number | null;
+  median_squad_value_eur: number | null;
   clubs: DestinationClub[];
 }
 

@@ -21,11 +21,15 @@ def get_destinations(store: DataStore) -> DestinationsResponse:
             name=league_label(ls),
             country=ls.country,
             tier=ls.tier,
+            strength=ls.strength,
+            median_squad_value_eur=ls.median_squad_value_eur,
             clubs=[
                 DestinationClub(
                     club_id=club.club_id,
                     name=club.club_name,
                     tercile=club.tercile,
+                    squad_value_eur=club.squad_value_eur,
+                    club_value_pct=club.club_value_pct,
                     elo_available=club.elo_pct is not None,
                 )
                 for club in store.seasons.clubs_latest(ls.league)

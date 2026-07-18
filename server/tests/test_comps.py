@@ -113,6 +113,7 @@ _DEST_LEAGUE = LeagueSeason(
     season=2025,
     tier=1,
     strength=18.4,
+    median_squad_value_eur=100_000_000,
     n_clubs=18,
 )
 _DEST_CLUB = ClubSeason(

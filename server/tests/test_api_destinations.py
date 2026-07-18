@@ -39,12 +39,21 @@ def _store() -> object:
         ),
         club_seasons=make_club_seasons(
             [
-                {"club_id": 10, "club_name": "Zeta FC", "league": "AA1", "tercile": 1},
+                {
+                    "club_id": 10,
+                    "club_name": "Zeta FC",
+                    "league": "AA1",
+                    "tercile": 1,
+                    "squad_value_eur": 300_000_000,
+                    "club_value_pct": 1.0,
+                },
                 {
                     "club_id": 11,
                     "club_name": "Alpha FC",
                     "league": "AA1",
                     "tercile": 3,
+                    "squad_value_eur": 50_000_000,
+                    "club_value_pct": 0.0,
                     "elo": None,
                     "elo_pct": None,
                     "elo_date": None,
@@ -67,11 +76,22 @@ def test_destinations_serve_latest_season_sorted() -> None:
     assert aa1["name"] == "Premier League"
     assert aa1["country"] == "England"
     assert aa1["tier"] == 1
-    # Clubs sorted by name; the 2024 row is gone.
-    assert [c["name"] for c in aa1["clubs"]] == ["Alpha FC", "Zeta FC"]
-    alpha, zeta = aa1["clubs"]
-    assert alpha == {"club_id": 11, "name": "Alpha FC", "tercile": 3, "elo_available": False}
+    assert aa1["strength"] == pytest.approx(18.0)
+    assert aa1["median_squad_value_eur"] == 100_000_000  # factory default
+    # Clubs sorted by squad value desc (Zeta 300M before Alpha 50M, despite
+    # the name order); the 2024 row is gone.
+    assert [c["name"] for c in aa1["clubs"]] == ["Zeta FC", "Alpha FC"]
+    zeta, alpha = aa1["clubs"]
+    assert alpha == {
+        "club_id": 11,
+        "name": "Alpha FC",
+        "tercile": 3,
+        "squad_value_eur": 50_000_000,
+        "club_value_pct": 0.0,
+        "elo_available": False,
+    }
     assert zeta["elo_available"] is True
+    assert zeta["club_value_pct"] == pytest.approx(1.0)
 
 
 def test_null_strength_league_sorts_last_within_its_tier() -> None:

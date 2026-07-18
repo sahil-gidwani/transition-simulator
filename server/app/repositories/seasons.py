@@ -22,6 +22,7 @@ class LeagueSeason:
     season: int
     tier: int | None  # null below the pipeline's minimum-club floor
     strength: float | None
+    median_squad_value_eur: int | None
     n_clubs: int
 
 
@@ -45,6 +46,7 @@ def _league(row: dict[str, Any]) -> LeagueSeason:
         season=row["season"],
         tier=row["tier"],
         strength=row["strength"],
+        median_squad_value_eur=row["median_squad_value_eur"],
         n_clubs=row["n_clubs"],
     )
 
@@ -91,11 +93,20 @@ class SeasonsRepo:
         return _league(rows.row(0, named=True))
 
     def clubs_latest(self, league: str) -> list[ClubSeason]:
+        """A league's latest-season clubs, biggest squad value first.
+
+        Value order is destination-picker semantics: the question is "how
+        big a club", so the list reads from super-club to relegation budget
+        (ties by name, then id, for determinism).
+        """
         rows = (
             self._club_seasons.filter(
                 (pl.col("league") == league) & (pl.col("season") == self.latest_season)
             )
-            .sort("club_name")
+            .sort(
+                ["squad_value_eur", "club_name", "club_id"],
+                descending=[True, False, False],
+            )
             .iter_rows(named=True)
         )
         return [_club(row) for row in rows]
