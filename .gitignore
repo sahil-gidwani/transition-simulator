@@ -30,6 +30,9 @@ server/data/eval/
 docker/certs/*
 !docker/certs/README.md
 
+# Local design scratch space (screenshots, logo concept sketches)
+.scratch/
+
 # OS / editor
 .DS_Store
 Thumbs.db
