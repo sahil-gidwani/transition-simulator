@@ -217,8 +217,15 @@ pipeline and re-gated (`docs/pipeline-report.md` carries the regenerated gate ta
    Sporting CP, SC Internacional → Porto via its URL slug). Non-UEFA clubs (confederation
    ≠ "europa" in competitions.csv) now skip every automatic stage (flagged stage
    `excluded_non_uefa`); a 1-token ClubElo name may no longer fuzzy-match a ≥3-token TM
-   name. **elo_touch_coverage fell from an inflated 0.8434 to an honest 0.7518**; the gate
-   floor is re-pinned at 0.74. Future hardening if more coverage is needed: both mirrors
+   name. The short-vs-long guard also refused 28 *legitimate* matches — ClubElo names are
+   compact ("Napoli", "Brighton", "Salzburg", "Genoa") while TM stores long legal names —
+   and two of the pre-guard matches were themselves wrong clubs (PSG → "Paris FC",
+   Mönchengladbach → "Fuerth"). 27 of the 28 are restored via country-verified rows in
+   `data/manual/elo_manual_fixes.csv` (manual fixes are sovereign and bypass the guard);
+   Metalurg Zaporizhya stays unmapped because ClubElo has no entry for it (its old match
+   "Bistrita" was a Romanian club). **elo_touch_coverage: 0.8434 (inflated by false
+   positives) → 0.7518 (guard, with casualties) → 0.7918 (casualties restored)**; the gate
+   floor is re-pinned at 0.78. Future hardening if more coverage is needed: both mirrors
    carry an Elo-side country column (dropped at load today) that would support a
    country-consistency constraint for European fuzzy matches.
 3. **League stats below an 8-club floor are null, flagged.** Pre-2024, snapshot-only

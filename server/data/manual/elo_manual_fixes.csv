@@ -7,3 +7,30 @@ Lok Moskva,932,"Футбольный клуб ""Локомотив"" Москв�
 Farul,29831,F.C.V. Farul Constanța SA,legal name defeats token matching
 Steaua,301,SC Fotbal Club FCSB SA,ClubElo keeps the pre-2017 name for FCSB's rating lineage
 Espanyol,714,Reial Club Deportiu Espanyol de Barcelona S.A.D.,Catalan legal name defeats token matching
+Genoa,252,Genoa Cricket and Football Club,compact ClubElo name blocked by the short-vs-long guard
+Paris SG,583,Paris Saint-Germain Football Club,guard casualty; the automatic ladder had wrongly matched Paris FC
+Salzburg,409,Fußballclub Red Bull Salzburg,compact ClubElo name blocked by the short-vs-long guard
+Napoli,6195,Società Sportiva Calcio Napoli,compact ClubElo name blocked by the short-vs-long guard
+Nice,417,Olympique Gymnaste Club Nice Côte d'Azur,compact ClubElo name blocked by the short-vs-long guard
+Zenit,964,AO FK Zenit Sankt-Peterburg,compact ClubElo name blocked by the short-vs-long guard
+Brighton,1237,Brighton and Hove Albion Football Club,compact ClubElo name blocked by the short-vs-long guard
+Strasbourg,667,Racing Club de Strasbourg Alsace,compact ClubElo name blocked by the short-vs-long guard
+Gladbach,18,Borussia Verein für Leibesübungen 1900 Mönchengladbach,guard casualty; the automatic ladder had wrongly matched Fuerth
+Hajduk,447,HNK Hajduk Split,compact ClubElo name blocked by the short-vs-long guard
+Sociedad,681,Real Sociedad de Fútbol S.A.D.,compact ClubElo name blocked by the short-vs-long guard
+Volou,60949,Volou Neos Podosferikos Syllogos,compact ClubElo name blocked by the short-vs-long guard
+Goeteborg,801,Idrottsföreningen Kamraterna Göteborg,compact ClubElo name blocked by the short-vs-long guard
+Hearts,43,Heart of Midlothian Football Club,nickname-only ClubElo name blocked by the short-vs-long guard
+Kryvbas,3592,FK Kryvbas Kryvyi Rig,compact ClubElo name blocked by the short-vs-long guard
+Ivanjica,8819,Fudbalski Klub Javor Matis Ivanjica,compact ClubElo name blocked by the short-vs-long guard
+Nieciecza,15906,Termalica Bruk-Bet Nieciecza Klub Sportowy,compact ClubElo name blocked by the short-vs-long guard
+Sepsi,54585,Sepsi OSK Sf. Gheorghe,compact ClubElo name blocked by the short-vs-long guard
+Roda,192,Roda JC Kerkrade,compact ClubElo name blocked by the short-vs-long guard
+Mjaellby,2719,Mjällby Almänna Idrottsförening,compact ClubElo name blocked by the short-vs-long guard
+Mouscron,29228,Royal Excel Mouscron (-2022),compact ClubElo name blocked by the short-vs-long guard
+Dender,9010,FC Verbroedering Denderhoutem Denderleeuw Eendracht Hekelgem,compact ClubElo name blocked by the short-vs-long guard
+Iasi,33966,ACSM Politehnica Iasi,compact ClubElo name blocked by the short-vs-long guard
+Inverness,2451,Inverness Caledonian Thistle FC,compact ClubElo name blocked by the short-vs-long guard
+RAAL,3901,RAAL La Louvière,compact ClubElo name blocked by the short-vs-long guard
+Volga,12438,Volga Nizhniy Novgorod (- 2016),compact ClubElo name blocked by the short-vs-long guard
+Csikszereda,37255,Asociația Futball Klub Csíkszereda Miercurea Ciuc,compact ClubElo name blocked by the short-vs-long guard

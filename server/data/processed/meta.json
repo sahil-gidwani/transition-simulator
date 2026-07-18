@@ -1,19 +1,19 @@
 {
   "artifacts": {
     "club_seasons.parquet": {
-      "bytes": 121329,
+      "bytes": 122518,
       "rows": 9983,
-      "sha256": "155fbd6a4cf9fda6e9f9608ca69dbb5643e3664d73db80b6cfa7c26e894600e4"
+      "sha256": "e5d09cc604ca2d5ad1be104e5b0b8d6d60d256817f0b639748a803928bbc39e2"
     },
     "elo_mapping.parquet": {
-      "bytes": 21351,
+      "bytes": 21539,
       "rows": 776,
-      "sha256": "7460fae730e872fe4513224080c50a3a12ef894dfc922435c71e6ab0efdd980e"
+      "sha256": "8cec21ad942a8bd70fa53054688ca59ce2a07b01674c252b47e251fa8c82bd9f"
     },
     "league_seasons.parquet": {
-      "bytes": 11784,
+      "bytes": 11760,
       "rows": 434,
-      "sha256": "e371ac76a8b89ff168b701a3e5b764d127925d5c98e3d3ef10f4503449ad9b14"
+      "sha256": "a5fe35a963fb78c4ff8aacf7d71f050423a6607277c8f19f19e17ffe75627b12"
     },
     "player_values.parquet": {
       "bytes": 1341862,
@@ -31,12 +31,12 @@
       "sha256": "db1691375d39a8742b1cd5a7e14301a55a7d6bac2c5dcc38d8f5bf859981019c"
     },
     "transitions.parquet": {
-      "bytes": 1610304,
+      "bytes": 1624061,
       "rows": 37602,
-      "sha256": "3a318afefb1118f763f97034671a5f9b253e2778d364820d5ab4af8befa6c93a"
+      "sha256": "27e00a113f28c8de9616031330470de19ad96a853c5b370eee7dabb8a20b6c86"
     }
   },
-  "built_at": "2026-07-18T14:43:18+00:00",
+  "built_at": "2026-07-18T17:22:50+00:00",
   "constants": {
     "elo_asof_tolerance_days": 45,
     "loan_max_return_days": 548,
@@ -66,9 +66,9 @@
     "elo_stage_touches_5_team_mapping": 655,
     "elo_stage_touches_6_difflib": 97,
     "elo_stage_touches_excluded_non_uefa": 7051,
-    "elo_stage_touches_manual": 747,
-    "elo_stage_touches_unmapped": 2733,
-    "elo_touch_coverage": 0.7518,
+    "elo_stage_touches_manual": 2327,
+    "elo_stage_touches_unmapped": 1153,
+    "elo_touch_coverage": 0.7918,
     "minutes_share_nonnull_legacy_2013_plus": 0.9399
   },
   "funnel": {
@@ -128,7 +128,7 @@
     {
       "actual": "ok",
       "detail": "",
-      "expected": "8 rows all resolve",
+      "expected": "35 rows all resolve",
       "name": "manual_fixes_resolve",
       "passed": true
     },
@@ -196,7 +196,7 @@
       "passed": true
     },
     {
-      "actual": "0.7518",
+      "actual": "0.7918",
       "detail": "touch-weighted share of the transition universe with a mapped ClubElo club",
       "expected": ">= 0.74",
       "name": "elo_touch_coverage",
