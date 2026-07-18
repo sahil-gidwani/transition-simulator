@@ -26,6 +26,19 @@ const RULES: Rule[] = [
     rewrite: (m) => `included moves from leagues up to ${m[1]} strength tiers apart`,
   },
   {
+    pattern:
+      /^destination league band widened to \+\/-\d+(?:\.\d+)? \(~(\d+(?:\.\d+)?)x squad value\)$/,
+    rewrite: (m) =>
+      `included destination leagues up to ~${m[1]}× stronger or weaker in squad value`,
+  },
+  {
+    pattern:
+      /^destination league band widened to \+\/-\d+(?:\.\d+)? \(~(\d+(?:\.\d+)?)x squad value\); origin league filter dropped; club-level terms ignored$/,
+    rewrite: (m) =>
+      `included destination leagues up to ~${m[1]}× stronger or weaker in squad value, ` +
+      'considered moves from any league, and set club-level detail aside',
+  },
+  {
     pattern: /^origin league filter dropped; club-level terms ignored$/,
     rewrite: () => 'considered moves from any league, setting club-level detail aside',
   },

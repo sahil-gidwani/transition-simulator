@@ -42,3 +42,21 @@ describe('humanizeRelaxationStep', () => {
     expect(humanizeRelaxationStep('')).toBe('');
   });
 });
+
+describe('destination band steps (engine v2 ladder)', () => {
+  it('humanizes the band widening with its squad-value meaning', () => {
+    expect(
+      humanizeRelaxationStep('destination league band widened to +/-0.9 (~2.5x squad value)'),
+    ).toBe('included destination leagues up to ~2.5× stronger or weaker in squad value');
+  });
+
+  it('humanizes the terminal combined step', () => {
+    expect(
+      humanizeRelaxationStep(
+        'destination league band widened to +/-1 (~2.7x squad value); origin league filter dropped; club-level terms ignored',
+      ),
+    ).toBe(
+      'included destination leagues up to ~2.7× stronger or weaker in squad value, considered moves from any league, and set club-level detail aside',
+    );
+  });
+});
