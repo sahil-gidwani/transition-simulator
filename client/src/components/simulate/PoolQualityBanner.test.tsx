@@ -25,7 +25,7 @@ describe('PoolQualityBanner', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('lists the relaxation steps under the expanded-search banner', () => {
+  it('lists the relaxation steps, humanized, under the expanded-search banner', () => {
     render(
       <PoolQualityBanner
         poolQuality={poolQuality({
@@ -37,8 +37,25 @@ describe('PoolQualityBanner', () => {
     );
 
     expect(screen.getByText('Expanded search')).toBeInTheDocument();
-    expect(screen.getByText('age band widened to +/-6 years')).toBeInTheDocument();
-    expect(screen.getByText('value bracket widened to 0.25-4x')).toBeInTheDocument();
+    expect(screen.getByText('included players up to 6 years older or younger')).toBeInTheDocument();
+    expect(
+      screen.getByText("included players valued from 0.25× to 4× this player's value"),
+    ).toBeInTheDocument();
+    // The server's exact wording stays reachable as a tooltip breadcrumb.
+    expect(screen.getByTitle('age band widened to +/-6 years')).toBeInTheDocument();
+  });
+
+  it('passes unknown relaxation steps through verbatim', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          expanded_search: true,
+          relaxation_level: 1,
+          relaxation_steps: ['minutes filter loosened to 10%'],
+        })}
+      />,
+    );
+    expect(screen.getByText('minutes filter loosened to 10%')).toBeInTheDocument();
   });
 
   it('shows the Elo fallback note when a club was selected without a rating', () => {

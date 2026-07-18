@@ -1,4 +1,5 @@
 import { Widen } from '../ui/icons';
+import { humanizeRelaxationStep } from '../../lib/relaxation';
 import type { PoolQuality } from '../../lib/types';
 
 interface PoolQualityBannerProps {
@@ -66,7 +67,11 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-400">
                 {poolQuality.relaxation_steps.map((step) => (
-                  <li key={step}>{step}</li>
+                  // title keeps the server's exact wording as a traceability
+                  // breadcrumb behind the plain-language rendering.
+                  <li key={step} title={step}>
+                    {humanizeRelaxationStep(step)}
+                  </li>
                 ))}
               </ul>
             </>
