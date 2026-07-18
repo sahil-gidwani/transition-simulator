@@ -22,7 +22,7 @@ export default function DestinationPicker({
       <div
         role="status"
         aria-label="Loading destination leagues"
-        className="grid gap-4 rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 sm:grid-cols-2"
+        className="glass-panel grid gap-4 rounded-xl p-4 sm:grid-cols-2"
       >
         <SkeletonBlock className="h-16 w-full" />
         <SkeletonBlock className="h-16 w-full" />
@@ -34,7 +34,7 @@ export default function DestinationPicker({
   const selectedClub = selectedLeague?.clubs.find((club) => club.club_id === clubId) ?? null;
 
   return (
-    <div className="grid gap-4 rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 sm:grid-cols-2">
+    <div className="glass-panel grid gap-4 rounded-xl p-4 sm:grid-cols-2">
       <Combobox<DestinationLeague>
         id="destination-league"
         label="Destination league"

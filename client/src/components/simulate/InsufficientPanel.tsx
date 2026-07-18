@@ -1,4 +1,5 @@
 import Chip from '../ui/Chip';
+import { NoRange } from '../ui/icons';
 import type { SimulationResponse } from '../../lib/types';
 import CompCardView from './CompCardView';
 
@@ -10,10 +11,12 @@ interface InsufficientPanelProps {
 /** The honest refusal: fewer than two usable comps means no range at all. */
 export default function InsufficientPanel({ result, leagueNames }: InsufficientPanelProps) {
   return (
-    <section className="rounded-2xl border border-pitch-800 bg-pitch-900 p-6 sm:p-8">
+    <section className="glass-panel rounded-2xl p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-semibold text-ink-100">Insufficient precedent</h2>
-        <Chip tone="decline">No range</Chip>
+        <h2 className="font-display text-3xl font-medium text-ink-100">Insufficient precedent</h2>
+        <Chip tone="decline" icon={<NoRange />}>
+          No range
+        </Chip>
       </div>
       <p className="mt-3 max-w-xl leading-relaxed text-ink-400">
         Fewer than two comparable transitions survive the similarity checks for this move, even

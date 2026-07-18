@@ -6,6 +6,7 @@ import NarrativeStrip from '../components/simulate/NarrativeStrip';
 import NoValuationPanel from '../components/simulate/NoValuationPanel';
 import PoolQualityBanner from '../components/simulate/PoolQualityBanner';
 import VerdictPanel from '../components/simulate/VerdictPanel';
+import Logo from '../components/layout/Logo';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -107,7 +108,7 @@ export default function SimulatePage() {
         <Link to={`/players/${playerId}`} className="text-sm text-ink-400 hover:text-ink-100">
           ← {playerName ?? 'Profile'}
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-100">
+        <h1 className="mt-2 font-display text-4xl font-medium tracking-tight text-ink-100">
           Transition Simulator
         </h1>
         <p className="mt-1 text-ink-400">
@@ -140,8 +141,9 @@ export default function SimulatePage() {
       )}
 
       {state.kind === 'idle' ? (
-        <div className="rounded-2xl border border-dashed border-pitch-800 px-6 py-16 text-center">
-          <p className="text-lg text-ink-400">
+        <div className="rounded-2xl border border-dashed border-pitch-700 px-6 py-16 text-center">
+          <Logo variant="mark" className="mx-auto h-10 w-10 opacity-40" />
+          <p className="mx-auto mt-4 max-w-xl text-lg text-ink-400">
             Pick a destination league to see the verdict — the predicted range, its named precedents
             and the scout&apos;s read appear here.
           </p>

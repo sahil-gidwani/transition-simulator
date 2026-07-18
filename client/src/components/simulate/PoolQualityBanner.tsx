@@ -1,3 +1,4 @@
+import { Widen } from '../ui/icons';
 import type { PoolQuality } from '../../lib/types';
 
 interface PoolQualityBannerProps {
@@ -56,7 +57,10 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
         <aside className="rounded-xl border border-caution-400/40 bg-caution-400/10 p-4 text-sm">
           {poolQuality.expanded_search ? (
             <>
-              <p className="font-semibold text-caution-400">Expanded search</p>
+              <p className="flex items-center gap-1.5 font-semibold text-caution-400">
+                <Widen />
+                Expanded search
+              </p>
               <p className="mt-1 text-ink-100">
                 Thin precedent at the strictest filters — the search was widened to build this pool:
               </p>
