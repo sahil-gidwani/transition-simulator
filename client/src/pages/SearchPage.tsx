@@ -33,17 +33,16 @@ export default function SearchPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl pt-6 sm:pt-16">
-      <p className="text-sm tracking-[0.3em] text-tangerine-300 uppercase">Transfer valuations</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink-100 sm:text-5xl">
-        Every move has a precedent.
+    <div className="mx-auto max-w-2xl pt-8 sm:pt-20">
+      <h1 className="font-display text-5xl font-medium tracking-tight text-balance text-ink-100 sm:text-6xl">
+        Every move has a <span className="text-tangerine-300">precedent</span>.
       </h1>
-      <p className="mt-4 text-lg leading-relaxed text-ink-400">
+      <p className="mt-5 text-lg leading-relaxed text-ink-400">
         What happens to a player&apos;s value after a move? Precedent answers with evidence: named,
         comparable transitions and what the market did next.
       </p>
 
-      <div className="mt-8">
+      <div className="mt-9">
         <input
           // The hero exists to be typed into; focus is not stolen from anything.
           autoFocus
@@ -60,7 +59,7 @@ export default function SearchPage() {
             reset();
           }}
           onKeyDown={onKeyDown}
-          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-500 focus:border-yale-400 focus:outline-none"
+          className="w-full rounded-xl border border-pitch-700 bg-pitch-900/80 px-5 py-4 text-lg text-ink-100 shadow-lg shadow-black/40 transition-shadow duration-150 placeholder:text-ink-500 focus:border-yale-400 focus:shadow-none focus:ring-4 focus:ring-yale-400/25 focus:outline-none"
         />
 
         {!searchActive ? (

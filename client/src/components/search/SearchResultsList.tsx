@@ -1,4 +1,5 @@
 import Badge from '../ui/Badge';
+import { Clock } from '../ui/icons';
 import { formatDate, formatEuroCompact } from '../../lib/format';
 import { positionLabel } from '../../lib/labels';
 import type { PlayerSearchResult } from '../../lib/types';
@@ -25,7 +26,7 @@ export default function SearchResultsList({
       id={id}
       role="listbox"
       aria-label="Player results"
-      className="mt-4 divide-y divide-pitch-800 overflow-hidden rounded-xl border border-pitch-800 bg-pitch-900/60"
+      className="mt-4 divide-y divide-pitch-800/70 overflow-hidden rounded-xl border border-pitch-800 bg-pitch-900/60 shadow-xl shadow-black/30"
     >
       {results.map((result, index) => (
         <li
@@ -55,10 +56,15 @@ export default function SearchResultsList({
             <span className="block font-medium text-tangerine-200 tabular-nums">
               {formatEuroCompact(result.market_value_eur)}
             </span>
-            <span className="block text-xs whitespace-nowrap text-ink-400">
-              {result.market_value_asof
-                ? `as of ${formatDate(result.market_value_asof)}`
-                : 'no valuation on record'}
+            <span className="flex items-center justify-end gap-1 text-xs whitespace-nowrap text-ink-500">
+              {result.market_value_asof ? (
+                <>
+                  <Clock className="h-2.5 w-2.5" />
+                  as of {formatDate(result.market_value_asof)}
+                </>
+              ) : (
+                'no valuation on record'
+              )}
             </span>
           </span>
         </li>
