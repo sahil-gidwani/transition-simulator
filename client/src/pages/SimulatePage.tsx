@@ -14,6 +14,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ApiError } from '../lib/api';
 import { useDestinations, usePlayer, useSimulation } from '../lib/queries';
 import { deriveSimulatorState } from '../lib/simulatorState';
+import { suggestedDestinations } from '../lib/suggestions';
 import type { DestinationSpec } from '../lib/types';
 
 function SimulationSkeleton() {
@@ -91,6 +92,10 @@ export default function SimulatePage() {
   const leagueNames = new Map(
     (destinationsQuery.data?.leagues ?? []).map((league) => [league.league_id, league.name]),
   );
+  const suggestions = suggestedDestinations(
+    destinationsQuery.data?.leagues ?? [],
+    playerQuery.data?.league_id ?? null,
+  );
 
   function setDestination(leagueId: string | null, nextClubId: number | null) {
     const next = new URLSearchParams();
@@ -146,6 +151,21 @@ export default function SimulatePage() {
             Pick a destination league to see the verdict — the predicted range, the named moves
             behind it, and the scout&apos;s read appear here.
           </p>
+          {suggestions.length > 0 ? (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-sm text-ink-500">or try one click:</span>
+              {suggestions.map((league) => (
+                <button
+                  key={league.league_id}
+                  type="button"
+                  onClick={() => setDestination(league.league_id, null)}
+                  className={secondaryActionCompact}
+                >
+                  {league.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : state.kind === 'loading' ? (
         <SimulationSkeleton />
