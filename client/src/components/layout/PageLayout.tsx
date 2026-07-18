@@ -1,18 +1,21 @@
 import { m } from 'motion/react';
 import { Link, Outlet, useLocation } from 'react-router';
-import { formatDate } from '../../lib/format';
+import { Search } from '../ui/icons';
+import { secondaryActionCompact } from '../ui/actions';
 import { pageEnter } from '../../lib/motion';
-import { useHealth } from '../../lib/queries';
 import ErrorBoundary from './ErrorBoundary';
 import Logo from './Logo';
 
-function FooterFreshness() {
-  const { data } = useHealth();
-  if (!data) return null;
+const footerLink =
+  'text-ink-400 underline decoration-pitch-700 underline-offset-2 transition-colors duration-150 hover:text-tangerine-200 hover:decoration-tangerine-300/60';
+
+/** Brand hairline: a yale glint that fades out toward both edges. */
+function Hairline() {
   return (
-    <span className="whitespace-nowrap">
-      Values as of {formatDate(data.data.max_valuation_date)}
-    </span>
+    <div
+      aria-hidden="true"
+      className="h-px bg-linear-to-r from-transparent via-yale-400/50 to-transparent"
+    />
   );
 }
 
@@ -21,18 +24,27 @@ export default function PageLayout() {
   return (
     <div className="mesh-hero relative flex min-h-screen flex-col text-ink-100">
       <div aria-hidden="true" className="noise-overlay pointer-events-none fixed inset-0 z-50" />
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-pitch-950/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5">
-          <Link
-            to="/"
-            className="rounded text-ink-100 transition-colors duration-150 hover:text-tangerine-200"
-          >
-            <Logo />
+      <header className="sticky top-0 z-40 bg-pitch-950/70 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
+          <div className="flex min-w-0 items-center gap-4">
+            <Link
+              to="/"
+              className="rounded text-ink-100 transition-colors duration-150 hover:text-tangerine-200"
+            >
+              <Logo />
+            </Link>
+            <span aria-hidden="true" className="hidden h-4 w-px bg-pitch-700 md:block" />
+            <span className="hidden text-[11px] tracking-[0.22em] text-ink-500 uppercase md:block">
+              Transfer valuations
+            </span>
+          </div>
+          <Link to="/search" className={`${secondaryActionCompact} inline-flex items-center gap-2`}>
+            <Search className="h-3 w-3 text-ink-400" />
+            <span className="max-sm:hidden">Search players</span>
+            <span className="sm:hidden">Search</span>
           </Link>
-          <span className="text-xs tracking-[0.25em] text-ink-500 uppercase max-sm:hidden">
-            Transfer valuations
-          </span>
         </div>
+        <Hairline />
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         {/* Enter-only route transition: keyed on pathname so each page fades
@@ -44,13 +56,33 @@ export default function PageLayout() {
           </ErrorBoundary>
         </m.div>
       </main>
-      <footer className="border-t border-pitch-800/70">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-6 py-4 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            Player and market-value data: Transfermarkt, via the player-scores dataset · Club
-            strength: ClubElo — clubelo.com
-          </span>
-          <FooterFreshness />
+      <footer>
+        <Hairline />
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Logo variant="mark" decorative className="h-6 w-6 text-ink-200" />
+            <p className="mt-3 text-xs leading-relaxed text-ink-500">
+              Transfer valuations, backed by named precedent.
+            </p>
+          </div>
+          <div className="text-xs leading-relaxed text-ink-500 sm:text-right">
+            <p>
+              Player and market-value data: Transfermarkt, via{' '}
+              <a
+                href="https://github.com/dcaribou/transfermarkt-datasets"
+                target="_blank"
+                rel="noreferrer"
+                className={footerLink}
+              >
+                transfermarkt-datasets
+              </a>{' '}
+              · Club strength:{' '}
+              <a href="http://clubelo.com" target="_blank" rel="noreferrer" className={footerLink}>
+                ClubElo
+              </a>
+            </p>
+            <p className="mt-1.5">Developed by Sahil Gidwani</p>
+          </div>
         </div>
       </footer>
     </div>

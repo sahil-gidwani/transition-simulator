@@ -96,6 +96,16 @@ export function Clock({ className }: IconProps) {
   );
 }
 
+/** Player search (a magnifier). */
+export function Search({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="5.2" cy="5.2" r="3.4" />
+      <path d="m7.8 7.8 2.7 2.7" />
+    </Icon>
+  );
+}
+
 /** Quoted read (an opening double quote). */
 export function Quote({ className }: IconProps) {
   return (
