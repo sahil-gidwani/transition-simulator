@@ -1,0 +1,29 @@
+# Never ship secrets or VCS state into a build context
+.git
+.env
+.env.*
+
+# Dependency/build outputs (rebuilt inside the images)
+node_modules
+**/node_modules
+**/dist
+**/.venv
+**/*.tsbuildinfo
+coverage
+
+# Python caches
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Large local-only data (processed artifacts ARE included)
+server/data/raw
+server/data/eval
+
+# Local-only docs and tooling
+*.pdf
+PROMPTS.md
+.claude
+.husky
+docs

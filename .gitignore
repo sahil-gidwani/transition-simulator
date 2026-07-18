@@ -26,6 +26,10 @@ server/data/raw/
 # Backtest outputs (reproducible via `uv run python -m pipeline.eval`)
 server/data/eval/
 
+# Extra CA certificates for docker builds (local-only; see docker/certs/README.md)
+docker/certs/*
+!docker/certs/README.md
+
 # OS / editor
 .DS_Store
 Thumbs.db

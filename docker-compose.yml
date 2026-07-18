@@ -1,0 +1,41 @@
+name: precedent
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: precedent-server
+    restart: unless-stopped
+    healthcheck:
+      # /api/health only answers once the DataStore is loaded - real readiness.
+      # The empty ProxyHandler keeps the loopback probe off any ambient proxy.
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as u; u.build_opener(u.ProxyHandler({})).open('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    image: precedent-client
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "${PRECEDENT_APP_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "http_proxy= wget -q --spider http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
