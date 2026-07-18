@@ -107,8 +107,10 @@ Tokens live in `src/index.css` (Tailwind v4 `@theme`; there is no `tailwind.conf
   as one another.
 - **Type**: Fraunces (display) / Inter (text), both self-hosted variable fonts — no font
   CDN, so Docker builds render identically offline.
-- **Motion**: conveys state, never decoration — enter-only, 150–300 ms, expo-out; **bad
-  news is never delayed for choreography**; `prefers-reduced-motion` is honored globally
+- **Motion**: conveys state, never decoration — enter-only, expo-out; micro-interactions
+  and page enters sit in the 150–300 ms band, with the two numeric reveals (count-up
+  0.8 s, percentile fill 0.7 s) deliberately longer; **bad news is never delayed for
+  choreography**; `prefers-reduced-motion` is honored globally
   (`MotionConfig reducedMotion="user"`).
 - **Glass and depth**: every glass panel is its own stacking context (backdrop-filter), so
   the z-scale is semantic and small: in-panel dropdowns `z-10` → panels that spawn
@@ -118,8 +120,9 @@ Tokens live in `src/index.css` (Tailwind v4 `@theme`; there is no `tailwind.conf
 
 ## Formatters and the lib map
 
-`src/lib/format.ts`: every formatter maps null/undefined to an em dash; signs use the real
-minus sign (U+2212), not a hyphen. Ranges compress shared units ("€38–46M", but
+`src/lib/format.ts`: the display formatters map null/undefined to an em dash (the one
+deliberate exception: `horizonMonthYear` returns null so callers can omit its suffix
+entirely); signs use the real minus sign (U+2212), not a hyphen. Ranges compress shared units ("€38–46M", but
 "€850k–€1.2M" across units; equal ends collapse). Dates are parsed by hand because
 `new Date(iso)` reads date-only strings as UTC and shows the previous day in
 negative-offset timezones. `horizonMonthYear` turns as-of + 12 months into a concrete

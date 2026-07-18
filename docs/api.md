@@ -49,8 +49,9 @@ Search semantics:
   [architecture.md](architecture.md#cross-cutting-plumbing).)
 
 `value_delta_12m` is the 12-month value trend: current value divided by the latest
-valuation dated at least 365 days ago, minus 1 (`0.2` = +20%). It is `null` when no
-baseline that old exists, and zero-value baselines are skipped.
+valuation dated at least 365 days before the value's as-of date, minus 1 (`0.2` = +20%).
+It is `null` when no baseline that old exists, or when that baseline is a zero value —
+a zero has no meaningful ratio, and the code does not reach past it to an older one.
 
 `GET /api/players/search?q=maddison`:
 
@@ -69,7 +70,7 @@ baseline that old exists, and zero-value baselines are skipped.
     "market_value_asof": "2026-06-03",
     "value_delta_12m": -0.5238095238095238
   },
-  { "player_id": 221561, "name": "Marcus Maddison", "…": "… trimmed (2 more results)" }
+  { "player_id": 221561, "name": "Marcus Maddison", "…": "… trimmed (1 more result)" }
 ]
 ```
 
@@ -142,7 +143,8 @@ thin sample is flagged, not ranked. `GET /api/players/418560/percentiles`:
 }
 ```
 
-Goalkeepers additionally get `conceded_p90` and `clean_sheet_rate` metrics.
+Goalkeepers get a different metric set — `conceded_p90` and `clean_sheet_rate` — **in
+place of** the outfield metrics, not in addition to them.
 
 ## GET /api/destinations
 
@@ -246,7 +248,8 @@ by similarity only, never by outcome.
 ### Example: club-level honesty (standing support = 0)
 
 `{"player_id": 418560, "destination": {"league_id": "ES1", "club_id": 3368}}` — a €200M
-forward pointed at the league's smallest budget. Honesty-relevant subset of the response:
+forward pointed at one of the league's smallest budgets. Honesty-relevant subset of the
+response:
 
 ```json
 {

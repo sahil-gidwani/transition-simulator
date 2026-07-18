@@ -23,7 +23,7 @@ flowchart LR
         PB --> RPT["pipeline-report.md + meta.json"]
         EV["pipeline.eval: backtest + tuning"]
     end
-    PB -->|"33 exact gates, then promote"| ART
+    PB -->|"33 gates, then promote"| ART
     EV -.->|"imports app.services"| API
 ```
 
@@ -119,7 +119,7 @@ pipeline's club-name matcher (`pipeline/naming.py`) look similar and must not be
 The club matcher strips stop tokens ("fc", "de", …) that are meaningful in player names,
 and uses German-style transliteration (ö → "oe") because that is how ClubElo spells club
 names. Search input works the other way: people type "ozil", not "oezil", so the search
-fold maps to the bare letter and never to a digraph.
+fold maps umlauts and ø to the bare letter rather than the German-style digraph.
 
 ## The client, in brief
 

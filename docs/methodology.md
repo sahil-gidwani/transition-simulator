@@ -47,8 +47,9 @@ immediately rather than an unanchored search.
 ## The relaxation ladder
 
 When fewer than 6 candidates (`MIN_POOL_TARGET`) survive, the search widens one step at a
-time and stops at the first step that reaches 6. The steps, with their exact labels as
-served in `pool_quality.relaxation_steps`:
+time and stops at the first step that reaches 6. The steps (each *widening* step's label
+is served verbatim in `pool_quality.relaxation_steps`; step 1 is the unwidened base state
+and is never listed there):
 
 1. `base filters`
 2. `age band widened to +/-4.5 years`
@@ -108,8 +109,10 @@ them, with the tuned weights (values rounded to 3 decimals; full precision in
 | 9 | Sub-position | 0 if equal, 1 if not | — | 0.296 |
 | 10 | Recency | seasons since the comp | 13.0 | 0.318 |
 
-Terms 5–7 only apply when a destination club is chosen (and are ignored at ladder step 6);
-terms 2, 8, 9 only when the query knows its age / minutes / sub-position. Per comp, any
+Terms 5–6 apply only when a destination club is chosen; term 7 applies whenever the
+player's origin standing is known (league-only searches included); all three club terms
+are ignored at ladder step 6. Terms 2, 8, 9 apply only when the query knows its age /
+minutes / sub-position. Per comp, any
 term missing on either side drops from **both the numerator and the weight mass**, so a
 null never penalizes. `similarity = exp(−distance)`; ties break deterministically on
 `(distance, player_id, transfer_date)`. The top `POOL_K = 41` comps form the quantile pool;

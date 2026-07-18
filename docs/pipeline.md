@@ -67,14 +67,16 @@ In execution order:
 2. **Input gates.** Row-count floors, the players-table schema check, exact-date valuation
    freshness, and a check that every manual Elo fix still resolves to a real club.
 3. **Transfer cleaning.** Drop undated transfers, duplicate `(player, date)` rows, and
-   self-moves; then keep only transfers where both clubs are inside the covered leagues
-   (pseudo-clubs like "Retired"/"Without club" are flagged out by pattern).
+   self-moves; then keep only transfers where both clubs are inside the covered leagues —
+   which is also what drops pseudo-club rows ("Retired", "Without club", …); those are
+   additionally flagged by pattern, for reporting only.
 4. **Loan detection — structural, because upstream has no loan flag.** A loan parses
-   identically to a free transfer (fee 0), so loans are found by shape: an A→B move whose
-   fees are zero/unknown followed by the mirror B→A move within 548 days (~18 months) is a
-   suspected loan round-trip. Pairing is greedy — candidates sort by `(gap_days, row order)`
-   and each leg is consumed at most once — and pairs where any fee is positive are kept as
-   buy-backs, not loans. Both legs of a loan pair are flagged; the flag travels into
+   identically to a free transfer (fee 0), so loans are found by shape: an A→B move
+   followed by the mirror B→A move within 548 days (~18 months) forms a round-trip pair,
+   and a pair whose fees are **both exactly zero** is a suspected loan. Pairing is greedy —
+   candidates sort by `(gap_days, row order)` and each leg is consumed at most once. Pairs
+   with any positive fee are buy-backs and pairs with unknown fees are ambiguous; both stay
+   in the universe. Both legs of a loan pair are flagged; the flag travels into
    `transitions.parquet` rather than deleting rows. Counts and residual risk (loans
    converted to permanent moves never round-trip): [data-notes.md](data-notes.md).
 5. **Valuation windows.** `v_before` = last valuation in `[t−180d, t−1d]` — strictly before
@@ -148,7 +150,7 @@ Identity and timing:
 | `player_id`, `player_name` | Int32, String | Transfermarkt identity; never null |
 | `transfer_date`, `season` | Date, Int16 | The move and its season (July split); never null |
 | `age_at_transfer` | Float32 | Fractional age at the transfer; null only when date of birth is missing upstream |
-| `position_group`, `sub_position` | String | Position at transfer; sub_position never null here (rows without one don't qualify) |
+| `position_group`, `sub_position` | String | Position at transfer; `sub_position` carries no nulls in the shipped artifact (qualification does not filter on it — nothing structurally forbids one) |
 | `suspected_loan` | Boolean | Structural loan flag (stage 4); never null — the server filters on it at load |
 
 Origin/destination context, baked as-of the transition's own season (`from_*` / `to_*`):
@@ -168,7 +170,7 @@ Outcome (the product's dependent variable):
 | Column | Type | Meaning / null when |
 |---|---|---|
 | `v_before`, `v_before_date` | Int64, Date | Last valuation ≤180 days strictly before the transfer; never null (rows without one don't qualify) |
-| `v_after`, `v_after_date` | Int64, Date | Valuation nearest +12 months (6–18 month window); never null here. `v_after_date` drives the backtest's availability rule |
+| `v_after`, `v_after_date` | Int64, Date | First valuation in `[t+180d, t+540d]`; never null here (rows without one don't qualify). `v_after_date` drives the backtest's availability rule |
 | `multiplier`, `delta_pct` | Float64 | `v_after / v_before` and its percent form; never null |
 | `days_to_after` | Int16 | Realized horizon in days |
 | `transfer_fee_eur` | Int64 | Raw fee where known; null = fee unknown (not free) |

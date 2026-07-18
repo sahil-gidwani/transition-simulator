@@ -101,10 +101,11 @@ The full gate table, funnel, coverage stats and caveats land in
 
 Key definitions (applied uniformly, everywhere): **v_before** = last valuation in the 180
 days strictly before the transfer (transfer-day revaluations are excluded — they already
-price the move); **v_after** = valuation nearest 12 months after, within a 6–18 month
-window (the window is deliberate: Transfermarkt revaluations land roughly twice a season,
-so a hard 12-month cut would drop comps whose nearest honest valuation arrives a few months
-either side — the realized horizon centers near 10 months, see `docs/eval-report.md`);
+price the move); **v_after** = the first valuation from 6 months
+post-transfer, accepted up to 18 months (the window is deliberate: Transfermarkt
+revaluations land roughly twice a season, so a hard 12-month cut would drop comps whose
+nearest honest valuation arrives a few months either side — the realized horizon centers
+near 10 months, see `docs/eval-report.md`);
 **suspected loan** = both legs of a zero-fee round-trip within 18 months (excluded
 from the comps universe; loans converted to permanent moves are structurally invisible —
 stated, not papered over). Playing-time features are nullable by design: appearance
@@ -165,8 +166,9 @@ statement, and the origin filter's ±1 band absorbs that drift.
 comp pool's 12-month value multipliers, applied to the player's current value — a weighted-
 neighbour quantile, not a model output, so every number traces back to the named comps in
 the response (the API returns the full quantile pool; the UI shows the closest six by
-default). **The 12-month horizon** is identical for every comp everywhere: "value after" is
-the valuation nearest 12 months post-transfer within a 6–18-month window.
+default). **The horizon rule** is identical for every comp everywhere: "value after" is
+the first valuation from 6 months post-transfer, accepted up to 18 (a nominal 12-month
+horizon whose realized median lands near 10 months).
 
 **Confidence and refusal.** High/Medium/Low is driven by pool size, dispersion (IQR of log
 multipliers) and how far the search had to widen (thresholds documented in

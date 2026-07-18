@@ -19,8 +19,8 @@ procedure (re-audit, re-pin) instead of silent drift. Details: [data-notes.md](d
 The source has no loan flag — loans parse exactly like free transfers — so loans are
 detected by shape (zero-fee round-trips within ~18 months) and excluded from the comps
 universe; a loan's "outcome" measures the parent club's asset management, not a transfer.
-The outcome itself is fixed to one horizon everywhere: value-after is the valuation
-nearest +12 months inside a 6–18-month window, wide enough to catch sparse valuation
+The outcome itself is fixed to one horizon everywhere: value-after is the first valuation
+from 6 months post-transfer, accepted up to 18 — wide enough to catch sparse valuation
 schedules, narrow enough to stay "a year later". Consequence: every comp, chart and
 backtest number shares one definition of "after". Details: [pipeline.md](pipeline.md).
 
@@ -117,7 +117,7 @@ effects. Details: [frontend.md](frontend.md#server-state-post-as-query).
 An adversarial pass over the Elo mapping found false positives (Inter Miami → Inter Milan;
 Columbus Crew → Crewe Alexandra): ClubElo only covers UEFA countries, so any non-UEFA
 "match" is wrong by construction — non-UEFA clubs now skip automatic matching entirely,
-and a guard blocks 1-token names from fuzzy-matching multi-token ones. The guard's
+and a guard blocks 1-token names from fuzzy-matching ≥3-token ones. The guard's
 casualties (real UEFA clubs with compact names) were individually restored through the
 manual CSV, and the coverage gate re-pinned above the honest level.
 Details: [data-notes.md](data-notes.md).
