@@ -217,7 +217,11 @@ def render_report(summary: EvalSummary) -> str:
         "(offline, never in the serving path) against the committed processed "
         f"dataset (revision `{info.revision}`, valuations through "
         f"{info.max_valuation_date}). The engine under test is the exact "
-        "serving code: `find_comps` + `summarize_pool`.",
+        "serving code: `find_comps` + `summarize_pool`. Backtests are re-run "
+        "with the frozen config whenever the processed artifacts are "
+        "repaired (most recently: restoring Elo ratings for 27 compact-named "
+        "UEFA clubs); the tuning search itself predates such repairs and is "
+        "only repeated on a full retune.",
         "",
         "## Protocol",
         "",
@@ -317,14 +321,27 @@ def render_report(summary: EvalSummary) -> str:
         "Tiers partition rather than rank, so they were searched on a small "
         f"honesty grid ({thresholds['n_candidates']} settings): a tier is "
         "honest when its validation coverage brackets the nominal 50% and "
-        "higher confidence means narrower ranges. **No setting was honest "
-        f"({thresholds['n_honest']}/{thresholds['n_candidates']})**: under "
-        "every candidate, the high tier under-covers "
-        f"({thresholds['tier_coverage']['high']:.1%} on validation at the "
-        "hand-set thresholds) - tight, unrelaxed pools are systematically "
-        "overconfident. The hand-set thresholds were therefore kept, and "
-        "this is an open finding, not a hidden one: treat the *high* label "
-        'as "strong precedent agreement", not "50% band guaranteed".',
+        "higher confidence means narrower ranges. "
+        + (
+            "**No setting was honest "
+            f"({thresholds['n_honest']}/{thresholds['n_candidates']})**: under "
+            "every candidate, the high tier under-covers "
+            f"({thresholds['tier_coverage']['high']:.1%} on validation at the "
+            "hand-set thresholds) - tight, unrelaxed pools are systematically "
+            "overconfident. The hand-set thresholds were therefore kept, and "
+            "this is an open finding, not a hidden one: treat the *high* label "
+            'as "strong precedent agreement", not "50% band guaranteed".'
+            if thresholds["n_honest"] == 0
+            else f"On the current validation records "
+            f"{thresholds['n_honest']}/{thresholds['n_candidates']} settings "
+            "pass that screen, but the shipped thresholds were frozen before "
+            "the test seasons were scored; re-picking them after later data "
+            "repairs would be post-hoc tuning, so the hand-set thresholds are "
+            "kept until the next full retune. At those thresholds the high "
+            f"tier under-covers ({thresholds['tier_coverage']['high']:.1%} on "
+            "validation) - treat the *high* label as "
+            '"strong precedent agreement", not "50% band guaranteed".'
+        ),
         "",
         "How the served tiers actually performed on test:",
         "",

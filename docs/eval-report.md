@@ -1,6 +1,6 @@
 # Precedent - temporal backtest report
 
-Every number below is produced by `uv run python -m pipeline.eval` (offline, never in the serving path) against the committed processed dataset (revision `7dbc5b38ba6efdc439933b00c2f4b4a7405dd681`, valuations through 2026-06-12). The engine under test is the exact serving code: `find_comps` + `summarize_pool`.
+Every number below is produced by `uv run python -m pipeline.eval` (offline, never in the serving path) against the committed processed dataset (revision `7dbc5b38ba6efdc439933b00c2f4b4a7405dd681`, valuations through 2026-06-12). The engine under test is the exact serving code: `find_comps` + `summarize_pool`. Backtests are re-run with the frozen config whenever the processed artifacts are repaired (most recently: restoring Elo ratings for 27 compact-named UEFA clubs); the tuning search itself predates such repairs and is only repeated on a full retune.
 
 ## Protocol
 
@@ -14,21 +14,21 @@ Every number below is produced by `uv run python -m pipeline.eval` (offline, nev
 
 | method | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| Precedent (tuned comps engine) | 7375 | 0.01% | 50.7% | 0.542 | 0.1622 | 0.1861 | 28.6% |
+| Precedent (tuned comps engine) | 7375 | 0.01% | 50.7% | 0.542 | 0.1621 | 0.1859 | 28.6% |
 | B0 - value unchanged (x1.0) | 7376 | 0.00% | - | - | - | 0.2049 | 33.3% |
 | B1 - global quantiles (availability-filtered) | 7376 | 0.00% | 48.5% | 0.652 | 0.1852 | 0.2063 | 33.3% |
 | B2 - age x position quantiles | 7376 | 0.00% | 53.7% | 0.598 | 0.1654 | 0.1881 | 28.6% |
-| Skyline - LightGBM quantile (never served) | 7376 | 0.00% | 43.5% | 0.457 | 0.1552 | 0.1776 | 27.1% |
+| Skyline - LightGBM quantile (never served) | 7376 | 0.00% | 43.5% | 0.454 | 0.1552 | 0.1775 | 26.8% |
 
-Precedent's range is honest out-of-sample: **50.7% of actual 12-month outcomes land inside the served q25-q75 band** (nominal 50%). It beats or matches every naive baseline on every metric while refusing only 0.01% of queries. The LightGBM skyline - same features, same availability discipline, no traceability - is ~4.3% better on pinball but materially *miscalibrated* (44% coverage): the traceability tax on sharpness is small, and the comp-pool quantiles buy back honest uncertainty.
+Precedent's range is honest out-of-sample: **50.7% of actual 12-month outcomes land inside the served q25-q75 band** (nominal 50%). It beats or matches every naive baseline on every metric while refusing only 0.01% of queries. The LightGBM skyline - same features, same availability discipline, no traceability - is ~4.2% better on pinball but materially *miscalibrated* (44% coverage): the traceability tax on sharpness is small, and the comp-pool quantiles buy back honest uncertainty.
 
 ## Test seasons, by season
 
 | season | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| 2022 | 2148 | 0.05% | 49.3% | 0.555 | 0.1646 | 0.1880 | 28.9% |
-| 2023 | 2479 | 0.00% | 51.1% | 0.541 | 0.1681 | 0.1929 | 28.6% |
-| 2024 | 2748 | 0.00% | 51.5% | 0.529 | 0.1550 | 0.1784 | 28.0% |
+| 2022 | 2148 | 0.05% | 49.3% | 0.555 | 0.1645 | 0.1881 | 28.9% |
+| 2023 | 2479 | 0.00% | 51.1% | 0.542 | 0.1680 | 0.1927 | 28.6% |
+| 2024 | 2748 | 0.00% | 51.3% | 0.529 | 0.1549 | 0.1780 | 27.6% |
 
 ## Segments (test, cells under 100 transitions suppressed)
 
@@ -36,44 +36,44 @@ Precedent's range is honest out-of-sample: **50.7% of actual 12-month outcomes l
 
 | age_band | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| 22-25 | 2664 | 0.00% | 50.3% | 0.588 | 0.1692 | 0.1938 | 30.0% |
-| 26-29 | 2138 | 0.00% | 51.8% | 0.505 | 0.1386 | 0.1571 | 25.0% |
-| 30+ | 1382 | 0.07% | 52.2% | 0.456 | 0.1319 | 0.1512 | 24.8% |
-| <22 | 1191 | 0.00% | 48.0% | 0.713 | 0.2239 | 0.2610 | 36.3% |
+| 22-25 | 2664 | 0.00% | 50.3% | 0.585 | 0.1691 | 0.1937 | 30.0% |
+| 26-29 | 2138 | 0.00% | 51.9% | 0.507 | 0.1384 | 0.1568 | 25.0% |
+| 30+ | 1382 | 0.07% | 52.2% | 0.457 | 0.1319 | 0.1511 | 25.0% |
+| <22 | 1191 | 0.00% | 47.4% | 0.713 | 0.2240 | 0.2608 | 36.6% |
 
 ### position_group
 
 | position_group | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| DEF | 2391 | 0.04% | 52.0% | 0.538 | 0.1584 | 0.1818 | 28.3% |
-| ATT | 2243 | 0.00% | 50.0% | 0.567 | 0.1675 | 0.1919 | 29.6% |
-| MID | 2100 | 0.00% | 50.3% | 0.516 | 0.1547 | 0.1776 | 26.4% |
-| GK | 641 | 0.00% | 49.9% | 0.580 | 0.1825 | 0.2094 | 33.3% |
+| DEF | 2391 | 0.04% | 51.6% | 0.538 | 0.1583 | 0.1817 | 28.2% |
+| ATT | 2243 | 0.00% | 50.2% | 0.570 | 0.1673 | 0.1916 | 29.9% |
+| MID | 2100 | 0.00% | 50.3% | 0.517 | 0.1547 | 0.1774 | 26.5% |
+| GK | 641 | 0.00% | 49.9% | 0.579 | 0.1824 | 0.2095 | 33.3% |
 
 ### tier_jump
 
 | tier_jump | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| same | 3981 | 0.03% | 51.2% | 0.526 | 0.1569 | 0.1798 | 27.3% |
-| unknown | 1205 | 0.00% | 51.0% | 0.591 | 0.1691 | 0.1931 | 30.0% |
-| up | 1178 | 0.00% | 48.5% | 0.596 | 0.1828 | 0.2112 | 33.3% |
-| down | 1011 | 0.00% | 50.9% | 0.519 | 0.1510 | 0.1728 | 25.6% |
+| same | 3981 | 0.03% | 51.4% | 0.524 | 0.1568 | 0.1796 | 27.3% |
+| unknown | 1205 | 0.00% | 50.5% | 0.588 | 0.1687 | 0.1926 | 30.0% |
+| up | 1178 | 0.00% | 48.0% | 0.598 | 0.1827 | 0.2112 | 33.3% |
+| down | 1011 | 0.00% | 50.8% | 0.521 | 0.1511 | 0.1730 | 25.9% |
 
 ### value_bracket
 
 | value_bracket | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| <1M | 3102 | 0.03% | 52.4% | 0.560 | 0.1724 | 0.1972 | 28.6% |
-| 1-5M | 2675 | 0.00% | 49.6% | 0.560 | 0.1621 | 0.1865 | 30.1% |
-| 5-15M | 1052 | 0.00% | 49.0% | 0.532 | 0.1550 | 0.1769 | 28.5% |
-| >=15M | 546 | 0.00% | 49.8% | 0.428 | 0.1192 | 0.1378 | 22.8% |
+| <1M | 3102 | 0.03% | 52.4% | 0.560 | 0.1724 | 0.1973 | 28.6% |
+| 1-5M | 2675 | 0.00% | 49.3% | 0.560 | 0.1621 | 0.1866 | 30.0% |
+| 5-15M | 1052 | 0.00% | 49.0% | 0.533 | 0.1544 | 0.1760 | 28.1% |
+| >=15M | 546 | 0.00% | 50.5% | 0.424 | 0.1185 | 0.1366 | 22.2% |
 
 ### minutes_known
 
 | minutes_known | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| True | 3808 | 0.00% | 50.3% | 0.532 | 0.1570 | 0.1800 | 28.0% |
-| False | 3567 | 0.03% | 51.2% | 0.553 | 0.1677 | 0.1926 | 28.9% |
+| True | 3808 | 0.00% | 50.2% | 0.532 | 0.1569 | 0.1798 | 28.0% |
+| False | 3567 | 0.03% | 51.2% | 0.553 | 0.1676 | 0.1923 | 28.9% |
 
 ## Tuning (validation seasons only)
 
@@ -82,9 +82,9 @@ Random search: 300 sampled configs + the hand-set priors (trial 0), seed 2026071
 | method | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
 | Hand-set priors | 2789 | 0.07% | 48.8% | 0.573 | 0.1748 | 0.1990 | 30.6% |
-| Tuned (winner 7309dc25f471) | 2787 | 0.14% | 51.6% | 0.580 | 0.1701 | 0.1946 | 28.5% |
+| Tuned (winner 7309dc25f471) | 2787 | 0.14% | 51.6% | 0.580 | 0.1700 | 0.1946 | 28.6% |
 | Tuned, league-only ablation (club withheld) | 2787 | 0.14% | 51.9% | 0.585 | 0.1709 | 0.1956 | 28.4% |
-| Skyline reference | 2791 | 0.00% | 39.8% | 0.446 | 0.1710 | 0.1967 | 29.1% |
+| Skyline reference | 2791 | 0.00% | 40.3% | 0.444 | 0.1711 | 0.1967 | 29.2% |
 
 Winner: trial 85, config hash `7309dc25f471` (imputed score 0.17000 vs hand-set 0.17471, ~2.7% better). The tuned weights moved the priors substantially - the heaviest terms are now W_ELO 1.43, W_DEST_CLUB_VALUE 0.92, W_RECENCY 0.32: with the destination a continuous question (strength band + club value percentile), destination-club similarity carries most of the distance mass, while the age and value gaps matter less than assumed once their hard filters have done the bounding. Frozen into `app/services/constants.py` (provenance comment + hash) before any test query was scored.
 
@@ -105,15 +105,15 @@ Top 10 trials by validation score:
 
 ## Confidence tiers
 
-Tiers partition rather than rank, so they were searched on a small honesty grid (324 settings): a tier is honest when its validation coverage brackets the nominal 50% and higher confidence means narrower ranges. **No setting was honest (0/324)**: under every candidate, the high tier under-covers (44.4% on validation at the hand-set thresholds) - tight, unrelaxed pools are systematically overconfident. The hand-set thresholds were therefore kept, and this is an open finding, not a hidden one: treat the *high* label as "strong precedent agreement", not "50% band guaranteed".
+Tiers partition rather than rank, so they were searched on a small honesty grid (324 settings): a tier is honest when its validation coverage brackets the nominal 50% and higher confidence means narrower ranges. On the current validation records 72/324 settings pass that screen, but the shipped thresholds were frozen before the test seasons were scored; re-picking them after later data repairs would be post-hoc tuning, so the hand-set thresholds are kept until the next full retune. At those thresholds the high tier under-covers (45.5% on validation) - treat the *high* label as "strong precedent agreement", not "50% band guaranteed".
 
 How the served tiers actually performed on test:
 
 | confidence | n scored | refusal rate | coverage (nominal 50%) | width (median, log) | pinball (log, mean) | pinball q50 | MdAPE |
 |---|---|---|---|---|---|---|---|
-| medium | 4055 | 0.00% | 49.3% | 0.480 | 0.1421 | 0.1626 | 25.0% |
-| low | 2843 | 0.00% | 54.5% | 0.717 | 0.1957 | 0.2253 | 33.3% |
-| high | 477 | 0.00% | 40.7% | 0.313 | 0.1333 | 0.1513 | 23.5% |
+| medium | 4078 | 0.00% | 49.2% | 0.481 | 0.1416 | 0.1620 | 25.0% |
+| low | 2832 | 0.00% | 54.2% | 0.717 | 0.1965 | 0.2260 | 33.3% |
+| high | 465 | 0.00% | 41.5% | 0.314 | 0.1328 | 0.1506 | 23.5% |
 | insufficient | 0 | 100.00% | - | - | - | - | - |
 
 ## Calibration decision
@@ -126,21 +126,21 @@ Gain importances of the quantile GBM (mean across folds and quantile levels) nex
 
 | GBM feature | gain |
 |---|---|
-| age_at_transfer | 2833 |
-| ln_v_before | 1918 |
-| to_elo_pct | 1827 |
-| to_strength | 1637 |
-| minutes_share_pre | 1567 |
-| from_elo_pct | 1537 |
-| from_strength | 1388 |
-| to_club_value_pct | 1383 |
-| from_club_value_pct | 1301 |
-| sub_position_code | 1180 |
-| season | 882 |
-| tier_diff | 188 |
-| to_tier | 90 |
-| from_tier | 58 |
-| position_code | 39 |
+| age_at_transfer | 2823 |
+| ln_v_before | 1923 |
+| to_elo_pct | 1883 |
+| to_strength | 1609 |
+| minutes_share_pre | 1583 |
+| from_elo_pct | 1556 |
+| to_club_value_pct | 1377 |
+| from_strength | 1351 |
+| from_club_value_pct | 1287 |
+| sub_position_code | 1162 |
+| season | 888 |
+| tier_diff | 182 |
+| to_tier | 85 |
+| from_tier | 57 |
+| position_code | 40 |
 
 | distance weight | tuned value |
 |---|---|

@@ -127,10 +127,15 @@ pre-move playing-time gap, and recency. A missing feature drops its term for tha
 weight renormalization — nulls never gate eligibility and never penalize. The weights and
 band widths are tuned by the temporal backtest (random search on validation seasons 2020–21
 under a date-exact availability rule) and frozen with a provenance comment and config hash
-(`7309dc25f471`) in `server/app/services/constants.py`. When a chosen club returns the same
-pool as the league-only search with a near-identical midpoint, the response says so
-(`pool_quality.club_indistinct`): precedent that rare doesn't distinguish destinations that
-fine, and pretending otherwise would be false precision.
+(`7309dc25f471`) in `server/app/services/constants.py`. Club-level honesty is judged on the
+pair of searches: when the chosen club's midpoint sits within 2% of the league-only answer,
+the response says so (`pool_quality.club_indistinct`) and the stated confidence is capped at
+the league-only tier — reweighting the same evidence must never *raise* confidence. The
+response also counts how many pool comps went to a club of comparable within-league standing
+(`pool_quality.club_standing_support`); zero support means the club term extrapolated (no
+precedent at that standing exists — true for every €60M+ move to a bottom-third budget), and
+the scout's read states that cause explicitly instead of dressing reweighted noise up as
+club-level insight.
 
 **League tiers** (display and origin-filter semantics only — the engine's destination side
 is continuous): fixed ln-strength thresholds pinned in `pipeline/config.py` (anchored in
@@ -166,8 +171,8 @@ served) is ~4% sharper on pinball loss but materially miscalibrated (43.5% cover
 price of full traceability is small, and the comp-pool quantiles keep the uncertainty
 honest. Weights were tuned on validation seasons 2020–21, strictly before all test seasons,
 and frozen before test was scored exactly once. One honest gap, reported rather than
-hidden: the *high* confidence tier under-covers (44% on validation) — read it as "strong
-precedent agreement", not a guaranteed 50% band. Full protocol, per-segment tables and
+hidden: the *high* confidence tier under-covers (45.5% on validation, 41.5% on test) — read
+it as "strong precedent agreement", not a guaranteed 50% band. Full protocol, per-segment tables and
 known biases: [docs/eval-report.md](docs/eval-report.md).
 
 **Known biases** (also quantified in the eval report): Transfermarkt values are validated
@@ -203,7 +208,7 @@ discover it the hard way:
   alongside it — market value is also not the same thing as a transfer fee, which embeds
   contract leverage, fees structure and negotiation.
 - **Per-tier calibration gaps.** The pooled interval is honest (~50% coverage), but the
-  *high*-confidence tier under-covers (~44%) — tight, unrelaxed pools are systematically
+  *high*-confidence tier under-covers (~42–45%) — tight, unrelaxed pools are systematically
   overconfident. Until a per-tier calibration lands, read confidence tiers as evidence
   agreement, not probability guarantees.
 - **A real deployment needs a live feed and monitoring.** The repo ships a pinned,
