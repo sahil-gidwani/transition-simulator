@@ -9,7 +9,7 @@ import pytest
 
 from app.services import constants
 from app.services.comps import ScoredComp
-from app.services.valuation import summarize_pool, weighted_quantile
+from app.services.valuation import direction_of, summarize_pool, weighted_quantile
 
 
 def _comp(multiplier: float, similarity: float = 1.0, **overrides: Any) -> ScoredComp:
@@ -86,6 +86,15 @@ def test_invalid_inputs_raise() -> None:
 
 
 # --- summarize_pool ---------------------------------------------------------------
+
+
+def test_direction_thresholds_are_inclusive() -> None:
+    # The same function feeds the narrative wording and the served field, so
+    # the client's arrow can never disagree with the scout's read.
+    assert direction_of(1.05) == "rise"
+    assert direction_of(1.049) == "flat"
+    assert direction_of(0.951) == "flat"
+    assert direction_of(0.95) == "decline"
 
 
 def test_fewer_than_two_comps_means_no_range() -> None:

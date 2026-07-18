@@ -52,6 +52,7 @@ function simulationResponse(overrides: Partial<SimulationResponse> = {}): Simula
       club_tercile: null,
     },
     prediction,
+    direction: 'rise',
     confidence: 'medium',
     insufficient_precedent: false,
     comps: [comp],

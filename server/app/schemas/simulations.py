@@ -79,6 +79,8 @@ class SimulationResponse(BaseModel):
     player: SimPlayer
     destination: SimDestination
     prediction: Prediction | None
+    # None exactly when there is no range (insufficient precedent).
+    direction: Literal["rise", "decline", "flat"] | None
     confidence: Literal["high", "medium", "low", "insufficient"]
     insufficient_precedent: bool
     comps: list[CompCard]

@@ -26,10 +26,24 @@ from app.services.constants import (
     CONF_MED_MAX_IQR_LOG,
     CONF_MED_MAX_RELAXATION,
     CONF_MED_MIN_POOL,
+    DIRECTION_DOWN,
+    DIRECTION_UP,
     MIN_COMPS_FOR_RANGE,
 )
 
 Confidence = Literal["high", "medium", "low", "insufficient"]
+Direction = Literal["rise", "decline", "flat"]
+
+
+def direction_of(q50_multiplier: float) -> Direction:
+    """The verdict direction, served as data: the narrative's wording and the
+    client's arrow both key on this one function, so they can never
+    contradict each other across a retune of the thresholds."""
+    if q50_multiplier >= DIRECTION_UP:
+        return "rise"
+    if q50_multiplier <= DIRECTION_DOWN:
+        return "decline"
+    return "flat"
 
 
 @dataclass(frozen=True)

@@ -5,16 +5,18 @@ import { CountUpRange } from '../motion/CountUp';
 import { formatDate, formatEuroCompact, formatRange, formatSignedPct } from '../../lib/format';
 import { tierLabel } from '../../lib/labels';
 import { useHealth } from '../../lib/queries';
-import type { Prediction, SimulationResponse } from '../../lib/types';
+import type { Direction, Prediction, SimulationResponse } from '../../lib/types';
 import { CONFIDENCE_COPY } from './confidenceCopy';
 import RangeBand from './RangeBand';
 
-// Mirrors the server's narrative thresholds (constants.DIRECTION_UP/DOWN).
-// COUPLING: a server retune of those constants must update these, or the
-// arrow can contradict the scout's read rendered beside it. The clean fix
-// is a served `direction` field — noted as a follow-up, not invented here.
-const DIRECTION_UP = 1.05;
-const DIRECTION_DOWN = 0.95;
+// The verdict direction is SERVED data (the same function feeds the scout's
+// read), so the arrow can never contradict the narrative across a retune.
+const DIRECTION_VIEW: Record<Direction, { Icon: typeof ArrowFlat; color: string; label: string }> =
+  {
+    rise: { Icon: ArrowUpRight, color: 'text-rise-400', label: 'rises' },
+    decline: { Icon: ArrowDownRight, color: 'text-decline-400', label: 'falls' },
+    flat: { Icon: ArrowFlat, color: 'text-ink-400', label: 'holds' },
+  };
 
 function FreshnessNote() {
   const { data } = useHealth();
@@ -29,12 +31,7 @@ interface VerdictPanelProps {
 
 export default function VerdictPanel({ result, prediction }: VerdictPanelProps) {
   const confidence = CONFIDENCE_COPY[result.confidence];
-  const direction =
-    prediction.mid_multiplier >= DIRECTION_UP
-      ? { Icon: ArrowUpRight, color: 'text-rise-400', label: 'rises' }
-      : prediction.mid_multiplier <= DIRECTION_DOWN
-        ? { Icon: ArrowDownRight, color: 'text-decline-400', label: 'falls' }
-        : { Icon: ArrowFlat, color: 'text-ink-400', label: 'holds' };
+  const direction = DIRECTION_VIEW[result.direction ?? 'flat'];
 
   const destinationLabel = result.destination.club_name ?? result.destination.league_name;
   const now = result.player.market_value_eur;

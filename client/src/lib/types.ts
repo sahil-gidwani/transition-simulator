@@ -172,10 +172,14 @@ export interface PoolQuality {
 
 export type Confidence = 'high' | 'medium' | 'low' | 'insufficient';
 
+export type Direction = 'rise' | 'decline' | 'flat';
+
 export interface SimulationResponse {
   player: SimPlayer;
   destination: SimDestination;
   prediction: Prediction | null;
+  /** Served verdict direction (from the server's thresholds); null iff insufficient. */
+  direction: Direction | null;
   confidence: Confidence;
   insufficient_precedent: boolean;
   /** The full quantile pool, most similar first; the range is computed from exactly these. */

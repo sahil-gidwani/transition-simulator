@@ -15,13 +15,11 @@ from app.repositories.players import PlayerRecord
 from app.services.comps import PoolQuality, ScoredComp
 from app.services.constants import (
     DECLINER_CAVEAT_MIN_SHARE,
-    DIRECTION_DOWN,
-    DIRECTION_UP,
     NAMED_PRECEDENTS,
     SMALL_POOL_MAX,
     STALE_VALUE_DAYS,
 )
-from app.services.valuation import Confidence, ValueRange
+from app.services.valuation import Confidence, ValueRange, direction_of
 
 
 def format_eur(eur: int) -> str:
@@ -75,9 +73,10 @@ def build_narrative(
             sentences.append(closest)
     else:
         q50 = value_range.q50_multiplier
-        if q50 >= DIRECTION_UP:
+        direction = direction_of(q50)
+        if direction == "rise":
             verdict = "The precedent points up."
-        elif q50 <= DIRECTION_DOWN:
+        elif direction == "decline":
             verdict = "The precedent points down."
         else:
             verdict = "The precedent is broadly flat."

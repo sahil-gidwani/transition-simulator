@@ -172,6 +172,7 @@ def test_league_only_simulation_returns_range_comps_and_narrative() -> None:
     prediction = body["prediction"]
     assert prediction["horizon_months"] == 12
     assert prediction["low_eur"] <= prediction["mid_eur"] <= prediction["high_eur"]
+    assert body["direction"] in ("rise", "decline", "flat")  # served, never client-derived
     assert body["confidence"] in ("high", "medium", "low")
     assert body["pool_quality"]["pool_size"] == 6
     assert body["pool_quality"]["club_selected"] is False
@@ -229,6 +230,7 @@ def test_no_precedent_yields_insufficient_with_no_range() -> None:
     body = response.json()
     assert body["insufficient_precedent"] is True
     assert body["prediction"] is None
+    assert body["direction"] is None  # no range, no direction claim
     assert body["confidence"] == "insufficient"
     assert body["comps"] == []
     assert body["pool_quality"]["expanded_search"] is True

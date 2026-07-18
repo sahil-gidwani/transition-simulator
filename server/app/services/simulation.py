@@ -23,7 +23,7 @@ from app.services.constants import SHOWN_COMPS_DEFAULT
 from app.services.destinations import league_label, resolve_destination
 from app.services.narrative import build_narrative
 from app.services.players import age_on
-from app.services.valuation import summarize_pool
+from app.services.valuation import direction_of, summarize_pool
 
 
 def run_simulation(
@@ -82,6 +82,7 @@ def run_simulation(
             club_tercile=club.tercile if club is not None else None,
         ),
         prediction=prediction,
+        direction=direction_of(value_range.q50_multiplier) if value_range is not None else None,
         confidence=confidence,
         insufficient_precedent=value_range is None,
         comps=[
