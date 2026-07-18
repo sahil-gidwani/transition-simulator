@@ -92,3 +92,23 @@ describe('SearchPage', () => {
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 });
+
+describe('SearchPage URL state', () => {
+  it('restores the query (and fires the search) from ?q= on mount', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve([haaland]),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithProviders(
+      <Routes>
+        <Route path="/search" element={<SearchPage />} />
+      </Routes>,
+      { initialEntries: ['/search?q=haal'] },
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('haal');
+    expect(await screen.findByRole('option', { name: /erling haaland/i })).toBeInTheDocument();
+  });
+});

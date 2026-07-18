@@ -19,6 +19,52 @@ function Hairline() {
   );
 }
 
+/**
+ * Slim route-driven breadcrumb (Search → Player → Simulate). Lives in the
+ * layout so every page below the search hero gets a way back without each
+ * page reinventing it; labels are generic because the layout doesn't (and
+ * shouldn't) fetch the player just to render a name.
+ */
+function Breadcrumb({ pathname }: { pathname: string }) {
+  const match = /^\/players\/([^/]+)(\/simulate)?$/.exec(pathname);
+  if (!match) return null;
+  const [, playerId, simulate] = match;
+  const crumbLink = 'transition-colors duration-150 hover:text-tangerine-200';
+  return (
+    <nav aria-label="Breadcrumb" className="mb-4 text-xs text-ink-500">
+      <ol className="flex items-center gap-1.5">
+        <li>
+          <Link to="/search" className={crumbLink}>
+            Search
+          </Link>
+        </li>
+        <li aria-hidden="true">›</li>
+        <li>
+          {simulate ? (
+            <Link to={`/players/${playerId}`} className={crumbLink}>
+              Player
+            </Link>
+          ) : (
+            <span aria-current="page" className="text-ink-400">
+              Player
+            </span>
+          )}
+        </li>
+        {simulate ? (
+          <>
+            <li aria-hidden="true">›</li>
+            <li>
+              <span aria-current="page" className="text-ink-400">
+                Simulate
+              </span>
+            </li>
+          </>
+        ) : null}
+      </ol>
+    </nav>
+  );
+}
+
 export default function PageLayout() {
   const location = useLocation();
   return (
@@ -51,6 +97,7 @@ export default function PageLayout() {
             in fresh. No exit choreography — the ErrorBoundary lives inside so
             a crashed page can never strand a leaving clone. */}
         <m.div key={location.pathname} {...pageEnter}>
+          <Breadcrumb pathname={location.pathname} />
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

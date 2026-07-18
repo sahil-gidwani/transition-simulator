@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { secondaryAction } from '../components/ui/actions';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import SearchResultsList from '../components/search/SearchResultsList';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
@@ -18,10 +18,21 @@ function searchOptionId(result: PlayerSearchResult): string {
 
 export default function SearchPage() {
   useDocumentTitle('Search — Precedent');
-  const [input, setInput] = useState('');
+  // The query lives in ?q= so Back restores the results and the URL is
+  // sharable; input state stays local for keystroke latency and the URL is
+  // synced (replace, not push) once the debounce settles.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [input, setInput] = useState(searchParams.get('q') ?? '');
   const navigate = useNavigate();
   const q = useDebouncedValue(input, 200);
   const { data, isPending, isError, refetch } = usePlayerSearch(q);
+
+  useEffect(() => {
+    const next = q.trim();
+    setSearchParams(next ? { q: next } : {}, { replace: true });
+    // setSearchParams identity changes per render; syncing on q alone is the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   const searchActive = q.trim().length >= 2;
   const results = (searchActive ? data : undefined) ?? [];
