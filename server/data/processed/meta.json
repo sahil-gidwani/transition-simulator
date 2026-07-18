@@ -1,19 +1,19 @@
 {
   "artifacts": {
     "club_seasons.parquet": {
-      "bytes": 105979,
+      "bytes": 109850,
       "rows": 9983,
-      "sha256": "572309f6146c400c82067da486044e483163a211208cbb7d703717f9f86c6cdc"
+      "sha256": "4090a39dc6486eda15ebaf7e6333cdcaf7024bb33ae34bfc081a729969ca2c1e"
     },
     "elo_mapping.parquet": {
-      "bytes": 21551,
+      "bytes": 21351,
       "rows": 776,
-      "sha256": "65a5538baaa8c2f2a26ac7534801256195ca71c766efa3f620b3b5c891bdb6ba"
+      "sha256": "7460fae730e872fe4513224080c50a3a12ef894dfc922435c71e6ab0efdd980e"
     },
     "league_seasons.parquet": {
-      "bytes": 12087,
+      "bytes": 11790,
       "rows": 434,
-      "sha256": "ce0688dba896f13e6b44eb9bcc3fdd8fef07c79e5724cd1596888a3e81df48cc"
+      "sha256": "f926c2e9d9ef2d9c5cd3a94bca102013dbf4d3e20e5ed8bc29bf84f2fd903e05"
     },
     "player_values.parquet": {
       "bytes": 1341862,
@@ -31,15 +31,16 @@
       "sha256": "db1691375d39a8742b1cd5a7e14301a55a7d6bac2c5dcc38d8f5bf859981019c"
     },
     "transitions.parquet": {
-      "bytes": 1451547,
+      "bytes": 1442286,
       "rows": 37602,
-      "sha256": "1a21d17da69d55837c07e41b86f028531e61af4662d0fd53fd130ed50ef2a16d"
+      "sha256": "e1da880e0e7a3ce36ec3635ab95b0f7bb8d8daa464adde75c2adde11060f10a8"
     }
   },
-  "built_at": "2026-07-17T18:49:58+00:00",
+  "built_at": "2026-07-18T14:24:43+00:00",
   "constants": {
     "elo_asof_tolerance_days": 45,
     "loan_max_return_days": 548,
+    "min_clubs_for_league_stats": 8,
     "minutes_window_days": 365,
     "profile_min_minutes": 450,
     "season_min": 2012,
@@ -55,18 +56,20 @@
   },
   "coverage": {
     "club_seasons_league_source_games": 3902,
-    "club_seasons_league_source_snapshot": 6081,
+    "club_seasons_league_source_none": 2746,
+    "club_seasons_league_source_snapshot": 3335,
     "elo_stage_touches_0_reep_id_bridge": 1675,
     "elo_stage_touches_1_exact_normalized": 15032,
-    "elo_stage_touches_2_token_subset": 13496,
-    "elo_stage_touches_3_token_prefix": 1485,
-    "elo_stage_touches_4_acronym": 10,
-    "elo_stage_touches_5_team_mapping": 697,
+    "elo_stage_touches_2_token_subset": 10321,
+    "elo_stage_touches_3_token_prefix": 1063,
+    "elo_stage_touches_4_acronym": 38,
+    "elo_stage_touches_5_team_mapping": 655,
     "elo_stage_touches_6_difflib": 97,
+    "elo_stage_touches_excluded_non_uefa": 7051,
     "elo_stage_touches_manual": 747,
-    "elo_stage_touches_unmapped": 6173,
-    "elo_touch_coverage": 0.8434,
-    "minutes_share_nonnull_legacy_2013_plus": 0.8453
+    "elo_stage_touches_unmapped": 2733,
+    "elo_touch_coverage": 0.7518,
+    "minutes_share_nonnull_legacy_2013_plus": 0.9399
   },
   "funnel": {
     "cleaned": 174917,
@@ -193,14 +196,14 @@
       "passed": true
     },
     {
-      "actual": "0.8434",
+      "actual": "0.7518",
       "detail": "touch-weighted share of the transition universe with a mapped ClubElo club",
-      "expected": ">= 0.82",
+      "expected": ">= 0.74",
       "name": "elo_touch_coverage",
       "passed": true
     },
     {
-      "actual": "0.8453",
+      "actual": "0.9399",
       "detail": "non-null minutes_share_pre among legacy-league transitions since 2013",
       "expected": ">= 0.60",
       "name": "minutes_share_legacy_coverage",
@@ -322,5 +325,7 @@
     "censor_horizon": "2025-12-14",
     "max_valuation_date": "2026-06-12"
   },
-  "warnings": []
+  "warnings": [
+    "manual Elo fix for club 1082 (Lille Olympique Sporting Club) is now found automatically - consider removing"
+  ]
 }

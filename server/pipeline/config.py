@@ -150,7 +150,11 @@ PINNED_EXPECTATIONS = Expectations(
     ),
     min_transitions_non_loan=19_000,
     min_player_values=600_000,  # measured: 617,351 dated valuations for in-scope players
-    min_elo_touch_coverage=0.82,
+    # Measured 0.7518 after restricting automatic Elo mapping to UEFA leagues
+    # and refusing 1-token-vs-3-token fuzzy matches. The old 0.8434 was
+    # inflated by false positives (River Plate -> "Atletico" etc.); honest
+    # coverage is lower and the floor is pinned just below it.
+    min_elo_touch_coverage=0.74,
     min_minutes_nonnull_legacy=0.60,
     max_total_bytes=50 * 1024 * 1024,
 )

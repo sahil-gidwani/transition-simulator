@@ -1,4 +1,4 @@
-# Data notes — acquisition audit (2026-07-17)
+# Data notes — acquisition audit (2026-07-17, hardened 2026-07-18)
 
 Every number below is computed by [`server/scripts/explore.py`](../server/scripts/explore.py)
 against the pinned raw build and written to `server/data/raw/audit/audit_report.{md,json}`
@@ -145,9 +145,15 @@ ladder — reep id-bridge → exact normalized name → token subset → token p
 team-mapping.csv → difflib 0.85 (uniqueness required at every fuzzy stage; ambiguous
 normalized Elo names excluded):
 
-- **82.4% of transition touches mapped** (591/773 clubs).
+- **82.4% of transition touches mapped** (591/773 clubs) — *probe-grade, since revised
+  down*: the probe's fuzzy stages produced false positives (River Plate → "Atlético",
+  Inter Miami → Inter Milan, Columbus Crew → Crewe Alexandra…). The shipped pipeline now
+  structurally excludes non-UEFA leagues from automatic mapping and refuses 1-token-vs-
+  ≥3-token fuzzy matches; **honest touch coverage is 75.2%** (see "2026-07-18 hardening"
+  below and `docs/pipeline-report.md`).
 - The unmapped remainder is dominated by the structural gap: **ClubElo covers UEFA
-  countries only** — SA1/RSK1 0%, JAP1 4%, MLS1 10%, BRA1 32%, MEX1 43% coverage.
+  countries only** — SA1/RSK1 0%, JAP1 4%, MLS1 10%, BRA1 32%, MEX1 43% coverage in the
+  probe, and 0% by construction in the shipped mapping.
   European leagues sit at 61–100% (worst: RO1 61%, UKR1 67%, RU1 75%).
 - Remaining European misses are legal-name artifacts destined for the pipeline's manual
   fix CSV (top: Lille, RB Leipzig, Real Betis, CSKA Moskva, Krylya Sovetov, FCSB, Farul
@@ -181,6 +187,53 @@ fallback**, never an eligibility gate; unmapped clubs rely on squad-value tercil
 | censored for v_after | 3,307 | transfer too recent for the 6–18-month horizon — returns to the pool as valuations accrue |
 | observable without v_after | 1,226 | player dropped out of valuation coverage |
 | suspected loans | 18,578 | structural round-trip rule above |
+
+## 2026-07-18 hardening: membership, Elo mapping, league-stat floor
+
+Three correctness fixes to the "similar league / similar club" inputs, applied in the
+pipeline and re-gated (`docs/pipeline-report.md` carries the regenerated gate table):
+
+1. **Games-derived membership is authoritative.** club_seasons used to label every valued
+   club with `coalesce(games league, current-day snapshot league)`; the snapshot padded
+   historical league-seasons with phantom members. The latest GB1 season carried **37
+   "members"** (20 real + 17 relegated/defunct, incl. Wigan/Reading/Huddersfield) and its
+   shipped median squad value (€244M) was literally Southampton's. Now, where a (league,
+   season) has games-derived membership at all, snapshot-only clubs are NOT members:
+   their rows keep squad value/Elo with `league = null`, `league_source = "none"`. The
+   snapshot fallback survives only for league-seasons with no match data (pre-2024
+   non-legacy leagues). Measured after the fix: GB1 latest = **20 clubs, median €457.1M**;
+   club-season rows split games 3,902 / snapshot 3,335 / none 2,746 (of 9,983).
+   Transitions inherit the rule through their (club_id, season) join: **4,808 of 37,602**
+   transitions (2,191 of the 19,407 comps universe) now carry a null `to_league` — these
+   include verified wrong-division rows that previously shipped as tier-1 precedent
+   (Coady→Leicester 2023, Winks→Leicester 2023, Harrison→Leeds 2024, Azaz→Southampton
+   2025, Mikautadze→Metz 2024 — all second-division moves). A null destination is never
+   eligible as a comp for a league-filtered query. `players.current_league` (a current-day
+   fact about a current player) still comes from the snapshot deliberately.
+2. **Elo mapping is Europe-only by construction.** ClubElo rates UEFA clubs; the automatic
+   ladder previously ran for all 31 leagues and manufactured false positives (~20 Argentine
+   and Brazilian clubs → "Atlético" = Atlético Madrid at elo_pct 0.98, Inter Miami → Inter
+   Milan, Columbus Crew → Crewe Alexandra, Vissel Kobe → FC København, Sporting KC →
+   Sporting CP, SC Internacional → Porto via its URL slug). Non-UEFA clubs (confederation
+   ≠ "europa" in competitions.csv) now skip every automatic stage (flagged stage
+   `excluded_non_uefa`); a 1-token ClubElo name may no longer fuzzy-match a ≥3-token TM
+   name. **elo_touch_coverage fell from an inflated 0.8434 to an honest 0.7518**; the gate
+   floor is re-pinned at 0.74. Future hardening if more coverage is needed: both mirrors
+   carry an Elo-side country column (dropped at load today) that would support a
+   country-consistency constraint for European fuzzy matches.
+3. **League stats below an 8-club floor are null, flagged.** Pre-2024, snapshot-only
+   history leaves stubs like RSK1 2013 with n_clubs = 1; a one-club "league median" is not
+   a strength signal. league_seasons now carries `stats_valid`; below the floor, strength/
+   tier and member terciles are null, and the stub does not consume a tier-quartile rank
+   slot. 9 of 434 league-seasons are flagged. The engine refuses null-tier destinations
+   (insufficient precedent); the backtest counts them as skipped
+   (`dest_league_stats_invalid`).
+
+Downstream consequence, measured on the latest season: MLS1 drops out of tier 1 and BE1
+rises into it under the current rank-quartile tiers; the remaining quota artifacts of
+rank-quartile bucketing (a 31-league season always splits 8/8/8/7, holding e.g. MEX1 at
+€40M median inside tier 1 with GB1 at €457M) are addressed separately by the fixed
+ln-strength display tiers.
 
 ## Reproducing
 

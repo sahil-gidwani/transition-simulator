@@ -43,7 +43,7 @@ publish a different port. If your network uses a TLS-inspecting proxy, see
 ## Data & pipeline
 
 The server reads **only** the lean parquet artifacts committed in `server/data/processed/`
-(under 5 MB), so cloning the repo is enough to run the app — no data download needed.
+(about 6 MB), so cloning the repo is enough to run the app — no data download needed.
 Rebuilding those artifacts from raw data is an offline concern:
 
 ```bash
@@ -77,11 +77,11 @@ The full gate table, funnel, coverage stats and caveats land in
 |---|---|---|
 | `players.parquet` | in-scope player | current value carries its own as-of date |
 | `player_values.parquet` | valuation event | full market-value history for profile pages |
-| `club_seasons.parquet` | club-season | derived squad value, tercile, season-start Elo |
-| `league_seasons.parquet` | league-season | strength + tier (per-season rank quartiles), display name + country |
+| `club_seasons.parquet` | club-season | derived squad value, tercile, season-start Elo; league from games where played (snapshot only where no match data exists, else unassigned — flagged via `league_source`) |
+| `league_seasons.parquet` | league-season | strength + tier (per-season rank quartiles; null below an 8-club membership floor, flagged via `stats_valid`), display name + country |
 | `transitions.parquet` | qualifying transfer | v_before/v_after, multiplier, transfer-date Elo, `suspected_loan` flag |
 | `profile_stats.parquet` | player-season-league | per-90s, GK stats, peer percentiles (450-min floor) |
-| `elo_mapping.parquet` | covered club | ClubElo name mapping; unmapped clubs stay, flagged |
+| `elo_mapping.parquet` | covered club | ClubElo name mapping (automatic stages run for UEFA leagues only — ClubElo rates Europe); unmapped/excluded clubs stay, flagged |
 
 Key definitions (applied uniformly, everywhere): **v_before** = last valuation in the 180
 days strictly before the transfer (transfer-day revaluations are excluded — they already
