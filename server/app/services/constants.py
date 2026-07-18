@@ -1,19 +1,18 @@
 """Serving-side tunables in one place.
 
-PROVENANCE: tuned by the temporal backtest (pipeline/eval), 2026-07-18.
-Retrieval weights, ladder geometry, MIN_POOL_TARGET and POOL_K come from a
-random search (300 configs, seed 20260718) scored on validation seasons
-2020-2021 (mean log pinball with date-exact comp availability; refusals
-imputed at the naive-baseline pinball). Winning config hash: ff9f546e0b3c.
-Confidence thresholds and calibration shifts are set from validation tier
-coverage. Test seasons 2022-2024 were scored exactly once, after this
-freeze. Reproduce: `uv run python -m pipeline.eval tune` / `thresholds`;
-full results in docs/eval-report.md.
-
-ENGINE V2 INTERIM NOTE: the strength-band destination filter and the
-continuous club-value terms carry HAND-SET priors (marked below); the v1
-provenance above applies to the surviving v1 parameters only until the v2
-retune re-freezes this block.
+PROVENANCE: tuned by the temporal backtest (pipeline/eval), 2026-07-18,
+for ENGINE V2 (strength-band destination filter + continuous club-value
+terms) on the hardened artifacts (games-authoritative membership,
+UEFA-only Elo mapping, minimum-club floor). Retrieval weights, ladder
+geometry incl. the destination strength bands, MIN_POOL_TARGET and POOL_K
+come from a random search (300 configs, seed 20260718) scored on
+validation seasons 2020-2021 (mean log pinball with date-exact comp
+availability; refusals imputed at the naive-baseline pinball). Winning
+config hash: 7309dc25f471 (validation pinball 0.17000 vs 0.17471 for the
+hand-set priors). Confidence thresholds and calibration shifts are set
+from validation tier coverage. Test seasons 2022-2024 were scored exactly
+once, after this freeze. Reproduce: `uv run python -m pipeline.eval tune`
+/ `thresholds`; full results in docs/eval-report.md.
 """
 
 from __future__ import annotations
@@ -48,52 +47,48 @@ class LadderStep:
 
 MIN_POOL_TARGET = 6  # fewer matches than this fires the next ladder step
 
-# ENGINE V2 HAND-SET PRIORS: the strength bands and the club-value weights
-# below are initial values (club-value weights inherit the old tercile
-# weights); the pending retune re-freezes this whole block.
 LADDER: tuple[LadderStep, ...] = (
-    LadderStep("base filters", 2.5, (0.4, 2.5), 1, dest_strength_band=0.35),
-    LadderStep("age band widened to +/-6 years", 6.0, (0.4, 2.5), 1, dest_strength_band=0.35),
-    LadderStep("value bracket widened to 0.25-4x", 6.0, (0.25, 4.0), 1, dest_strength_band=0.35),
-    LadderStep("origin league tier widened to +/-2", 6.0, (0.25, 4.0), 2, dest_strength_band=0.35),
+    LadderStep("base filters", 4.0, (0.5, 3.0), 1, dest_strength_band=0.5),
+    LadderStep("age band widened to +/-4.5 years", 4.5, (0.5, 3.0), 1, dest_strength_band=0.5),
+    LadderStep("value bracket widened to 0.2-5x", 4.5, (0.2, 5.0), 1, dest_strength_band=0.5),
+    LadderStep("origin league tier widened to +/-2", 4.5, (0.2, 5.0), 2, dest_strength_band=0.5),
     LadderStep(
-        "destination league band widened to +/-0.7 (~2.0x squad value)",
-        6.0,
-        (0.25, 4.0),
+        "destination league band widened to +/-0.9 (~2.5x squad value)",
+        4.5,
+        (0.2, 5.0),
         2,
-        dest_strength_band=0.7,
+        dest_strength_band=0.9,
     ),
     LadderStep(
-        "destination league band widened to +/-1.2 (~3.3x squad value); "
+        "destination league band widened to +/-1 (~2.7x squad value); "
         "origin league filter dropped; club-level terms ignored",
-        6.0,
-        (0.25, 4.0),
+        4.5,
+        (0.2, 5.0),
         None,
-        dest_strength_band=1.2,
+        dest_strength_band=1.0,
         drop_club_terms=True,
     ),
 )
 
 # --- comps: distance weights + scales (term distances are dimensionless ~[0,1]) --
 
-W_LOG_VALUE = 0.9615798626236497  # |ln v_before - ln value| / LN_VALUE_SCALE
-W_AGE = 1.7274521852541642  # |age gap| / AGE_SCALE
-W_DEST_STRENGTH = 0.38737463961975205  # |strength(to_league @ comp season) - strength(dest)|
-W_ORIGIN_STRENGTH = 0.10142150098847284  # same, origin side
-W_ELO = 0.10616890856313303  # |comp to_elo_pct - dest club elo_pct| (both already 0-1)
-# HAND-SET PRIORS (inherit the old tercile weights) pending the v2 retune:
-W_DEST_CLUB_VALUE = 1.4788477826248005  # |comp to_club_value_pct - dest club pct| (both 0-1)
-W_ORIGIN_CLUB_VALUE = 0.4703210853041415  # |comp from_club_value_pct - query club pct|
-W_MINUTES = 0.1493551745451686  # |minutes_share_pre - query minutes_share| (both 0-1)
-W_SUB_POSITION = 0.06953038612616529  # 0 if same sub-position else 1
-W_RECENCY = 0.11727581685642348  # (latest season - comp season) / RECENCY_SCALE
+W_LOG_VALUE = 0.21148543746680198  # |ln v_before - ln value| / LN_VALUE_SCALE
+W_AGE = 0.05238035768051688  # |age gap| / AGE_SCALE
+W_DEST_STRENGTH = 0.09276095989808877  # |strength(to_league @ comp season) - strength(dest)|
+W_ORIGIN_STRENGTH = 0.17218271639050992  # same, origin side
+W_ELO = 1.4349320732627806  # |comp to_elo_pct - dest club elo_pct| (both already 0-1)
+W_DEST_CLUB_VALUE = 0.9248844395605903  # |comp to_club_value_pct - dest club pct| (both 0-1)
+W_ORIGIN_CLUB_VALUE = 0.18064931146326058  # |comp from_club_value_pct - query club pct|
+W_MINUTES = 0.06966926598002375  # |minutes_share_pre - query minutes_share| (both 0-1)
+W_SUB_POSITION = 0.2962751466253388  # 0 if same sub-position else 1
+W_RECENCY = 0.3182376133078169  # (latest season - comp season) / RECENCY_SCALE
 
 LN_VALUE_SCALE = math.log(2.5)  # the base bracket edge maps to distance 1.0
 AGE_SCALE = 3.0
 STRENGTH_SCALE = 1.0  # strength is ln(median squad value); 1.0 = one e-fold
 RECENCY_SCALE = 13.0  # seasons spanned by the transition universe
 
-POOL_K = 47  # comps entering the quantile pool; the API returns all of them
+POOL_K = 41  # comps entering the quantile pool; the API returns all of them
 SHOWN_COMPS_DEFAULT = 6  # UI default: closest shown, rest expandable
 
 
@@ -145,9 +140,10 @@ MIN_COMPS_FOR_RANGE = 2  # below this: insufficient precedent, NO range (princip
 # Per-tier calibration: reported endpoints move to quantile levels
 # (0.25 - shift, 0.75 + shift) of the SAME comp pool, so they remain order
 # statistics of the shown comps; confidence is always judged at the nominal
-# levels. PROVENANCE: the validation-coverage decision kept calibration OFF
-# (pooled coverage 53.2%, inside the 45-55 trigger band) - see
-# docs/eval-report.md. A future retune re-decides these.
+# levels. PROVENANCE: the engine-v2 validation-coverage decision kept
+# calibration OFF (pooled coverage 51.6%, inside the 45-55 trigger band)
+# and kept the hand-set confidence thresholds (0/324 honest grid settings)
+# - see docs/eval-report.md. A future retune re-decides these.
 CAL_SHIFT_HIGH = 0.0
 CAL_SHIFT_MEDIUM = 0.0
 CAL_SHIFT_LOW = 0.0
