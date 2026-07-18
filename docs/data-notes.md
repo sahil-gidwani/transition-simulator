@@ -230,10 +230,20 @@ pipeline and re-gated (`docs/pipeline-report.md` carries the regenerated gate ta
    (`dest_league_stats_invalid`).
 
 Downstream consequence, measured on the latest season: MLS1 drops out of tier 1 and BE1
-rises into it under the current rank-quartile tiers; the remaining quota artifacts of
+rises into it under the old rank-quartile tiers; the remaining quota artifacts of
 rank-quartile bucketing (a 31-league season always splits 8/8/8/7, holding e.g. MEX1 at
-€40M median inside tier 1 with GB1 at €457M) are addressed separately by the fixed
-ln-strength display tiers.
+€40M median inside tier 1 with GB1 at €457M) are addressed by the **fixed ln-strength
+display tiers**: thresholds (18.4, 17.0, 16.3) pinned in `pipeline/config.py`, anchored in
+the latest season's natural gaps (~€98M / €24M / €12M median squad value), with two-season
+hysteresis so knife-edge leagues don't flap. Measured: latest split 5/8/6/12 (big five
+alone in tier 1), 17 tier changes across all 31 league histories, GB1 enters tier 1 in
+2015, ES1 2019, FR1 2022. Thresholds are nominal EUR by design — "no covered league had an
+Elite-sized median in 2012" is honest, and the origin filter's ±1 tier band absorbs the
+drift. Alongside the tiers, `club_seasons` ships **club_value_pct** (within-league-season
+squad-value percentile, 1.0 = richest — e.g. Real Madrid 1.00 vs Levante 0.05 in the
+latest ES1) and `transitions` bakes `from/to_strength` and `from/to_club_value_pct` as-of
+each comp's own season — the continuous club/league strength signals the engine's
+destination terms use in place of coarse tiers/terciles.
 
 ## Reproducing
 

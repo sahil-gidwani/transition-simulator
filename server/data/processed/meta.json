@@ -1,9 +1,9 @@
 {
   "artifacts": {
     "club_seasons.parquet": {
-      "bytes": 109850,
+      "bytes": 121329,
       "rows": 9983,
-      "sha256": "4090a39dc6486eda15ebaf7e6333cdcaf7024bb33ae34bfc081a729969ca2c1e"
+      "sha256": "155fbd6a4cf9fda6e9f9608ca69dbb5643e3664d73db80b6cfa7c26e894600e4"
     },
     "elo_mapping.parquet": {
       "bytes": 21351,
@@ -11,9 +11,9 @@
       "sha256": "7460fae730e872fe4513224080c50a3a12ef894dfc922435c71e6ab0efdd980e"
     },
     "league_seasons.parquet": {
-      "bytes": 11790,
+      "bytes": 11784,
       "rows": 434,
-      "sha256": "f926c2e9d9ef2d9c5cd3a94bca102013dbf4d3e20e5ed8bc29bf84f2fd903e05"
+      "sha256": "e371ac76a8b89ff168b701a3e5b764d127925d5c98e3d3ef10f4503449ad9b14"
     },
     "player_values.parquet": {
       "bytes": 1341862,
@@ -31,12 +31,12 @@
       "sha256": "db1691375d39a8742b1cd5a7e14301a55a7d6bac2c5dcc38d8f5bf859981019c"
     },
     "transitions.parquet": {
-      "bytes": 1442286,
+      "bytes": 1610304,
       "rows": 37602,
-      "sha256": "e1da880e0e7a3ce36ec3635ab95b0f7bb8d8daa464adde75c2adde11060f10a8"
+      "sha256": "3a318afefb1118f763f97034671a5f9b253e2778d364820d5ab4af8befa6c93a"
     }
   },
-  "built_at": "2026-07-18T14:24:43+00:00",
+  "built_at": "2026-07-18T14:43:18+00:00",
   "constants": {
     "elo_asof_tolerance_days": 45,
     "loan_max_return_days": 548,
@@ -308,7 +308,7 @@
       "passed": true
     },
     {
-      "actual": "6.1 MB",
+      "actual": "6.3 MB",
       "detail": "",
       "expected": "< 50 MB",
       "name": "processed_total_size",
