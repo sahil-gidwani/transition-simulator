@@ -45,6 +45,20 @@ SQUAD_VALUE_STALENESS_DAYS = 365  # a valuation older than this at season start 
 # snapshot-era stub (RSK1 2013 had one member). Below the floor the stats are
 # null and league_seasons.stats_valid flags it.
 MIN_CLUBS_FOR_LEAGUE_STATS = 8
+
+# Display tiers: fixed ln-strength thresholds, pinned like gate expectations
+# and re-derived only on a data re-pin. Rank-quartile bucketing forced a
+# 31-league season into 8/8/8/7 and put the largest strength gap INSIDE
+# tier 1; these cuts are anchored in the latest season's natural gaps after
+# the membership fix: 18.4 sits in the FR1<->BRA1 gap (~EUR 98M median
+# squad value), 17.0 at the strong-second-rank boundary (~EUR 24M), 16.3 at
+# the mid/tail boundary (~EUR 12M). Thresholds are nominal EUR by design -
+# "no covered league had an Elite-sized median in 2012" is the honest
+# statement, and the origin filter's +/-1 tier band absorbs that era drift.
+# A league changes tier only after TIER_HYSTERESIS_SEASONS consecutive
+# seasons across a cut, so knife-edge leagues don't flap year to year.
+TIER_STRENGTH_THRESHOLDS: tuple[float, float, float] = (18.4, 17.0, 16.3)
+TIER_HYSTERESIS_SEASONS = 2
 MINUTES_WINDOW_DAYS = 365  # minutes_share_pre looks back this far from the transfer
 PROFILE_MIN_MINUTES = 450  # percentile floor for profile stats peer groups
 

@@ -5,9 +5,26 @@ import polars as pl
 import pytest
 from factories import make_competitions
 
-from pipeline.transforms.leagues import league_seasons
+from pipeline.transforms.leagues import assign_display_tiers, league_seasons
 
 _NO_LABELS = make_competitions([])
+
+# Test thresholds sized for small squad-value fixtures (ln of 1-8M ~ 13.8-15.9).
+_T = (15.5, 14.5, 13.5)
+
+
+def _strengths(rows: list[tuple[str, int, float | None]]) -> pl.DataFrame:
+    return pl.DataFrame(
+        rows,
+        schema={"league": pl.String, "season": pl.Int64, "strength": pl.Float64},
+        orient="row",
+    )
+
+
+def _tier_by_season(frame: pl.DataFrame, **kwargs: Any) -> list[int | None]:
+    out = assign_display_tiers(frame, _T, **kwargs).sort("season")
+    return out["tier"].to_list()
+
 
 _CLUB_SEASONS_DEFAULTS: dict[str, Any] = {
     "club_id": 1,
@@ -40,16 +57,55 @@ def _club_seasons(rows: list[dict[str, Any]], *, with_elo: bool = False) -> pl.D
     return pl.DataFrame([{**defaults, **row} for row in rows], schema=schema)
 
 
-def test_tiers_split_eight_leagues_two_per_tier() -> None:
-    rows = [
-        {"club_id": i, "league": f"L{i}", "squad_value_eur": (9 - i) * 1_000_000}
-        for i in range(1, 9)
-    ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
-    # Sorted by league code, and league Li has the i-th highest median.
-    assert out["league"].to_list() == [f"L{i}" for i in range(1, 9)]
-    assert out["tier"].to_list() == [1, 1, 2, 2, 3, 3, 4, 4]
+def test_fixed_thresholds_map_strength_with_boundary_equality() -> None:
+    frame = _strengths(
+        [("A", 2020, 15.5), ("B", 2020, 15.49), ("C", 2020, 14.5), ("D", 2020, 13.49)]
+    )
+    out = assign_display_tiers(frame, _T)
+    tiers = dict(zip(out["league"].to_list(), out["tier"].to_list(), strict=True))
+    # >= at every cut; no quota - two leagues in one band share the tier.
+    assert tiers == {"A": 1, "B": 2, "C": 2, "D": 4}
     assert out["tier"].dtype == pl.Int8
+
+
+def test_one_season_blip_does_not_move_tier() -> None:
+    frame = _strengths([("A", 2020, 15.6), ("A", 2021, 14.6), ("A", 2022, 15.6)])
+    assert _tier_by_season(frame) == [1, 1, 1]
+
+
+def test_two_consecutive_seasons_across_the_cut_move_the_tier() -> None:
+    frame = _strengths([("A", 2020, 15.6), ("A", 2021, 14.6), ("A", 2022, 14.6)])
+    assert _tier_by_season(frame) == [1, 1, 2]
+
+
+def test_oscillation_across_a_cut_never_moves_the_tier() -> None:
+    frame = _strengths([("A", 2020, 15.6), ("A", 2021, 14.6), ("A", 2022, 15.6), ("A", 2023, 14.6)])
+    assert _tier_by_season(frame) == [1, 1, 1, 1]
+
+
+def test_first_observed_season_takes_the_provisional_tier() -> None:
+    frame = _strengths([("A", 2020, 13.6)])
+    assert _tier_by_season(frame) == [3]
+
+
+def test_null_strength_breaks_the_chain_and_restarts_fresh() -> None:
+    frame = _strengths([("A", 2020, 15.6), ("A", 2021, None), ("A", 2022, 14.6)])
+    # The null season has no tier; 2022 starts a new chain at its provisional
+    # tier instead of inheriting the pre-gap assignment.
+    assert _tier_by_season(frame) == [1, None, 2]
+
+
+def test_missing_season_gap_restarts_the_chain() -> None:
+    frame = _strengths([("A", 2018, 15.6), ("A", 2020, 14.6)])
+    assert _tier_by_season(frame) == [1, 2]
+
+
+def test_hysteresis_chains_are_per_league() -> None:
+    frame = _strengths([("A", 2020, 15.6), ("A", 2021, 14.6), ("B", 2021, 14.6)])
+    out = assign_display_tiers(frame, _T)
+    by_key = {(row["league"], row["season"]): row["tier"] for row in out.iter_rows(named=True)}
+    # A holds tier 1 through its blip; B's first season is provisional tier 2.
+    assert by_key == {("A", 2020): 1, ("A", 2021): 1, ("B", 2021): 2}
 
 
 def test_null_league_club_seasons_are_excluded_from_aggregation() -> None:
@@ -66,26 +122,20 @@ def test_null_league_club_seasons_are_excluded_from_aggregation() -> None:
     assert out["median_squad_value_eur"].to_list() == [3_000_000]
 
 
-def test_tiers_split_five_leagues_two_one_one_one() -> None:
-    # Documented unevenness: with 5 leagues the top tier holds two of them.
+def test_league_seasons_tiers_flow_from_thresholds_not_ranks() -> None:
+    # 8M -> ln 15.9 (tier 1), 5M -> 15.4 (tier 2), 2M -> 14.5 (tier 2, boundary),
+    # 1M -> 13.8 (tier 3). Equal medians share a tier - there is no quota and
+    # no rank tie-break in tier assignment.
     rows = [
-        {"club_id": i, "league": f"L{i}", "squad_value_eur": (6 - i) * 1_000_000}
-        for i in range(1, 6)
+        {"club_id": 1, "league": "AA1", "squad_value_eur": 8_000_000},
+        {"club_id": 2, "league": "BB1", "squad_value_eur": 5_000_000},
+        {"club_id": 3, "league": "CC1", "squad_value_eur": 5_000_000},
+        {"club_id": 4, "league": "DD1", "squad_value_eur": 2_000_000},
+        {"club_id": 5, "league": "EE1", "squad_value_eur": 1_000_000},
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
-    assert out["tier"].to_list() == [1, 1, 2, 3, 4]
-
-
-def test_median_tie_broken_by_league_code_ascending() -> None:
-    rows = [
-        {"club_id": 1, "league": "BB1", "squad_value_eur": 5_000_000},
-        {"club_id": 2, "league": "AA1", "squad_value_eur": 5_000_000},
-        {"club_id": 3, "league": "CC1", "squad_value_eur": 2_000_000},
-        {"club_id": 4, "league": "DD1", "squad_value_eur": 1_000_000},
-    ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1, tier_thresholds=_T)
     tiers = dict(zip(out["league"].to_list(), out["tier"].to_list(), strict=True))
-    assert tiers == {"AA1": 1, "BB1": 2, "CC1": 3, "DD1": 4}
+    assert tiers == {"AA1": 1, "BB1": 2, "CC1": 2, "DD1": 2, "EE1": 3}
 
 
 def test_strength_is_natural_log_of_median_null_when_not_positive() -> None:
@@ -108,7 +158,7 @@ def test_below_floor_league_season_gets_null_stats_and_flag() -> None:
     rows = [{"club_id": i, "league": "AA1", "squad_value_eur": 2_000_000} for i in range(1, 8)] + [
         {"club_id": 10 + i, "league": "BB1", "squad_value_eur": 1_000_000} for i in range(1, 9)
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)  # default floor (8)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, tier_thresholds=_T)  # default floor (8)
     aa = out.filter(pl.col("league") == "AA1")  # 7 members: below the floor
     assert aa["stats_valid"].item() is False
     assert aa["strength"].item() is None
@@ -116,22 +166,7 @@ def test_below_floor_league_season_gets_null_stats_and_flag() -> None:
     assert aa["median_squad_value_eur"].item() == 2_000_000  # raw median still reported
     bb = out.filter(pl.col("league") == "BB1")  # 8 members: at the floor, valid
     assert bb["stats_valid"].item() is True
-    assert bb["tier"].item() == 1
-
-
-def test_below_floor_league_does_not_consume_a_tier_rank_slot() -> None:
-    # 4 valid leagues + 1 stub with the highest value: the valid four must
-    # split 1/2/3/4 exactly as if the stub were absent.
-    rows: list[dict[str, Any]] = []
-    for j, lg in enumerate(["AA1", "BB1", "CC1", "DD1"]):
-        rows += [
-            {"club_id": 100 * (j + 1) + i, "league": lg, "squad_value_eur": (9 - j) * 1_000_000}
-            for i in range(1, 9)
-        ]
-    rows.append({"club_id": 999, "league": "ZZ1", "squad_value_eur": 50_000_000})
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
-    tiers = dict(zip(out["league"].to_list(), out["tier"].to_list(), strict=True))
-    assert tiers == {"AA1": 1, "BB1": 2, "CC1": 3, "DD1": 4, "ZZ1": None}
+    assert bb["tier"].item() == 3  # ln(1M) ~ 13.8 under the test thresholds
 
 
 def test_median_elo_ignores_nulls_and_coverage_counts_mapped_clubs() -> None:
