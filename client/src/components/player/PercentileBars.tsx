@@ -72,7 +72,7 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
                 <div className="h-2 rounded-full bg-pitch-800">
                   <div
                     data-testid={`percentile-fill-${metric.metric}`}
-                    className="h-2 rounded-full bg-brass-400"
+                    className="h-2 rounded-full bg-yale-400"
                     style={{ width: `${metric.percentile}%` }}
                   />
                 </div>

@@ -26,7 +26,7 @@ export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
         <div className="min-w-0">
           <Link
             to={`/players/${comp.player_id}`}
-            className="font-semibold text-ink-100 hover:text-brass-300"
+            className="font-semibold text-ink-100 hover:text-tangerine-300"
           >
             {comp.player_name}
           </Link>

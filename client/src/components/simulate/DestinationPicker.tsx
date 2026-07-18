@@ -92,7 +92,7 @@ export default function DestinationPicker({
             onClick={() => onChange(leagueId, null)}
             title="Any club in the league"
             aria-label="Clear club selection"
-            className="rounded-lg border border-pitch-800 bg-pitch-900 px-3 py-2.5 text-sm text-ink-400 hover:border-brass-400"
+            className="rounded-lg border border-pitch-800 bg-pitch-900 px-3 py-2.5 text-sm text-ink-400 hover:border-yale-400"
           >
             ✕
           </button>

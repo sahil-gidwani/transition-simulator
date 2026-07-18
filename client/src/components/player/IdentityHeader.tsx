@@ -23,7 +23,7 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
           <h1 className="text-4xl font-semibold tracking-tight text-ink-100 sm:text-5xl">
             {player.name}
           </h1>
-          <Badge variant="brass" title={positionLabel(player.position_group)}>
+          <Badge variant="accent" title={positionLabel(player.position_group)}>
             {player.position_group}
           </Badge>
           {player.sub_position ? (
@@ -40,7 +40,7 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
       </div>
 
       <div className="shrink-0 lg:text-right">
-        <div className="text-4xl font-semibold text-brass-300 tabular-nums">
+        <div className="text-4xl font-semibold text-tangerine-200 tabular-nums">
           {formatEuroCompact(player.market_value_eur)}
         </div>
         <div className="mt-1 text-xs text-ink-400">

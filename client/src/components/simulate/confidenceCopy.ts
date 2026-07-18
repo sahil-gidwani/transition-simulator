@@ -15,7 +15,7 @@ interface ConfidenceCopy {
 export const CONFIDENCE_COPY: Record<Confidence, ConfidenceCopy> = {
   high: {
     label: 'High confidence',
-    tone: 'brass',
+    tone: 'accent',
     note: 'Strong precedent agreement — a deep pool of comparable moves points the same way. Not a probability guarantee.',
   },
   medium: {

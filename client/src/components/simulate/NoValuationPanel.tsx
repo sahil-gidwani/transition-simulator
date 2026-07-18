@@ -17,7 +17,7 @@ export default function NoValuationPanel({ playerId, playerName }: NoValuationPa
       action={
         <Link
           to={`/players/${playerId}`}
-          className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+          className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
         >
           ← Back to profile
         </Link>

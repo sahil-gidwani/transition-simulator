@@ -52,7 +52,7 @@ export default function SearchResultsList({
             </div>
           </div>
           <span className="shrink-0 text-right">
-            <span className="block font-medium text-brass-300 tabular-nums">
+            <span className="block font-medium text-tangerine-200 tabular-nums">
               {formatEuroCompact(result.market_value_eur)}
             </span>
             <span className="block text-xs whitespace-nowrap text-ink-400">

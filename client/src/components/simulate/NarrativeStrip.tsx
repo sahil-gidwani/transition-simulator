@@ -5,8 +5,8 @@ interface NarrativeStripProps {
 /** The API's deterministic plain-language summary, styled as the scout's read. */
 export default function NarrativeStrip({ narrative }: NarrativeStripProps) {
   return (
-    <aside className="rounded-xl border-l-2 border-brass-400 bg-pitch-900/60 p-5">
-      <p className="text-xs font-semibold tracking-[0.25em] text-brass-400 uppercase">
+    <aside className="rounded-xl border border-pitch-800 bg-pitch-900/60 p-5">
+      <p className="text-xs font-semibold tracking-[0.25em] text-tangerine-300 uppercase">
         Scout&apos;s read
       </p>
       <p className="mt-3 leading-relaxed text-ink-100">{narrative}</p>

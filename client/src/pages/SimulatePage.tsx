@@ -68,7 +68,7 @@ export default function SimulatePage() {
         action={
           <Link
             to="/search"
-            className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+            className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
           >
             ← Back to search
           </Link>
@@ -115,7 +115,7 @@ export default function SimulatePage() {
           <button
             type="button"
             onClick={() => void destinationsQuery.refetch()}
-            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-ink-100 hover:border-brass-400"
+            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-ink-100 hover:border-yale-400"
           >
             Retry
           </button>
@@ -148,7 +148,7 @@ export default function SimulatePage() {
             <button
               type="button"
               onClick={() => void simulationQuery.refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
             >
               Retry
             </button>

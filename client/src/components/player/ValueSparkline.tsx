@@ -17,7 +17,7 @@ export default function ValueSparkline({ history }: ValueSparklineProps) {
           <Line
             type="monotone"
             dataKey="value_eur"
-            stroke="var(--color-brass-400)"
+            stroke="var(--color-yale-300)"
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}

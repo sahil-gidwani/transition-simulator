@@ -67,11 +67,6 @@
   --color-tangerine-900: #431201;
   --color-tangerine-950: #210500;
 
-  /* TEMP aliases: legacy brass classes re-skin to the accent ramp so the app
-     stays coherent while call sites migrate; the next commit removes them. */
-  --color-brass-300: #f9ac91;
-  --color-brass-400: #f9ac91;
-
   /* Verdict semantics — data only, never decoration. */
   --color-rise-300: #74e5ce;
   --color-rise-400: #44d1b7;

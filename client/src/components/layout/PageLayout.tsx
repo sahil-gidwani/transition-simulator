@@ -20,7 +20,7 @@ export default function PageLayout() {
         <div className="mx-auto flex w-full max-w-6xl items-baseline justify-between px-6 py-4">
           <Link
             to="/"
-            className="font-serif text-xl font-semibold tracking-[0.18em] text-brass-300"
+            className="font-display text-xl font-semibold tracking-[0.18em] text-tangerine-300"
           >
             PRECEDENT
           </Link>

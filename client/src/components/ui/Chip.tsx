@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 const TONES = {
-  brass: 'bg-brass-400/15 text-brass-300',
+  accent: 'bg-tangerine-300/15 text-tangerine-300',
   neutral: 'bg-pitch-800 text-ink-400',
   caution: 'bg-caution-400/15 text-caution-400',
   decline: 'bg-decline-400/15 text-decline-400',

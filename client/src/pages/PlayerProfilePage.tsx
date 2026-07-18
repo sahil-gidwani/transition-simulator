@@ -11,7 +11,7 @@ function BackToSearch() {
   return (
     <Link
       to="/search"
-      className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+      className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
     >
       ← Back to search
     </Link>
@@ -42,7 +42,7 @@ export default function PlayerProfilePage() {
             <button
               type="button"
               onClick={() => void playerQuery.refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
             >
               Retry
             </button>
@@ -78,7 +78,7 @@ export default function PlayerProfilePage() {
         {canSimulate ? (
           <Link
             to={`/players/${player.player_id}/simulate`}
-            className="inline-flex items-center gap-2 rounded-lg bg-brass-400 px-5 py-3 text-base font-semibold text-pitch-950 hover:bg-brass-300"
+            className="inline-flex items-center gap-2 rounded-lg bg-tangerine-300 px-5 py-3 text-base font-semibold text-pitch-950 hover:bg-tangerine-200"
           >
             Simulate a transfer →
           </Link>
@@ -112,7 +112,7 @@ export default function PlayerProfilePage() {
           <button
             type="button"
             onClick={() => void percentilesQuery.refetch()}
-            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-sm text-ink-100 hover:border-brass-400"
+            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-sm text-ink-100 hover:border-yale-400"
           >
             Retry
           </button>

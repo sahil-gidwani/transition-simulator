@@ -105,7 +105,7 @@ export default function Combobox<T>({
           nav.onKeyDown(event);
         }}
         onBlur={() => setQuery(null)}
-        className="mt-1 w-full rounded-lg border border-pitch-800 bg-pitch-900 px-4 py-2.5 text-ink-100 placeholder:text-ink-500 focus:border-brass-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-pitch-950 disabled:text-ink-400"
+        className="mt-1 w-full rounded-lg border border-pitch-800 bg-pitch-900 px-4 py-2.5 text-ink-100 placeholder:text-ink-500 focus:border-yale-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-pitch-950 disabled:text-ink-400"
       />
       {open ? (
         listItems.length === 0 ? (

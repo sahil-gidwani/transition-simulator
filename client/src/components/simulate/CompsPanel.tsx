@@ -37,7 +37,7 @@ export default function CompsPanel({ comps, shownComps, leagueNames }: CompsPane
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-4 w-full rounded-lg border border-pitch-800 bg-pitch-900 py-2.5 text-sm text-ink-100 hover:border-brass-400"
+          className="mt-4 w-full rounded-lg border border-pitch-800 bg-pitch-900 py-2.5 text-sm text-ink-100 hover:border-yale-400"
         >
           {expanded ? `Show closest ${shownComps} only` : `Show all ${comps.length} precedents`}
         </button>

@@ -2,14 +2,16 @@ import type { ReactNode } from 'react';
 
 interface BadgeProps {
   children: ReactNode;
-  variant?: 'neutral' | 'brass';
+  variant?: 'neutral' | 'accent';
   title?: string;
 }
 
 /** Bordered pill for compact identity labels (position codes, leagues, tiers). */
 export default function Badge({ children, variant = 'neutral', title }: BadgeProps) {
   const tone =
-    variant === 'brass' ? 'border-brass-400/40 text-brass-300' : 'border-pitch-800 text-ink-400';
+    variant === 'accent'
+      ? 'border-tangerine-300/40 text-tangerine-300'
+      : 'border-pitch-800 text-ink-400';
   return (
     <span
       title={title}

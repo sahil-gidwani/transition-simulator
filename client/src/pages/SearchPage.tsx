@@ -34,7 +34,7 @@ export default function SearchPage() {
 
   return (
     <div className="mx-auto max-w-2xl pt-6 sm:pt-16">
-      <p className="text-sm tracking-[0.3em] text-brass-400 uppercase">Transfer valuations</p>
+      <p className="text-sm tracking-[0.3em] text-tangerine-300 uppercase">Transfer valuations</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink-100 sm:text-5xl">
         Every move has a precedent.
       </h1>
@@ -60,7 +60,7 @@ export default function SearchPage() {
             reset();
           }}
           onKeyDown={onKeyDown}
-          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-500 focus:border-brass-400 focus:outline-none"
+          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-500 focus:border-yale-400 focus:outline-none"
         />
 
         {!searchActive ? (
@@ -73,7 +73,7 @@ export default function SearchPage() {
             <button
               type="button"
               onClick={() => void refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-brass-400"
+              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
             >
               Retry
             </button>
