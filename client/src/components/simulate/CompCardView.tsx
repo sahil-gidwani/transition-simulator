@@ -28,28 +28,14 @@ export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
   const leagueName = (id: string) => leagueNames?.get(id) ?? id;
 
   return (
-    <article className="rounded-xl border border-pitch-800 bg-pitch-900 p-4 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-pitch-700 hover:shadow-lg hover:shadow-black/30">
+    <article className="flex h-full flex-col rounded-xl border border-pitch-800 bg-pitch-900 p-4 transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-0.5 hover:border-pitch-700 hover:shadow-lg hover:shadow-black/30">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            to={`/players/${comp.player_id}`}
-            className="font-semibold text-ink-100 hover:text-tangerine-300"
-          >
-            {comp.player_name}
-          </Link>
-          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-ink-400">
-            <span>{comp.from_club}</span>
-            <span aria-hidden="true">→</span>
-            <span>{comp.to_club}</span>
-          </p>
-          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-500">
-            {comp.from_league !== null ? <Badge>{leagueName(comp.from_league)}</Badge> : null}
-            <Badge>{leagueName(comp.to_league)}</Badge>
-            <span>
-              {formatSeason(comp.season)} · age {formatAge(comp.age_at_transfer)} at move
-            </span>
-          </p>
-        </div>
+        <Link
+          to={`/players/${comp.player_id}`}
+          className="min-w-0 truncate font-semibold text-ink-100 hover:text-tangerine-300"
+        >
+          {comp.player_name}
+        </Link>
         <span
           className={`flex shrink-0 items-center gap-1.5 text-2xl font-semibold tabular-nums ${delta.color}`}
         >
@@ -57,6 +43,22 @@ export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
           {formatSignedPct(comp.delta_pct)}
         </span>
       </div>
+
+      {/* The route wraps as club–league pairs, never as loose badges. */}
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-400">
+        <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+          <span className="truncate">{comp.from_club}</span>
+          {comp.from_league !== null ? <Badge>{leagueName(comp.from_league)}</Badge> : null}
+        </span>
+        <span aria-hidden="true">→</span>
+        <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+          <span className="truncate">{comp.to_club}</span>
+          <Badge>{leagueName(comp.to_league)}</Badge>
+        </span>
+      </p>
+      <p className="mt-1.5 text-xs text-ink-500">
+        {formatSeason(comp.season)} · age {formatAge(comp.age_at_transfer)} at move
+      </p>
 
       <div className="mt-3 flex items-center gap-4">
         <CompSlopeChart comp={comp} />
@@ -66,7 +68,7 @@ export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
       </div>
 
       {comp.tags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
           {comp.tags.map((tag) => (
             <Chip key={tag}>{tag}</Chip>
           ))}
