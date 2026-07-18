@@ -1,7 +1,8 @@
 import Badge from '../ui/Badge';
 import Combobox from '../ui/Combobox';
 import SkeletonBlock from '../ui/SkeletonBlock';
-import { tercileLabel, tierLabel } from '../../lib/labels';
+import { formatEuroCompact } from '../../lib/format';
+import { clubBudgetLabel, tierLabel } from '../../lib/labels';
 import type { DestinationClub, DestinationLeague } from '../../lib/types';
 
 interface DestinationPickerProps {
@@ -49,9 +50,16 @@ export default function DestinationPicker({
           <span className="flex items-center justify-between gap-3">
             <span className="min-w-0">
               <span className="block truncate text-ink-100">{league.name}</span>
-              {league.country ? (
-                <span className="text-xs text-ink-400">{league.country}</span>
-              ) : null}
+              <span className="text-xs text-ink-400">
+                {[
+                  league.country,
+                  league.median_squad_value_eur != null
+                    ? `median squad ${formatEuroCompact(league.median_squad_value_eur)}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
             </span>
             <Badge title="League strength band from median squad value (Elite ≈ €100M+, Strong ≈ €24M+, Emerging ≈ €12M+, Developing below)">
               {tierLabel(league.tier)}
@@ -77,17 +85,22 @@ export default function DestinationPicker({
             itemText={(club) => club.name}
             renderItem={(club) => (
               <span className="flex items-center justify-between gap-3">
-                <span className="truncate text-ink-100">{club.name}</span>
-                <span className="flex shrink-0 items-center gap-1.5">
-                  {tercileLabel(club.tercile) ? (
-                    <Badge title="Squad-value rank within the league">
-                      {tercileLabel(club.tercile)}
-                    </Badge>
-                  ) : null}
-                  {!club.elo_available ? (
-                    <span className="text-xs text-ink-400">no strength rating</span>
-                  ) : null}
+                <span className="min-w-0">
+                  <span className="block truncate text-ink-100">{club.name}</span>
+                  <span className="text-xs text-ink-400">
+                    {[
+                      `squad ${formatEuroCompact(club.squad_value_eur)}`,
+                      !club.elo_available ? 'no strength rating' : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
                 </span>
+                {clubBudgetLabel(club.club_value_pct) ? (
+                  <Badge title="Where this club's squad value sits within the league (the same signal the matching uses)">
+                    {clubBudgetLabel(club.club_value_pct)}
+                  </Badge>
+                ) : null}
               </span>
             )}
             selectedLabel={selectedClub?.name ?? null}
