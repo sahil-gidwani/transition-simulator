@@ -91,3 +91,32 @@ describe('CompCardView', () => {
     );
   });
 });
+
+describe('CompCardView similarity + derived chips', () => {
+  it('shows a match-strength meter scaled to the pool best', () => {
+    renderWithProviders(<CompCardView comp={comp({ similarity: 0.4 })} maxSimilarity={0.8} />);
+    const meter = screen.getByTestId('match-strength');
+    expect(meter.firstChild).toHaveStyle({ width: '50%' });
+    expect(screen.getByTitle(/similarity weight 0\.40/i)).toBeInTheDocument();
+  });
+
+  it('omits the meter without a pool max', () => {
+    renderWithProviders(<CompCardView comp={comp({})} />);
+    expect(screen.queryByTestId('match-strength')).not.toBeInTheDocument();
+  });
+
+  it('derives the relative-age chip from the queried player', () => {
+    renderWithProviders(<CompCardView comp={comp({ age_at_transfer: 24.4 })} playerAge={26} />);
+    expect(screen.getByText('2 yrs younger at move')).toBeInTheDocument();
+  });
+
+  it('says same age when the rounded gap is zero', () => {
+    renderWithProviders(<CompCardView comp={comp({ age_at_transfer: 26.2 })} playerAge={26} />);
+    expect(screen.getByText('same age at move')).toBeInTheDocument();
+  });
+
+  it('skips the age chip when either age is unknown', () => {
+    renderWithProviders(<CompCardView comp={comp({ age_at_transfer: null })} playerAge={26} />);
+    expect(screen.queryByText(/(younger|older|same age) at move/)).not.toBeInTheDocument();
+  });
+});

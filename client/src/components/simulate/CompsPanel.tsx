@@ -9,19 +9,23 @@ interface CompsPanelProps {
   /** Server-driven UI default (currently 6); never hardcoded here. */
   shownComps: number;
   leagueNames?: ReadonlyMap<string, string>;
+  /** The queried player's age today, for each card's relative-age chip. */
+  playerAge?: number | null;
 }
 
-export default function CompsPanel({ comps, shownComps, leagueNames }: CompsPanelProps) {
+export default function CompsPanel({ comps, shownComps, leagueNames, playerAge }: CompsPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? comps : comps.slice(0, shownComps);
+  // Comps arrive most-similar first, so the head carries the pool's best weight.
+  const maxSimilarity = comps[0]?.similarity;
 
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-xl font-medium text-ink-100">The precedent</h2>
         <span className="text-sm text-ink-400">
-          {comps.length} comparable move{comps.length === 1 ? '' : 's'} — the range above is built
-          from exactly these
+          {comps.length} comparable move{comps.length === 1 ? '' : 's'}, ordered by similarity
+          (decliners included) — the range above is built from exactly these
         </span>
       </div>
 
@@ -33,7 +37,12 @@ export default function CompsPanel({ comps, shownComps, leagueNames }: CompsPane
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: EASE_OUT, delay: 0.04 * (index % 12) }}
           >
-            <CompCardView comp={comp} leagueNames={leagueNames} />
+            <CompCardView
+              comp={comp}
+              leagueNames={leagueNames}
+              maxSimilarity={maxSimilarity}
+              playerAge={playerAge}
+            />
           </m.div>
         ))}
       </div>

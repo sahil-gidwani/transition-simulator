@@ -193,6 +193,7 @@ export default function SimulatePage() {
             comps={state.result.comps}
             shownComps={state.result.shown_comps}
             leagueNames={leagueNames}
+            playerAge={state.result.player.age}
           />
         </>
       )}
