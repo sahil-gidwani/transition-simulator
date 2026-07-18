@@ -7,6 +7,7 @@ import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ApiError } from '../lib/api';
+import { formatEuroCompact } from '../lib/format';
 import { usePercentiles, usePlayer } from '../lib/queries';
 
 function BackToSearch() {
@@ -81,30 +82,45 @@ export default function PlayerProfilePage() {
     <div className="space-y-8">
       <IdentityHeader player={player} />
 
-      <div>
-        {canSimulate ? (
+      {canSimulate ? (
+        <section className="gradient-border flex flex-col gap-5 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <h2 className="font-display text-2xl font-medium text-ink-100">
+              What would a move do to {formatEuroCompact(player.market_value_eur)}?
+            </h2>
+            <p className="mt-1 text-sm text-ink-400">
+              Pick a destination — a range built from named precedents.
+            </p>
+          </div>
           <Link
             to={`/players/${player.player_id}/simulate`}
-            className="inline-flex items-center gap-2 rounded-lg bg-tangerine-300 px-5 py-3 text-base font-semibold text-pitch-950 transition-transform duration-150 hover:bg-tangerine-200 active:scale-[0.98]"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-tangerine-300 px-6 py-3.5 text-base font-semibold text-pitch-950 transition-transform duration-150 hover:bg-tangerine-200 active:scale-[0.98]"
           >
             Simulate a transfer →
           </Link>
-        ) : (
-          <>
-            <button
-              type="button"
-              disabled
-              aria-describedby="simulate-disabled-reason"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-pitch-800 px-5 py-3 text-base font-semibold text-ink-400"
-            >
-              Simulate a transfer →
-            </button>
-            <p id="simulate-disabled-reason" className="mt-2 text-sm text-ink-400">
+        </section>
+      ) : (
+        // Same band, muted: the missing-valuation honesty note keeps the
+        // hero slot, it just cannot wear the invitation ring.
+        <section className="flex flex-col gap-5 rounded-2xl border border-pitch-800 bg-pitch-900/60 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <h2 className="font-display text-2xl font-medium text-ink-100">
+              What would a move do to this value?
+            </h2>
+            <p id="simulate-disabled-reason" className="mt-1 text-sm text-ink-400">
               Needs a current market value to anchor the predicted range — none on record.
             </p>
-          </>
-        )}
-      </div>
+          </div>
+          <button
+            type="button"
+            disabled
+            aria-describedby="simulate-disabled-reason"
+            className="inline-flex shrink-0 cursor-not-allowed items-center gap-2 rounded-lg bg-pitch-800 px-6 py-3.5 text-base font-semibold text-ink-400"
+          >
+            Simulate a transfer →
+          </button>
+        </section>
+      )}
 
       <section>
         <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
