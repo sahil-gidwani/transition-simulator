@@ -2,7 +2,13 @@ import Badge from '../ui/Badge';
 import Chip from '../ui/Chip';
 import { AlertRing, ArrowDownRight, ArrowFlat, ArrowUpRight, Clock, SealCheck } from '../ui/icons';
 import { CountUpRange } from '../motion/CountUp';
-import { formatDate, formatEuroCompact, formatRange, formatSignedPct } from '../../lib/format';
+import {
+  formatDate,
+  formatEuroCompact,
+  formatRange,
+  formatSignedPct,
+  horizonMonthYear,
+} from '../../lib/format';
 import { tierLabel } from '../../lib/labels';
 import { useHealth } from '../../lib/queries';
 import type { Direction, Prediction, SimulationResponse } from '../../lib/types';
@@ -35,6 +41,9 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
 
   const destinationLabel = result.destination.club_name ?? result.destination.league_name;
   const now = result.player.market_value_eur;
+  // Concrete horizon: "12 months" only means something against the value's
+  // as-of date, so say which month that actually is.
+  const horizonBy = horizonMonthYear(result.player.market_value_asof, prediction.horizon_months);
 
   return (
     <section className="glass-panel rounded-2xl p-6 shadow-2xl shadow-yale-900/40 sm:p-8">
@@ -44,7 +53,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
             If <span className="font-medium text-ink-100">{result.player.name}</span> moves to{' '}
             <span className="font-medium text-ink-100">{destinationLabel}</span>
           </span>
-          <Badge title="League strength: tiers 1–4, from squad values">
+          <Badge title="League strength band from median squad value (Elite ≈ €100M+, Strong ≈ €24M+, Emerging ≈ €12M+, Developing below)">
             {tierLabel(result.destination.tier)}
           </Badge>
         </p>
@@ -74,7 +83,8 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
           />
         </div>
         <p className="mt-3 text-ink-400">
-          within {prediction.horizon_months} months · midpoint{' '}
+          within {prediction.horizon_months} months{horizonBy ? ` (by ${horizonBy})` : ''} ·
+          midpoint{' '}
           <span className="text-ink-100 tabular-nums">{formatEuroCompact(prediction.mid_eur)}</span>{' '}
           <span className={`tabular-nums ${direction.color}`}>
             ({formatSignedPct(prediction.mid_multiplier - 1)})

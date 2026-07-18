@@ -6,6 +6,7 @@ import {
   formatRange,
   formatSeason,
   formatSignedPct,
+  horizonMonthYear,
 } from './format';
 
 describe('formatEuroCompact', () => {
@@ -126,5 +127,19 @@ describe('formatSeason', () => {
 
   it('renders an em dash for missing seasons', () => {
     expect(formatSeason(null)).toBe('—');
+  });
+});
+
+describe('horizonMonthYear', () => {
+  it('adds months with plain month arithmetic, crossing year boundaries', () => {
+    expect(horizonMonthYear('2026-06-03', 12)).toBe('Jun 2027');
+    expect(horizonMonthYear('2025-12-14', 12)).toBe('Dec 2026');
+    expect(horizonMonthYear('2026-02-01', 11)).toBe('Jan 2027');
+  });
+
+  it('returns null for missing or malformed as-of dates', () => {
+    expect(horizonMonthYear(null, 12)).toBeNull();
+    expect(horizonMonthYear(undefined, 12)).toBeNull();
+    expect(horizonMonthYear('not-a-date', 12)).toBeNull();
   });
 });

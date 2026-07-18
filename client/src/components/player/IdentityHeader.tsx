@@ -21,7 +21,9 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
         <span className="inline-flex items-center gap-1.5">
           {player.league_name ?? player.league_id}
           {tier ? (
-            <Badge title="League strength: tiers 1–4, from squad values">{tier}</Badge>
+            <Badge title="League strength band from median squad value (Elite ≈ €100M+, Strong ≈ €24M+, Emerging ≈ €12M+, Developing below)">
+              {tier}
+            </Badge>
           ) : null}
         </span>
       ),

@@ -53,7 +53,7 @@ export default function DestinationPicker({
                 <span className="text-xs text-ink-400">{league.country}</span>
               ) : null}
             </span>
-            <Badge title="League strength: tiers 1–4, from squad values">
+            <Badge title="League strength band from median squad value (Elite ≈ €100M+, Strong ≈ €24M+, Emerging ≈ €12M+, Developing below)">
               {tierLabel(league.tier)}
             </Badge>
           </span>

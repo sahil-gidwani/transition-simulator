@@ -11,8 +11,20 @@ export function positionLabel(code: string): string {
   return POSITION_LABELS[code] ?? code;
 }
 
+/**
+ * Named league tiers (fixed ln-strength thresholds, per the README): the
+ * name IS the plain meaning, so a badge never needs a tooltip to decode a
+ * bare number. Unknown numbers fall back to the raw form defensively.
+ */
+const TIER_LABELS: Record<number, string> = {
+  1: 'Elite league',
+  2: 'Strong league',
+  3: 'Emerging league',
+  4: 'Developing league',
+};
+
 export function tierLabel(tier: number | null | undefined): string | null {
-  return tier == null ? null : `Tier ${tier}`;
+  return tier == null ? null : (TIER_LABELS[tier] ?? `Tier ${tier}`);
 }
 
 /** Squad-value tercile within the league season: 1 = top third. */

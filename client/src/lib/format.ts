@@ -87,3 +87,23 @@ export function formatSeason(season: number | null | undefined): string {
   const next = (season + 1) % 100;
   return `${season}/${String(next).padStart(2, '0')}`;
 }
+
+/**
+ * "2026-06-03" + 12 → "Jun 2027": the concrete month a prediction horizon
+ * lands in, anchored on the valuation's as-of date. Pure month arithmetic on
+ * the hand-parsed parts (same timezone reasoning as formatDate); the day is
+ * irrelevant at month granularity. Null/garbage in → null out, so callers
+ * can simply omit the "(by …)" suffix.
+ */
+export function horizonMonthYear(
+  asofIso: string | null | undefined,
+  months: number,
+): string | null {
+  if (!asofIso) return null;
+  const [y, m] = asofIso.split('-').map(Number);
+  if (!y || !m || m < 1 || m > 12) return null;
+  const total = y * 12 + (m - 1) + months;
+  const year = Math.floor(total / 12);
+  const month = total % 12;
+  return `${MONTHS[month]} ${year}`;
+}
