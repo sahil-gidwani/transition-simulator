@@ -38,9 +38,11 @@ _CAVEATS = """\
   for partial appearances; clean sheets require >=90 minutes played. League playoff rounds
   can settle on penalties; shootout goals are not part of these scores, but extra-time goals
   in such rounds are.
-- **League tier**: per-season rank quartiles of leagues by median derived squad value
-  (`(rank-1)*4 // n + 1`). Boundaries move with the market; this report prints the EUR
-  ranges per tier for the latest season.
+- **League tier**: display buckets from fixed ln-strength thresholds pinned in
+  `pipeline/config.py` (18.4 / 17.0 / 16.3 ln median derived squad value, roughly
+  EUR 98M / 24M / 12M), with two-season hysteresis so a knife-edge league does not
+  flap tiers year to year; null below the 8-club membership floor. This report
+  prints the observed EUR ranges per tier for the latest season.
 - **Squad values**: derived by summing members' latest valuation at season start (July 1),
   capped at 365 days of staleness; the upstream clubs table's market-value field is not used
   (unreliable).
