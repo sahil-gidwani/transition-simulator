@@ -47,9 +47,9 @@ describe('PercentileBars', () => {
       />,
     );
 
-    // The server already flipped bad-is-high metrics; 80 must render as 80.
+    // The server already flipped bad-is-high metrics; 80 must render as 80th.
     expect(screen.getByTestId('percentile-fill-cards_p90')).toHaveStyle({ width: '80%' });
-    expect(screen.getByText('80')).toBeInTheDocument();
+    expect(screen.getByText('80th')).toBeInTheDocument();
     expect(screen.getByText(/lower is better/i)).toBeInTheDocument();
   });
 

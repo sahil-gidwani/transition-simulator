@@ -43,7 +43,11 @@ export default function SearchResultsList({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate font-semibold text-ink-100">{result.name}</span>
-              <Badge title={positionLabel(result.position_group)}>{result.position_group}</Badge>
+              {/* Full position word where there's room; the code only on phones. */}
+              <Badge title={positionLabel(result.position_group)}>
+                <span className="sm:hidden">{result.position_group}</span>
+                <span className="max-sm:hidden">{positionLabel(result.position_group)}</span>
+              </Badge>
               {result.age != null ? (
                 <span className="text-sm whitespace-nowrap text-ink-400">{result.age} yrs</span>
               ) : null}

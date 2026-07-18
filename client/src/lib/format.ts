@@ -88,6 +88,14 @@ export function formatSeason(season: number | null | undefined): string {
   return `${season}/${String(next).padStart(2, '0')}`;
 }
 
+/** 82 → "82nd" (1st/2nd/3rd, 11th–13th stay "th"). */
+export function formatOrdinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const suffix = { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
+
 /**
  * "2026-06-03" + 12 → "Jun 2027": the concrete month a prediction horizon
  * lands in, anchored on the valuation's as-of date. Pure month arithmetic on

@@ -41,7 +41,8 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
             {player.name}
           </h1>
           <Badge variant="accent" title={positionLabel(player.position_group)}>
-            {player.position_group}
+            <span className="sm:hidden">{player.position_group}</span>
+            <span className="max-sm:hidden">{positionLabel(player.position_group)}</span>
           </Badge>
           {player.sub_position ? (
             <span className="text-sm text-ink-400">{player.sub_position}</span>

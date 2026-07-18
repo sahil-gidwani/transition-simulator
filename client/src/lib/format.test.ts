@@ -3,6 +3,7 @@ import {
   formatAge,
   formatDate,
   formatEuroCompact,
+  formatOrdinal,
   formatRange,
   formatSeason,
   formatSignedPct,
@@ -141,5 +142,21 @@ describe('horizonMonthYear', () => {
     expect(horizonMonthYear(null, 12)).toBeNull();
     expect(horizonMonthYear(undefined, 12)).toBeNull();
     expect(horizonMonthYear('not-a-date', 12)).toBeNull();
+  });
+});
+
+describe('formatOrdinal', () => {
+  it('handles st/nd/rd/th including the teens', () => {
+    expect(formatOrdinal(1)).toBe('1st');
+    expect(formatOrdinal(2)).toBe('2nd');
+    expect(formatOrdinal(3)).toBe('3rd');
+    expect(formatOrdinal(4)).toBe('4th');
+    expect(formatOrdinal(11)).toBe('11th');
+    expect(formatOrdinal(12)).toBe('12th');
+    expect(formatOrdinal(13)).toBe('13th');
+    expect(formatOrdinal(21)).toBe('21st');
+    expect(formatOrdinal(82)).toBe('82nd');
+    expect(formatOrdinal(100)).toBe('100th');
+    expect(formatOrdinal(0)).toBe('0th');
   });
 });

@@ -1,5 +1,5 @@
 import EmptyState from '../ui/EmptyState';
-import { formatSeason } from '../../lib/format';
+import { formatOrdinal, formatSeason } from '../../lib/format';
 import type { MetricPercentile, PercentilesResponse } from '../../lib/types';
 
 function formatMetricValue(metric: MetricPercentile): string {
@@ -50,6 +50,11 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
     <section>
       <h2 className="font-display text-xl font-medium text-ink-100">How they compare</h2>
       <p className="mt-1 text-sm text-ink-400">{subtext}</p>
+      {/* The legend is visible, not tooltip-only: a percentile without its
+          reading direction is just a mystery number. */}
+      <p className="mt-1 text-xs text-ink-500">
+        82nd = better than 82% of those peers · mid line = peer median
+      </p>
       {percentiles.below_floor ? (
         <p className="mt-2 text-sm text-caution-400">
           Too few minutes this season for a fair ranking — numbers shown, rankings withheld.
@@ -93,10 +98,10 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
                     {formatMetricValue(metric)}
                   </span>
                   <span
-                    className="w-8 text-right text-base font-semibold text-ink-100 tabular-nums"
+                    className="w-11 text-right text-base font-semibold text-ink-100 tabular-nums"
                     title={`Better than ${metric.percentile}% of comparable players`}
                   >
-                    {metric.percentile}
+                    {formatOrdinal(metric.percentile)}
                   </span>
                 </div>
               </>
@@ -109,7 +114,6 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-ink-500">mid line = peer median</p>
     </section>
   );
 }
