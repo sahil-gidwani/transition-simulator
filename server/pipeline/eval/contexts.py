@@ -71,7 +71,7 @@ def build_eval_query(row: dict[str, Any], seasons: SeasonsRepo) -> EvalQuery | S
     dest_league = seasons.league_at(row["to_league"], row["season"])
     if dest_league is None:
         return _skip(row, "dest_league_missing")
-    if dest_league.tier is None:
+    if dest_league.strength is None or dest_league.tier is None:
         # Below the minimum-club floor: no honest strength stats to query.
         return _skip(row, "dest_league_stats_invalid")
     dest_club = seasons.club_at(row["to_club_id"], row["season"])
@@ -106,7 +106,7 @@ def build_eval_query(row: dict[str, Any], seasons: SeasonsRepo) -> EvalQuery | S
         age=row["age_at_transfer"],
         origin_tier=row["from_tier"],
         origin_strength=origin_strength,
-        origin_tercile=row["from_tercile"],
+        origin_club_value_pct=row["from_club_value_pct"],
         minutes_share=row["minutes_share_pre"],
         latest_season=row["season"],
     )

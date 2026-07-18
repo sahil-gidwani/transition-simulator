@@ -31,7 +31,8 @@ class ClubSeason:
     club_name: str
     league: str | None  # null: no honest league assignment that season
     season: int
-    tercile: int | None  # null whenever league is null
+    tercile: int | None  # null whenever league is null (display only)
+    club_value_pct: float | None  # within-league squad-value percentile, 1.0 = richest
     squad_value_eur: int
     elo_pct: float | None
 
@@ -55,6 +56,7 @@ def _club(row: dict[str, Any]) -> ClubSeason:
         league=row["league"],
         season=row["season"],
         tercile=row["tercile"],
+        club_value_pct=row["club_value_pct"],
         squad_value_eur=row["squad_value_eur"],
         elo_pct=row["elo_pct"],
     )
@@ -123,7 +125,3 @@ class SeasonsRepo:
         if rows.is_empty():
             return None
         return _club(rows.row(0, named=True))
-
-    def strength_frame(self) -> pl.DataFrame:
-        """(league, season, strength) for vectorized comp-side joins."""
-        return self._league_seasons.select("league", "season", "strength")

@@ -28,6 +28,7 @@ from app.services.valuation import summarize_pool
 from pipeline.eval.availability import available_universe
 from pipeline.eval.candidates import (
     SUPERSET_AGE_BAND,
+    SUPERSET_DEST_STRENGTH_BAND,
     SUPERSET_VALUE_BRACKET,
     candidate_set,
 )
@@ -40,7 +41,11 @@ SEED_DEFAULT = 20260718
 N_CONFIGS_DEFAULT = 300
 INSUFFICIENT_TOLERANCE = 0.01  # winner may refuse at most 1pt more than hand-set
 COVERAGE_BAND = (0.35, 0.65)  # loose sanity; calibration trims later
-PARITY_TOLERANCE = 1e-9
+# The strength/club-value columns are baked Float32, so term values carry
+# f32-level noise that interpolating quantiles amplify to ~1e-8 on real
+# pools (measured max 8.1e-9). A logic divergence shows up orders of
+# magnitude above this; the gate still catches it.
+PARITY_TOLERANCE = 5e-8
 
 WEIGHT_RANGE = (0.05, 2.0)
 POOL_K_RANGE = (8, 48)
@@ -51,6 +56,69 @@ BASE_BRACKETS_LO = (0.3, 0.4, 0.5)
 BASE_BRACKETS_HI = (2.0, 2.5, 3.0)
 WIDE_BRACKETS_LO = (0.2, 0.25)
 WIDE_BRACKETS_HI = (4.0, 5.0)
+# Destination strength bands (ln squad-value units): base holds through the
+# early ladder, then two labelled widenings. The destination is never dropped.
+BASE_DEST_BANDS = (0.25, 0.35, 0.5)
+MID_DEST_BANDS = (0.6, 0.7, 0.9)
+WIDE_DEST_BANDS = (1.0, 1.2, 1.5)
+
+
+def _band_label(band: float, suffix: str = "") -> str:
+    return (
+        f"destination league band widened to +/-{band:g} "
+        f"(~{math.exp(band):.1f}x squad value){suffix}"
+    )
+
+
+def build_ladder(
+    base_age: float,
+    wide_age: float,
+    base_bracket: tuple[float, float],
+    wide_bracket: tuple[float, float],
+    base_band: float,
+    mid_band: float,
+    wide_band: float,
+) -> tuple[LadderStep, ...]:
+    """The fixed 6-step ladder shape shared by serving and the search."""
+    return (
+        LadderStep("base filters", base_age, base_bracket, 1, dest_strength_band=base_band),
+        LadderStep(
+            f"age band widened to +/-{wide_age:g} years",
+            wide_age,
+            base_bracket,
+            1,
+            dest_strength_band=base_band,
+        ),
+        LadderStep(
+            f"value bracket widened to {wide_bracket[0]:g}-{wide_bracket[1]:g}x",
+            wide_age,
+            wide_bracket,
+            1,
+            dest_strength_band=base_band,
+        ),
+        LadderStep(
+            "origin league tier widened to +/-2",
+            wide_age,
+            wide_bracket,
+            2,
+            dest_strength_band=base_band,
+        ),
+        LadderStep(
+            _band_label(mid_band),
+            wide_age,
+            wide_bracket,
+            2,
+            dest_strength_band=mid_band,
+        ),
+        LadderStep(
+            _band_label(wide_band, "; origin league filter dropped; club-level terms ignored"),
+            wide_age,
+            wide_bracket,
+            None,
+            dest_strength_band=wide_band,
+            drop_club_terms=True,
+        ),
+    )
 
 
 def sample_config(rng: random.Random) -> RetrievalConfig:
@@ -61,27 +129,16 @@ def sample_config(rng: random.Random) -> RetrievalConfig:
     wide_age = rng.choice(WIDE_AGE_BANDS)
     base_bracket = (rng.choice(BASE_BRACKETS_LO), rng.choice(BASE_BRACKETS_HI))
     wide_bracket = (rng.choice(WIDE_BRACKETS_LO), rng.choice(WIDE_BRACKETS_HI))
+    base_band = rng.choice(BASE_DEST_BANDS)
+    mid_band = rng.choice(MID_DEST_BANDS)
+    wide_band = rng.choice(WIDE_DEST_BANDS)
     # The candidate precompute can only score geometries inside its superset.
     assert wide_age <= SUPERSET_AGE_BAND
     assert wide_bracket[0] >= SUPERSET_VALUE_BRACKET[0]
     assert wide_bracket[1] <= SUPERSET_VALUE_BRACKET[1]
-    ladder = (
-        LadderStep("base filters", base_age, base_bracket, 1),
-        LadderStep(f"age band widened to +/-{wide_age:g} years", wide_age, base_bracket, 1),
-        LadderStep(
-            f"value bracket widened to {wide_bracket[0]:g}-{wide_bracket[1]:g}x",
-            wide_age,
-            wide_bracket,
-            1,
-        ),
-        LadderStep("origin league tier widened to +/-2", wide_age, wide_bracket, 2),
-        LadderStep(
-            "origin league filter dropped; club-level terms ignored",
-            wide_age,
-            wide_bracket,
-            None,
-            drop_club_terms=True,
-        ),
+    assert wide_band <= SUPERSET_DEST_STRENGTH_BAND
+    ladder = build_ladder(
+        base_age, wide_age, base_bracket, wide_bracket, base_band, mid_band, wide_band
     )
     return RetrievalConfig(
         w_log_value=log_uniform(WEIGHT_RANGE),
@@ -89,8 +146,8 @@ def sample_config(rng: random.Random) -> RetrievalConfig:
         w_dest_strength=log_uniform(WEIGHT_RANGE),
         w_origin_strength=log_uniform(WEIGHT_RANGE),
         w_elo=log_uniform(WEIGHT_RANGE),
-        w_dest_tercile=log_uniform(WEIGHT_RANGE),
-        w_origin_tercile=log_uniform(WEIGHT_RANGE),
+        w_dest_club_value=log_uniform(WEIGHT_RANGE),
+        w_origin_club_value=log_uniform(WEIGHT_RANGE),
         w_minutes=log_uniform(WEIGHT_RANGE),
         w_sub_position=log_uniform(WEIGHT_RANGE),
         w_recency=log_uniform(WEIGHT_RANGE),
@@ -171,13 +228,12 @@ def run_search(
     rng = random.Random(seed)
     configs = [DEFAULT_RETRIEVAL] + [sample_config(rng) for _ in range(n_configs)]
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     season_min = store.build_info.season_min
 
     queries, n_skipped = _eval_queries(store)
     accumulators = [_Accumulator() for _ in configs]
     for i, built in enumerate(queries):
-        cands = candidate_set(built, universe, strengths, season_min)
+        cands = candidate_set(built, universe, season_min)
         for accumulator, config in zip(accumulators, configs, strict=True):
             quantiles = score_query(cands, config)
             if quantiles is None:
@@ -219,7 +275,6 @@ def runtime_parity_failures(
     rng = random.Random(seed)
     configs = [DEFAULT_RETRIEVAL] + [sample_config(rng) for _ in range(n_configs)]
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     season_min = store.build_info.season_min
     queries, _ = _eval_queries(store)
     if not queries:
@@ -227,7 +282,7 @@ def runtime_parity_failures(
     stride = max(1, len(queries) // sample_size)
     failures: list[str] = []
     for built in queries[::stride][:sample_size]:
-        cands = candidate_set(built, universe, strengths, season_min)
+        cands = candidate_set(built, universe, season_min)
         universe_t = available_universe(universe, built.transfer_date)
         for k, config in enumerate(configs):
             result = find_comps(
@@ -235,7 +290,6 @@ def runtime_parity_failures(
                 built.dest_league,
                 built.dest_club,
                 universe_t,
-                strengths,
                 season_min,
                 config=config,
             )
@@ -268,7 +322,8 @@ def render_constants_snippet(result: SearchResult, n_configs: int) -> str:
     config = result.winner.config
     steps = ",\n".join(
         f"    LadderStep({step.label!r}, {step.age_band!r}, {step.value_bracket!r}, "
-        f"{step.origin_tier_band!r}" + (", drop_club_terms=True)" if step.drop_club_terms else ")")
+        f"{step.origin_tier_band!r}, dest_strength_band={step.dest_strength_band!r}"
+        + (", drop_club_terms=True)" if step.drop_club_terms else ")")
         for step in config.ladder
     )
     weights = "\n".join(
@@ -279,8 +334,8 @@ def render_constants_snippet(result: SearchResult, n_configs: int) -> str:
             ("W_DEST_STRENGTH", config.w_dest_strength),
             ("W_ORIGIN_STRENGTH", config.w_origin_strength),
             ("W_ELO", config.w_elo),
-            ("W_DEST_TERCILE", config.w_dest_tercile),
-            ("W_ORIGIN_TERCILE", config.w_origin_tercile),
+            ("W_DEST_CLUB_VALUE", config.w_dest_club_value),
+            ("W_ORIGIN_CLUB_VALUE", config.w_origin_club_value),
             ("W_MINUTES", config.w_minutes),
             ("W_SUB_POSITION", config.w_sub_position),
             ("W_RECENCY", config.w_recency),

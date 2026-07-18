@@ -44,27 +44,32 @@ def _comp(player_id: int, multiplier: float, **overrides: Any) -> dict[str, Any]
         "multiplier": multiplier,
         "v_after": int(10_000_000 * multiplier),
         "delta_pct": multiplier - 1.0,
+        # Baked strengths consistent with the _store league rows (AA1 18.0,
+        # BB1 17.4), so a conforming comp sits at destination gap zero.
+        "from_strength": 18.0,
+        "to_strength": 17.4,
         **overrides,
     }
 
 
 # Every null policy, filter edge and ladder level the engine implements.
 _UNIVERSE_ROWS: list[dict[str, Any]] = [
-    _QUERY_ROW,
+    {**_QUERY_ROW, "from_strength": 18.0, "to_strength": 17.4},
     _comp(100, 1.2),
     _comp(101, 0.7, age_at_transfer=None),  # null comp age: fails every age band
     _comp(102, 1.5, sub_position=None),  # neutral sub-position term
-    _comp(103, 0.9, from_tercile=None, minutes_share_pre=None),  # dropped terms
+    _comp(103, 0.9, from_club_value_pct=None, minutes_share_pre=None),  # dropped terms
     _comp(104, 1.1, to_elo_pct=None, to_elo=None),  # null comp elo
     _comp(105, 1.3, v_before=4_000_000),  # exact 0.4x bracket edge
     _comp(106, 0.8, v_before=30_000_000),  # 3.0x: widened bracket only
     _comp(107, 1.4, age_at_transfer=29.5),  # wide age band only
     _comp(108, 0.95, from_tier=3),  # origin tier +/-2 only
-    _comp(109, 1.05, from_tier=None, from_league=None, from_tercile=None),  # last level only
-    _comp(110, 1.25, from_league="ZZ9"),  # no strength row: term drops
+    _comp(109, 1.05, from_tier=None, from_league=None, from_strength=None),  # last level only
+    _comp(110, 1.25, from_league="ZZ9", from_strength=None),  # no strength: term drops
     _comp(111, 1.15, transfer_date=date(2019, 2, 1), v_after_date=date(2020, 2, 1)),
     _comp(112, 1.0),  # identical twins: the player_id
     _comp(113, 1.0),  # tie-break must match
+    _comp(114, 1.35, to_strength=16.9),  # dest gap 0.5: widened band only
 ]
 
 
@@ -106,16 +111,15 @@ def test_numpy_pool_and_quantiles_match_the_real_service(config_index: int) -> N
     store = _store()
     built = _built(store)
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     universe_t = available_universe(universe, built.transfer_date)
 
     result = find_comps(
-        built.query, built.dest_league, built.dest_club, universe_t, strengths, 2012, config=config
+        built.query, built.dest_league, built.dest_club, universe_t, 2012, config=config
     )
     value_range, _ = summarize_pool(
         result.pool, built.query.value_eur, result.quality.relaxation_level
     )
-    cands = candidate_set(built, universe, strengths, 2012)
+    cands = candidate_set(built, universe, 2012)
     selection, similarities, level = selected_pool(cands, config)
     quantiles = score_query(cands, config)
 
@@ -143,16 +147,13 @@ def test_refusal_parity_on_a_starved_universe() -> None:
     )
     built = _built(store)
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     universe_t = available_universe(universe, built.transfer_date)
 
-    result = find_comps(
-        built.query, built.dest_league, built.dest_club, universe_t, strengths, 2012
-    )
+    result = find_comps(built.query, built.dest_league, built.dest_club, universe_t, 2012)
     value_range, _ = summarize_pool(
         result.pool, built.query.value_eur, result.quality.relaxation_level
     )
-    cands = candidate_set(built, universe, strengths, 2012)
+    cands = candidate_set(built, universe, 2012)
     assert value_range is None
     assert score_query(cands, DEFAULT_RETRIEVAL) is None
 
@@ -168,16 +169,13 @@ def test_parity_survives_a_nonzero_calibration_shift(
     store = _store()
     built = _built(store)
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     universe_t = available_universe(universe, built.transfer_date)
 
-    result = find_comps(
-        built.query, built.dest_league, built.dest_club, universe_t, strengths, 2012
-    )
+    result = find_comps(built.query, built.dest_league, built.dest_club, universe_t, 2012)
     value_range, confidence = summarize_pool(
         result.pool, built.query.value_eur, result.quality.relaxation_level
     )
-    cands = candidate_set(built, universe, strengths, 2012)
+    cands = candidate_set(built, universe, 2012)
     quantiles = score_query(cands, DEFAULT_RETRIEVAL)
     assert value_range is not None and quantiles is not None
     assert confidence in ("low", "medium")  # a shifted tier: the test must exercise one

@@ -9,7 +9,11 @@ from typing import Any
 from api_factories import make_club_seasons, make_league_seasons, make_store, make_transitions
 
 from app.services.constants import DEFAULT_RETRIEVAL
-from pipeline.eval.candidates import SUPERSET_AGE_BAND, SUPERSET_VALUE_BRACKET
+from pipeline.eval.candidates import (
+    SUPERSET_AGE_BAND,
+    SUPERSET_DEST_STRENGTH_BAND,
+    SUPERSET_VALUE_BRACKET,
+)
 from pipeline.eval.search import (
     MIN_POOL_TARGET_RANGE,
     POOL_K_RANGE,
@@ -41,8 +45,8 @@ def test_sampled_configs_respect_every_range_and_the_superset() -> None:
             config.w_dest_strength,
             config.w_origin_strength,
             config.w_elo,
-            config.w_dest_tercile,
-            config.w_origin_tercile,
+            config.w_dest_club_value,
+            config.w_origin_club_value,
             config.w_minutes,
             config.w_sub_position,
             config.w_recency,
@@ -58,6 +62,12 @@ def test_sampled_configs_respect_every_range_and_the_superset() -> None:
             assert step.value_bracket[1] <= SUPERSET_VALUE_BRACKET[1]
             assert step.value_bracket[0] <= base.value_bracket[0]
             assert step.value_bracket[1] >= base.value_bracket[1]
+            assert step.dest_strength_band >= base.dest_strength_band
+            assert step.dest_strength_band <= SUPERSET_DEST_STRENGTH_BAND
+        # The band never shrinks along the ladder and widens at least once.
+        bands = [step.dest_strength_band for step in config.ladder]
+        assert bands == sorted(bands)
+        assert bands[-1] > bands[0]
 
 
 def test_config_hash_tracks_content_not_identity() -> None:

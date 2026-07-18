@@ -21,7 +21,6 @@ import polars as pl
 
 from app.repositories.store import DataStore
 from pipeline.eval.availability import available_universe
-from pipeline.eval.candidates import _with_strengths
 from pipeline.eval.contexts import EvalQuery, SkippedQuery, build_eval_query
 from pipeline.eval.records import PredictionRecord, records_frame
 from pipeline.eval.splits import eval_rows
@@ -52,8 +51,8 @@ FEATURES = (
     "tier_diff",
     "from_strength",
     "to_strength",
-    "from_tercile",
-    "to_tercile",
+    "from_club_value_pct",
+    "to_club_value_pct",
     "from_elo_pct",
     "to_elo_pct",
     "minutes_share_pre",
@@ -69,13 +68,12 @@ def _codes(universe: pl.DataFrame, column: str) -> dict[str, int]:
 
 def _feature_matrix(
     frame: pl.DataFrame,
-    strengths: pl.DataFrame,
     position_codes: dict[str, int],
     sub_position_codes: dict[str, int],
 ) -> np.ndarray:
-    # Negative categorical codes are LightGBM's missing marker.
-    with_strengths = _with_strengths(frame, strengths)
-    features = with_strengths.select(
+    # Negative categorical codes are LightGBM's missing marker. Strengths and
+    # club-value percentiles are baked into the transitions artifact.
+    features = frame.select(
         ln_v_before=pl.col("v_before").log(),
         age_at_transfer=pl.col("age_at_transfer").cast(pl.Float64),
         position_code=pl.col("position_group")
@@ -87,10 +85,10 @@ def _feature_matrix(
         from_tier=pl.col("from_tier").cast(pl.Float64),
         to_tier=pl.col("to_tier").cast(pl.Float64),
         tier_diff=(pl.col("to_tier") - pl.col("from_tier")).cast(pl.Float64),
-        from_strength=pl.col("from_strength"),
-        to_strength=pl.col("to_strength"),
-        from_tercile=pl.col("from_tercile").cast(pl.Float64),
-        to_tercile=pl.col("to_tercile").cast(pl.Float64),
+        from_strength=pl.col("from_strength").cast(pl.Float64),
+        to_strength=pl.col("to_strength").cast(pl.Float64),
+        from_club_value_pct=pl.col("from_club_value_pct").cast(pl.Float64),
+        to_club_value_pct=pl.col("to_club_value_pct").cast(pl.Float64),
         from_elo_pct=pl.col("from_elo_pct").cast(pl.Float64),
         to_elo_pct=pl.col("to_elo_pct").cast(pl.Float64),
         minutes_share_pre=pl.col("minutes_share_pre").cast(pl.Float64),
@@ -102,7 +100,6 @@ def _feature_matrix(
 def run_skyline(store: DataStore, seasons: tuple[int, ...]) -> tuple[pl.DataFrame, pl.DataFrame]:
     """(records, gain importances averaged across folds and quantiles)."""
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     position_codes = _codes(universe, "position_group")
     sub_position_codes = _codes(universe, "sub_position")
 
@@ -115,7 +112,7 @@ def run_skyline(store: DataStore, seasons: tuple[int, ...]) -> tuple[pl.DataFram
         train = available_universe(universe, date(season, 6, 30))
         if train.height < 200:
             raise RuntimeError(f"skyline fold {season}: only {train.height} training rows")
-        x_train = _feature_matrix(train, strengths, position_codes, sub_position_codes)
+        x_train = _feature_matrix(train, position_codes, sub_position_codes)
         y_train = np.log(train.get_column("multiplier").to_numpy())
         dataset = lgb.Dataset(
             x_train,
@@ -135,7 +132,7 @@ def run_skyline(store: DataStore, seasons: tuple[int, ...]) -> tuple[pl.DataFram
             if isinstance(built, EvalQuery):
                 eligible.append(built)
         predict_frame = rows.filter(pl.Series(eligible_mask))
-        x_predict = _feature_matrix(predict_frame, strengths, position_codes, sub_position_codes)
+        x_predict = _feature_matrix(predict_frame, position_codes, sub_position_codes)
 
         predictions = []
         for alpha in ALPHAS:

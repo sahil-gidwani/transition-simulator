@@ -298,8 +298,9 @@ def test_max_relaxation_with_two_comps_still_produces_an_honest_range() -> None:
     assert body["prediction"] is not None
     assert body["confidence"] == "low"
     quality = body["pool_quality"]
-    assert quality["relaxation_level"] == 4
+    assert quality["relaxation_level"] == 5
     assert "origin league filter dropped" in quality["relaxation_steps"][-1]
+    assert "destination league band widened" in quality["relaxation_steps"][-1]
     assert quality["expanded_search"] is True
     # Club terms are ignored at this level even though the club has a rating.
     assert quality["dest_elo_available"] is True

@@ -45,7 +45,7 @@ def test_field_mapping_is_at_transfer_not_latest() -> None:
     assert eq.query.value_eur == 10_000_000  # v_before, not any later value
     assert eq.query.age == pytest.approx(25.0)
     assert eq.query.origin_tier == 1
-    assert eq.query.origin_tercile == 1
+    assert eq.query.origin_club_value_pct == pytest.approx(0.9)  # baked at-transfer value
     assert eq.query.origin_strength == pytest.approx(17.0)  # AA1 @ 2023, not @ 2025
     assert eq.query.minutes_share == pytest.approx(0.8, abs=1e-6)
     assert eq.query.latest_season == 2023  # recency measured from t
@@ -69,10 +69,10 @@ def test_null_age_and_minutes_pass_through_as_none() -> None:
 
 
 def test_null_origin_columns_pass_through_as_none() -> None:
-    eq = _build(from_tier=None, from_tercile=None)
+    eq = _build(from_tier=None, from_club_value_pct=None)
     assert isinstance(eq, EvalQuery)
     assert eq.query.origin_tier is None
-    assert eq.query.origin_tercile is None
+    assert eq.query.origin_club_value_pct is None
 
 
 def test_null_from_league_drops_origin_strength_only() -> None:

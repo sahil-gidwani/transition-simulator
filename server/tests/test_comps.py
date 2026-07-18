@@ -36,21 +36,32 @@ _TEST_CONFIG = RetrievalConfig(
     w_dest_strength=0.8,
     w_origin_strength=0.6,
     w_elo=0.5,
-    w_dest_tercile=0.4,
-    w_origin_tercile=0.2,
+    w_dest_club_value=0.4,
+    w_origin_club_value=0.2,
     w_minutes=0.4,
     w_sub_position=0.3,
     w_recency=0.3,
     ladder=(
-        LadderStep("base filters", 3.0, (0.4, 2.5), 1),
-        LadderStep("age band widened to +/-5 years", 5.0, (0.4, 2.5), 1),
-        LadderStep("value bracket widened to 0.25-4x", 5.0, (0.25, 4.0), 1),
-        LadderStep("origin league tier widened to +/-2", 5.0, (0.25, 4.0), 2),
+        LadderStep("base filters", 3.0, (0.4, 2.5), 1, dest_strength_band=0.5),
+        LadderStep("age band widened to +/-5 years", 5.0, (0.4, 2.5), 1, dest_strength_band=0.5),
+        LadderStep("value bracket widened to 0.25-4x", 5.0, (0.25, 4.0), 1, dest_strength_band=0.5),
         LadderStep(
+            "origin league tier widened to +/-2", 5.0, (0.25, 4.0), 2, dest_strength_band=0.5
+        ),
+        LadderStep(
+            "destination league band widened to +/-1.0",
+            5.0,
+            (0.25, 4.0),
+            2,
+            dest_strength_band=1.0,
+        ),
+        LadderStep(
+            "destination league band widened to +/-2.0; "
             "origin league filter dropped; club-level terms ignored",
             5.0,
             (0.25, 4.0),
             None,
+            dest_strength_band=2.0,
             drop_club_terms=True,
         ),
     ),
@@ -82,8 +93,10 @@ def _query(**overrides: Any) -> QueryContext:
         "value_eur": 10_000_000,
         "age": 25.0,
         "origin_tier": 1,
-        "origin_strength": 18.0,
-        "origin_tercile": 1,
+        # Matches the factory's baked from_strength/from_club_value_pct
+        # defaults, so origin terms contribute zero for conforming comps.
+        "origin_strength": 18.4,
+        "origin_club_value_pct": 0.9,
         "minutes_share": 0.8,
         "latest_season": 2025,
     }
@@ -91,13 +104,15 @@ def _query(**overrides: Any) -> QueryContext:
     return QueryContext(**fields)
 
 
+# strength matches the factory's baked to_strength default (18.4): a
+# conforming comp sits at gap zero, inside every band.
 _DEST_LEAGUE = LeagueSeason(
     league="BB1",
     league_name="beta-league",
     country="Betaland",
     season=2025,
     tier=1,
-    strength=18.0,
+    strength=18.4,
     n_clubs=18,
 )
 _DEST_CLUB = ClubSeason(
@@ -106,40 +121,23 @@ _DEST_CLUB = ClubSeason(
     league="BB1",
     season=2025,
     tercile=2,
+    club_value_pct=0.5,  # matches the factory's to_club_value_pct default
     squad_value_eur=100_000_000,
     elo_pct=0.7,
 )
-
-
-def _strengths() -> pl.DataFrame:
-    rows = [
-        {"league": league, "season": season, "strength": 18.0}
-        for league in ("AA1", "BB1", "CC1")
-        for season in range(2010, 2026)
-    ]
-    return pl.DataFrame(
-        rows, schema={"league": pl.String, "season": pl.Int16, "strength": pl.Float64}
-    )
-
-
-def _strengths_from(rows: list[dict[str, Any]]) -> pl.DataFrame:
-    return pl.DataFrame(
-        rows, schema={"league": pl.String, "season": pl.Int16, "strength": pl.Float64}
-    )
 
 
 def _find(
     universe: pl.DataFrame,
     query: QueryContext | None = None,
     club: ClubSeason | None = None,
-    strengths: pl.DataFrame | None = None,
+    dest_league: LeagueSeason | None = None,
 ):  # type: ignore[no-untyped-def]
     return find_comps(
         query or _query(),
-        _DEST_LEAGUE,
+        dest_league if dest_league is not None else _DEST_LEAGUE,
         club,
         universe,
-        strengths if strengths is not None else _strengths(),
         SEASON_MIN,
         config=_TEST_CONFIG,
     )
@@ -186,29 +184,59 @@ def test_value_bracket_is_inclusive_and_excludes_beyond() -> None:
     assert sorted(c.player_id for c in result.pool) == [100, 101, 102]
 
 
-def test_destination_tier_equality_holds_at_every_ladder_level() -> None:
-    result = _find(make_transitions([{"to_tier": 2}]))
+def test_destination_beyond_the_widest_band_is_never_eligible() -> None:
+    # Gap 3.4 > the terminal band (2.0): the destination filter is never
+    # dropped, so this comp is out at every ladder level.
+    result = _find(make_transitions([{"to_strength": 15.0}]))
     assert result.pool == []
     assert result.quality.relaxation_level == len(_LADDER) - 1
 
 
-def test_null_destination_tier_is_never_eligible() -> None:
-    result = _find(make_transitions([{"to_tier": None, "to_tercile": None, "to_league": None}]))
+def test_band_edge_is_inclusive() -> None:
+    # 18.0 and 17.5 are exactly representable in Float32, so the gap is
+    # exactly the base band (0.5) and must pass (inclusive edge).
+    result = _find(
+        make_transitions(_conforming(3, to_strength=17.5)),
+        dest_league=replace(_DEST_LEAGUE, strength=18.0),
+    )
+    assert result.quality.relaxation_level == 0
+    assert len(result.pool) == 3
+
+
+def test_null_destination_strength_is_never_eligible() -> None:
+    result = _find(
+        make_transitions(
+            [
+                {
+                    "to_strength": None,
+                    "to_tier": None,
+                    "to_league": None,
+                    "to_club_value_pct": None,
+                    "to_tercile": None,
+                }
+            ]
+        )
+    )
     assert result.pool == []
+
+
+def test_destination_band_widens_with_a_labelled_step() -> None:
+    # Gap 0.8 sits between the base band (0.5) and the first widening (1.0):
+    # the comp is admitted exactly at the labelled band step, never silently.
+    universe = make_transitions([*_conforming(2), {"player_id": 200, "to_strength": 17.6}])
+    result = _find(universe)
+    assert result.quality.relaxation_level == 4
+    assert 200 in [c.player_id for c in result.pool]
+    assert result.quality.relaxation_steps[-1] == _LADDER[4].label
 
 
 def test_below_floor_destination_league_returns_empty_pool() -> None:
     # A destination league below the pipeline's minimum-club floor carries a
-    # null tier; the engine refuses outright rather than filtering on a
-    # meaningless tier, and the empty pool reads as insufficient precedent.
-    result = find_comps(
-        _query(),
-        replace(_DEST_LEAGUE, tier=None, strength=None),
-        None,
+    # null strength; the engine refuses outright rather than filtering on a
+    # meaningless band, and the empty pool reads as insufficient precedent.
+    result = _find(
         make_transitions(_conforming(5)),
-        _strengths(),
-        SEASON_MIN,
-        config=_TEST_CONFIG,
+        dest_league=replace(_DEST_LEAGUE, tier=None, strength=None),
     )
     assert result.pool == []
     assert result.quality.pool_size == 0
@@ -287,7 +315,16 @@ def test_then_origin_tier_widens_to_two() -> None:
 
 def test_null_comp_origin_tier_admitted_only_at_the_last_level() -> None:
     universe = make_transitions(
-        [{"player_id": 200, "from_tier": None, "from_tercile": None, "from_league": None}]
+        [
+            {
+                "player_id": 200,
+                "from_tier": None,
+                "from_tercile": None,
+                "from_league": None,
+                "from_strength": None,
+                "from_club_value_pct": None,
+            }
+        ]
     )
     result = _find(universe)
     assert [c.player_id for c in result.pool] == [200]
@@ -376,59 +413,98 @@ def test_pool_is_capped_at_pool_k() -> None:
     assert len(result.pool) == _TEST_CONFIG.pool_k
 
 
-# --- league strength terms ---------------------------------------------------------
+# --- league strength + club value terms ---------------------------------------------
 
 
 def test_destination_strength_gap_outweighs_an_equal_origin_gap() -> None:
     # X's gap is on the DESTINATION side, Y's identical gap on the ORIGIN side;
-    # W_DEST_STRENGTH > W_ORIGIN_STRENGTH so Y must rank ahead of X. A swapped
-    # from/to strength join inverts this order, so this test pins the sides.
-    strengths = _strengths_from(
-        [
-            {"league": "AA1", "season": 2023, "strength": 18.0},
-            {"league": "BB1", "season": 2023, "strength": 18.0},
-            {"league": "XD1", "season": 2023, "strength": 16.0},
-            {"league": "YO1", "season": 2023, "strength": 16.0},
-        ]
-    )
+    # W_DEST_STRENGTH > W_ORIGIN_STRENGTH so Y must rank ahead of X. Swapped
+    # from/to strength columns invert this order, so this test pins the sides.
     universe = make_transitions(
         [
-            {"player_id": 100, "to_league": "XD1"},  # dest gap 2, origin gap 0
-            {"player_id": 101, "from_league": "YO1"},  # dest gap 0, origin gap 2
+            {"player_id": 100, "to_strength": 17.9},  # dest gap 0.5, origin gap 0
+            {"player_id": 101, "from_strength": 17.9},  # dest gap 0, origin gap 0.5
             {"player_id": 102},  # both gaps 0: sanity anchor
         ]
     )
-    result = _find(universe, strengths=strengths)
+    result = _find(universe)
     assert [c.player_id for c in result.pool] == [102, 101, 100]
 
 
-def test_comp_strength_is_read_at_the_comp_season_not_the_latest() -> None:
-    # BB1 was far weaker in 2022; a 2022 comp must carry THAT season's gap.
-    # A season-misaligned join makes both comps near-equal (recency alone).
-    strengths = _strengths_from(
-        [
-            {"league": "AA1", "season": 2022, "strength": 18.0},
-            {"league": "AA1", "season": 2023, "strength": 18.0},
-            {"league": "BB1", "season": 2022, "strength": 10.0},
-            {"league": "BB1", "season": 2023, "strength": 18.0},
-        ]
-    )
+def test_baked_comp_strength_drives_the_destination_term() -> None:
+    # Comp-side strength is baked per row as-of its own season (pinned by the
+    # pipeline tests); the engine must rank by exactly that per-row value.
+    shared: dict[str, Any] = {"season": 2025, "transfer_date": date(2025, 7, 1)}
     universe = make_transitions(
         [
-            {"player_id": 100},  # season 2023: dest strength 18 -> gap 0
-            {"player_id": 101, "season": 2022, "transfer_date": date(2022, 7, 1)},  # gap 8
+            {"player_id": 100, **shared},  # gap 0
+            {"player_id": 101, "to_strength": 18.0, **shared},  # gap 0.4
         ]
     )
-    result = _find(universe, strengths=strengths)
+    result = _find(universe)
+    assert [c.player_id for c in result.pool] == [100, 101]
     by_id = {c.player_id: c for c in result.pool}
-    assert by_id[101].distance - by_id[100].distance > 1.0  # far beyond the recency delta
+    assert by_id[101].distance > by_id[100].distance
 
 
-def test_missing_strength_rows_never_drop_a_comp() -> None:
-    strengths = _strengths_from([{"league": "BB1", "season": 2023, "strength": 18.0}])
-    universe = make_transitions([{"player_id": 100, "from_league": "ZZ9"}])
-    result = _find(universe, strengths=strengths)
-    assert [c.player_id for c in result.pool] == [100]  # null strength: term drops, row stays
+def test_missing_origin_strength_never_drops_a_comp() -> None:
+    universe = make_transitions([{"player_id": 100, "from_league": "ZZ9", "from_strength": None}])
+    result = _find(universe)
+    assert [c.player_id for c in result.pool] == [100]  # null origin: term drops, row stays
+
+
+def test_destinations_with_different_strengths_rank_differently() -> None:
+    # THE v1 regression: every same-tier destination shared one candidate set
+    # and one ordering, so Premier League == LaLiga and Real Madrid == Levante.
+    # Over a pool whose comps went to leagues of different strengths, two
+    # destinations of different strength must produce different rankings.
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_strength": 18.4},
+            {"player_id": 101, "to_strength": 18.2},
+            {"player_id": 102, "to_strength": 18.0},
+        ]
+    )
+    strong = replace(_DEST_LEAGUE, strength=18.4)
+    weaker = replace(_DEST_LEAGUE, strength=18.0)
+    strong_pool = _find(universe, dest_league=strong).pool
+    weaker_pool = _find(universe, dest_league=weaker).pool
+    assert [c.player_id for c in strong_pool] == [100, 101, 102]
+    assert [c.player_id for c in weaker_pool] == [102, 101, 100]
+
+
+def test_clubs_with_different_value_pct_rank_differently() -> None:
+    # The club-level half of the regression: an elite pool's terciles were
+    # constant and cancelled exactly in the weighted quantiles. Continuous
+    # club standing must reorder the pool between a giant and a minnow.
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_club_value_pct": 0.95},
+            {"player_id": 101, "to_club_value_pct": 0.5},
+            {"player_id": 102, "to_club_value_pct": 0.05},
+        ]
+    )
+    giant = replace(_DEST_CLUB, club_value_pct=1.0)
+    minnow = replace(_DEST_CLUB, club_value_pct=0.0)
+    giant_pool = _find(universe, club=giant).pool
+    minnow_pool = _find(universe, club=minnow).pool
+    assert [c.player_id for c in giant_pool] == [100, 101, 102]
+    assert [c.player_id for c in minnow_pool] == [102, 101, 100]
+
+
+def test_null_comp_club_value_pct_is_neutral_in_ranking() -> None:
+    shared: dict[str, Any] = {"season": 2025, "transfer_date": date(2025, 7, 1)}
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_club_value_pct": 0.5, **shared},  # exact match
+            {"player_id": 101, "to_club_value_pct": None, **shared},  # unknown: neutral
+            {"player_id": 102, "to_club_value_pct": 0.05, **shared},  # true gap
+        ]
+    )
+    result = _find(universe, club=_DEST_CLUB)
+    by_id = {c.player_id: c for c in result.pool}
+    assert by_id[100].distance == pytest.approx(by_id[101].distance)
+    assert by_id[102].distance > by_id[101].distance
 
 
 def test_null_comp_sub_position_is_neutral_in_ranking() -> None:
@@ -453,11 +529,17 @@ def test_last_ladder_level_ignores_club_terms_for_ranking() -> None:
     # Two comps admitted only at the last level, differing ONLY in club-side
     # context. The level's label promises club terms are ignored: distances
     # must match and Elo coverage read zero despite the club having a rating.
-    base: dict[str, Any] = {"from_tier": None, "from_league": None, "from_tercile": None}
+    base: dict[str, Any] = {
+        "from_tier": None,
+        "from_league": None,
+        "from_tercile": None,
+        "from_strength": None,
+        "from_club_value_pct": None,
+    }
     universe = make_transitions(
         [
-            {"player_id": 100, "to_tercile": 2, "to_elo_pct": 0.7, **base},
-            {"player_id": 101, "to_tercile": 3, "to_elo_pct": 0.1, **base},
+            {"player_id": 100, "to_club_value_pct": 0.5, "to_elo_pct": 0.7, **base},
+            {"player_id": 101, "to_club_value_pct": 0.05, "to_elo_pct": 0.1, **base},
         ]
     )
     result = _find(universe, club=_DEST_CLUB)
@@ -491,6 +573,7 @@ def test_missing_destination_elo_flags_the_fallback() -> None:
         league="BB1",
         season=2025,
         tercile=2,
+        club_value_pct=0.4,
         squad_value_eur=50_000_000,
         elo_pct=None,
     )
@@ -510,13 +593,12 @@ def test_explicit_default_config_matches_the_default_call() -> None:
             {"player_id": 102, "v_before": 15_000_000},
         ]
     )
-    implicit = find_comps(_query(), _DEST_LEAGUE, None, universe, _strengths(), SEASON_MIN)
+    implicit = find_comps(_query(), _DEST_LEAGUE, None, universe, SEASON_MIN)
     explicit = find_comps(
         _query(),
         _DEST_LEAGUE,
         None,
         universe,
-        _strengths(),
         SEASON_MIN,
         config=DEFAULT_RETRIEVAL,
     )
@@ -532,7 +614,6 @@ def test_config_pool_k_caps_the_pool() -> None:
         _DEST_LEAGUE,
         None,
         make_transitions(_conforming(5)),
-        _strengths(),
         SEASON_MIN,
         config=replace(_TEST_CONFIG, pool_k=2),
     )
@@ -549,7 +630,6 @@ def test_config_min_pool_target_drives_the_ladder() -> None:
         _DEST_LEAGUE,
         None,
         universe,
-        _strengths(),
         SEASON_MIN,
         config=replace(_TEST_CONFIG, min_pool_target=4),
     )
@@ -572,7 +652,6 @@ def test_config_weights_reorder_the_pool() -> None:
             _DEST_LEAGUE,
             None,
             universe,
-            _strengths(),
             SEASON_MIN,
             config=replace(_TEST_CONFIG, w_age=w_age),
         )
@@ -603,7 +682,7 @@ def test_build_query_context_resolves_origin_and_minutes() -> None:
     assert query.age == pytest.approx(28.09, abs=0.01)
     assert query.origin_tier == 2
     assert query.origin_strength == pytest.approx(17.5)
-    assert query.origin_tercile == 1
+    assert query.origin_club_value_pct == pytest.approx(0.9)  # factory default
     assert query.minutes_share == pytest.approx(0.65, abs=1e-6)
     assert query.latest_season == 2025
 
@@ -637,5 +716,5 @@ def test_build_query_context_tolerates_missing_context_rows() -> None:
     query = build_query_context(player, store, FixedClock(date(2026, 7, 17)))
     assert query.age is None
     assert query.origin_tier is None
-    assert query.origin_tercile is None
+    assert query.origin_club_value_pct is None
     assert query.minutes_share is None

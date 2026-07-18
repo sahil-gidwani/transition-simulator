@@ -40,7 +40,6 @@ def run_backtest(
     for a live league-level simulation.
     """
     universe = store.transitions.comps_universe
-    strengths = store.seasons.strength_frame()
     season_min = store.build_info.season_min
     records: list[PredictionRecord] = []
     skips: list[SkippedQuery] = []
@@ -55,7 +54,6 @@ def run_backtest(
             built.dest_league,
             built.dest_club if club_level else None,
             universe_t,
-            strengths,
             season_min,
             config=config,
         )

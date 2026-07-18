@@ -30,7 +30,6 @@ from app.services.constants import (
     LN_VALUE_SCALE,
     RECENCY_SCALE,
     STRENGTH_SCALE,
-    TERCILE_SCALE,
     LadderStep,
     RetrievalConfig,
 )
@@ -45,7 +44,7 @@ class QueryContext:
     age: float | None
     origin_tier: int | None
     origin_strength: float | None
-    origin_tercile: int | None
+    origin_club_value_pct: float | None
     minutes_share: float | None
     latest_season: int
 
@@ -113,7 +112,7 @@ def build_query_context(player: PlayerRecord, store: DataStore, clock: Clock) ->
         age=age,
         origin_tier=league.tier if league is not None else None,
         origin_strength=league.strength if league is not None else None,
-        origin_tercile=club.tercile if club is not None else None,
+        origin_club_value_pct=club.club_value_pct if club is not None else None,
         minutes_share=store.profiles.latest_minutes_share(player.player_id),
         latest_season=store.seasons.latest_season,
     )
@@ -122,16 +121,25 @@ def build_query_context(player: PlayerRecord, store: DataStore, clock: Clock) ->
 def _hard_filter(
     universe: pl.DataFrame,
     query: QueryContext,
-    dest_tier: int,
+    dest_strength: float,
     step: LadderStep,
     season_min: int,
 ) -> pl.DataFrame:
     """Polars null semantics do the null policy for free: a null comp value
-    fails any active comparison and the row drops."""
+    fails any active comparison and the row drops.
+
+    The destination filter is a continuous strength band, not a tier match:
+    all same-tier leagues used to share one candidate set, so Premier League
+    and MLS queries were indistinguishable. The band widens on the ladder
+    but is never dropped - a comp with a null to_strength is never eligible.
+    """
     conds = [
         pl.col("position_group") == query.player.position_group,
         pl.col("season") >= season_min,
-        pl.col("to_tier") == dest_tier,
+        # Cast the Float32 artifact column so the band comparison happens in
+        # double precision - same convention as the distance arithmetic, and
+        # what keeps the numpy tuning scorer's boundary semantics identical.
+        (pl.col("to_strength").cast(pl.Float64) - dest_strength).abs() <= step.dest_strength_band,
     ]
     if query.age is not None:
         conds.append(
@@ -186,18 +194,22 @@ def _distance_terms(
     if not drop_club_terms and dest_club is not None:
         if dest_club.elo_pct is not None:
             terms.append(((pl.col("to_elo_pct") - dest_club.elo_pct).abs(), config.w_elo))
-        if dest_club.tercile is not None:
+        if dest_club.club_value_pct is not None:
+            # Continuous within-league standing (already 0-1): this is what
+            # separates a Real Madrid from a relegation-zone budget - a
+            # tercile was constant across elite pools and cancelled exactly
+            # in the weighted quantiles.
             terms.append(
                 (
-                    (pl.col("to_tercile") - dest_club.tercile).abs() / TERCILE_SCALE,
-                    config.w_dest_tercile,
+                    (pl.col("to_club_value_pct") - dest_club.club_value_pct).abs(),
+                    config.w_dest_club_value,
                 )
             )
-    if not drop_club_terms and query.origin_tercile is not None:
+    if not drop_club_terms and query.origin_club_value_pct is not None:
         terms.append(
             (
-                (pl.col("from_tercile") - query.origin_tercile).abs() / TERCILE_SCALE,
-                config.w_origin_tercile,
+                (pl.col("from_club_value_pct") - query.origin_club_value_pct).abs(),
+                config.w_origin_club_value,
             )
         )
     if query.minutes_share is not None:
@@ -219,25 +231,14 @@ def _score(
     dest_league: LeagueSeason,
     dest_club: ClubSeason | None,
     drop_club_terms: bool,
-    strengths: pl.DataFrame,
     config: RetrievalConfig,
 ) -> pl.DataFrame:
     """Renormalized weighted distance: per comp, missing terms drop from both
-    the numerator and the weight mass, so a null never penalizes."""
-    season32 = pl.col("season").cast(pl.Int16)
-    with_strengths = filtered.join(
-        strengths.select(
-            to_league=pl.col("league"), season=season32, to_strength=pl.col("strength")
-        ),
-        on=["to_league", "season"],
-        how="left",
-    ).join(
-        strengths.select(
-            from_league=pl.col("league"), season=season32, from_strength=pl.col("strength")
-        ),
-        on=["from_league", "season"],
-        how="left",
-    )
+    the numerator and the weight mass, so a null never penalizes.
+
+    Comp-side strengths and club-value percentiles are baked into the
+    transitions artifact as-of each comp's own season - no runtime join.
+    """
     terms = _distance_terms(query, dest_league, dest_club, drop_club_terms, config)
     # Terms over Float32 source columns (age, elo, minutes) would otherwise
     # multiply by the weight in Float32; cast so the whole distance is
@@ -255,7 +256,7 @@ def _score(
         if not drop_club_terms and dest_club is not None and dest_club.elo_pct is not None
         else pl.lit(False)
     )
-    return with_strengths.with_columns(
+    return filtered.with_columns(
         distance=(numerator / weight_mass).cast(pl.Float64),
         elo_term_used=elo_active,
     )
@@ -285,8 +286,12 @@ def _tags(
             and abs(row["to_elo_pct"] - dest_club.elo_pct) <= 0.15
         ):
             tags.append("destination club strength alike")
-        if row["to_tercile"] == dest_club.tercile:
-            tags.append("same destination club tier")
+        if (
+            dest_club.club_value_pct is not None
+            and row["to_club_value_pct"] is not None
+            and abs(row["to_club_value_pct"] - dest_club.club_value_pct) <= 0.15
+        ):
+            tags.append("similar standing in league")
     if (
         query.minutes_share is not None
         and row["minutes_share_pre"] is not None
@@ -320,26 +325,23 @@ def find_comps(
     dest_league: LeagueSeason,
     dest_club: ClubSeason | None,
     universe: pl.DataFrame,
-    strengths: pl.DataFrame,
     season_min: int,
     config: RetrievalConfig = DEFAULT_RETRIEVAL,
 ) -> CompsResult:
-    if dest_league.tier is None:
+    if dest_league.strength is None:
         # Below the pipeline's minimum-club floor the league has no honest
         # strength stats, so there is no honest precedent pool either; the
         # empty pool surfaces as "insufficient precedent" downstream.
         return CompsResult(pool=[], quality=_empty_pool_quality(query, dest_club))
     level = 0
     step = config.ladder[0]
-    filtered = _hard_filter(universe, query, dest_league.tier, step, season_min)
+    filtered = _hard_filter(universe, query, dest_league.strength, step, season_min)
     for level, step in enumerate(config.ladder):  # noqa: B007 - level/step used after the loop
-        filtered = _hard_filter(universe, query, dest_league.tier, step, season_min)
+        filtered = _hard_filter(universe, query, dest_league.strength, step, season_min)
         if filtered.height >= config.min_pool_target:
             break
 
-    scored = _score(
-        filtered, query, dest_league, dest_club, step.drop_club_terms, strengths, config
-    )
+    scored = _score(filtered, query, dest_league, dest_club, step.drop_club_terms, config)
     pool_df = scored.sort(["distance", "player_id", "transfer_date"]).head(config.pool_k)
 
     pool = [

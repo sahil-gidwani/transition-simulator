@@ -27,8 +27,8 @@ def config_weights(config: RetrievalConfig) -> np.ndarray:
             config.w_dest_strength,
             config.w_origin_strength,
             config.w_elo,
-            config.w_dest_tercile,
-            config.w_origin_tercile,
+            config.w_dest_club_value,
+            config.w_origin_club_value,
             config.w_minutes,
             config.w_sub_position,
             config.w_recency,
@@ -57,6 +57,8 @@ def _mask(cands: CandidateSet, step: LadderStep) -> np.ndarray:
     mask = (cands.v_before >= lo * cands.value_eur * (1 - 1e-9)) & (
         cands.v_before <= hi * cands.value_eur * (1 + 1e-9)
     )
+    with np.errstate(invalid="ignore"):
+        mask &= np.abs(cands.to_strength - cands.dest_strength) <= step.dest_strength_band
     if cands.query_age is not None:
         mask &= (cands.age >= cands.query_age - step.age_band) & (
             cands.age <= cands.query_age + step.age_band

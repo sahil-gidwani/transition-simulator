@@ -41,7 +41,6 @@ def run_simulation(
         league,
         club,
         store.transitions.comps_universe,
-        store.seasons.strength_frame(),
         store.build_info.season_min,
     )
     value_range, confidence = summarize_pool(
