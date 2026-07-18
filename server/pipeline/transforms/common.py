@@ -37,6 +37,21 @@ def covered_league_ids(competitions: pl.DataFrame) -> list[str]:
     )
 
 
+def european_league_ids(competitions: pl.DataFrame) -> list[str]:
+    """Covered domestic leagues under UEFA (confederation "europa").
+
+    ClubElo rates European clubs only, so these are the only leagues where an
+    automatic Elo name-match can be genuine. Derived from the confederation
+    column rather than a hardcoded id list: league codes mislead (KR1 is
+    Croatia; the Korean league is RSK1).
+    """
+    return sorted(
+        competitions.filter(
+            (pl.col("type") == "domestic_league") & (pl.col("confederation") == "europa")
+        )["competition_id"].to_list()
+    )
+
+
 def covered_clubs(clubs: pl.DataFrame, competitions: pl.DataFrame) -> pl.DataFrame:
     """Clubs whose (snapshot) domestic competition is a covered domestic league."""
     leagues = covered_league_ids(competitions)

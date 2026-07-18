@@ -45,10 +45,11 @@ _CAVEATS = """\
   capped at 365 days of staleness; the upstream clubs table's market-value field is not used
   (unreliable).
 - **Elo**: ratings come from public ClubElo mirrors (data: clubelo.com - thank you). ClubElo
-  covers UEFA countries only; non-European clubs are structurally unmappable and rely on
-  squad-value terciles (flagged, never silently dropped). club_seasons carries Elo as-of
-  season start; transitions carry Elo as-of the transfer date. Percentiles are computed
-  within a mirror snapshot.
+  covers UEFA countries only, and the build enforces that: clubs in non-UEFA leagues are
+  excluded from automatic name-matching (stage `excluded_non_uefa`) and rely on squad-value
+  terciles (flagged, never silently dropped). club_seasons carries Elo as-of season start;
+  transitions carry Elo as-of the transfer date. Percentiles are computed within a mirror
+  snapshot.
 - **Parquet bytes** can differ across machines/polars builds; the sha256 digests in meta.json
   make any rebuild drift visible.
 """

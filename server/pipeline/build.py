@@ -60,6 +60,7 @@ from pipeline.transforms.common import (
     club_league_by_season,
     covered_clubs,
     covered_league_ids,
+    european_league_ids,
 )
 from pipeline.transforms.loans import flag_suspected_loans
 from pipeline.transforms.players import assemble_players, player_value_history
@@ -247,9 +248,12 @@ def run_build(
     ).filter(pl.col("club_id").is_in(covered["club_id"].to_list()))
     reep_bridge = io.load_reep_team_bridge(raw_dir)
     team_mapping = io.load_team_mapping(raw_dir)
-    mapping = elo_t.build_elo_mapping(covered_full, elo_names, reep_bridge, team_mapping, manual)
+    european = frozenset(european_league_ids(competitions_df))
+    mapping = elo_t.build_elo_mapping(
+        covered_full, elo_names, reep_bridge, team_mapping, manual, european
+    )
     auto_mapping = elo_t.build_elo_mapping(
-        covered_full, elo_names, reep_bridge, team_mapping, manual.clear()
+        covered_full, elo_names, reep_bridge, team_mapping, manual.clear(), european
     )
     warnings = [
         f"manual Elo fix for club {cid} ({name}) is now found automatically - consider removing"

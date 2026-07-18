@@ -1,7 +1,9 @@
 from datetime import date
 
 import polars as pl
+from factories import make_competitions
 
+from pipeline.transforms.common import european_league_ids
 from pipeline.transforms.elo import (
     attach_universe_flags,
     build_elo_mapping,
@@ -18,9 +20,9 @@ def _mirror(rows: list[tuple[str, date, float]]) -> pl.DataFrame:
     )
 
 
-def _clubs(rows: list[tuple[int, str, str | None]]) -> pl.DataFrame:
+def _clubs(rows: list[tuple[int, str, str | None]], league: str = "AA1") -> pl.DataFrame:
     return pl.DataFrame(
-        [(cid, name, code, "AA1") for cid, name, code in rows],
+        [(cid, name, code, league) for cid, name, code in rows],
         schema={
             "club_id": pl.Int64,
             "name": pl.String,
@@ -29,6 +31,10 @@ def _clubs(rows: list[tuple[int, str, str | None]]) -> pl.DataFrame:
         },
         orient="row",
     )
+
+
+# The default test league is European; tests opt out to exercise the exclusion.
+_EUROPEAN = frozenset({"AA1"})
 
 
 _NO_TEAM_MAPPING = pl.DataFrame(schema={"team_opta": pl.String, "team_clubelo": pl.String})
@@ -48,9 +54,15 @@ def _map_one(
     club_code: str | None = None,
     manual: pl.DataFrame = _NO_MANUAL,
     bridge: dict[int, str] | None = None,
+    league: str = "AA1",
 ) -> tuple[str | None, str]:
     out = build_elo_mapping(
-        _clubs([(1, name, club_code)]), elo_names, bridge or {}, _NO_TEAM_MAPPING, manual
+        _clubs([(1, name, club_code)], league),
+        elo_names,
+        bridge or {},
+        _NO_TEAM_MAPPING,
+        manual,
+        _EUROPEAN,
     )
     return out["elo_name"][0], out["stage"][0]
 
@@ -141,11 +153,64 @@ def test_reep_bridge_resolves_spelling_via_normalization() -> None:
 
 def test_unmapped_club_keeps_its_row() -> None:
     out = build_elo_mapping(
-        _clubs([(1, "Palmeiras", None)]), ["Barcelona"], {}, _NO_TEAM_MAPPING, _NO_MANUAL
+        _clubs([(1, "Palmeiras", None)]), ["Barcelona"], {}, _NO_TEAM_MAPPING, _NO_MANUAL, _EUROPEAN
     )
     assert out.height == 1
     assert not out["mapped"][0]
     assert out["stage"][0] == "unmapped"
+
+
+def test_non_uefa_club_skips_every_automatic_stage() -> None:
+    # Exact doppelganger AND an id-bridge entry: both would hit, both are
+    # false by construction outside UEFA (ClubElo covers Europe only).
+    elo_name, stage = _map_one("Palmeiras", ["Palmeiras"], league="BRA1")
+    assert (elo_name, stage) == (None, "excluded_non_uefa")
+    elo_name, stage = _map_one("Palmeiras", ["Palmeiras"], league="BRA1", bridge={1: "Palmeiras"})
+    assert (elo_name, stage) == (None, "excluded_non_uefa")
+
+
+def test_manual_fix_still_maps_non_uefa_club() -> None:
+    manual = pl.DataFrame(
+        [("Palmeiras", 1, "SE Palmeiras", "curated")], schema=_NO_MANUAL.schema, orient="row"
+    )
+    elo_name, stage = _map_one("SE Palmeiras", ["Palmeiras"], manual=manual, league="BRA1")
+    assert (elo_name, stage) == ("Palmeiras", "manual")
+
+
+def test_one_token_elo_never_matches_three_token_name_by_subset() -> None:
+    # The River Plate shape: "atletico" alone is a subset of the long legal name.
+    elo_name, stage = _map_one("Club Atletico River Plate", ["Atletico"])
+    assert (elo_name, stage) == (None, "unmapped")
+
+
+def test_one_token_elo_never_matches_three_token_name_by_prefix() -> None:
+    # The Vissel Kobe shape: "kobenhavn" starts with the token "kobe".
+    elo_name, stage = _map_one("Rakuten Vissel Kobe", ["Kobenhavn"])
+    assert (elo_name, stage) == (None, "unmapped")
+
+
+def test_one_token_elo_never_matches_three_token_name_by_difflib() -> None:
+    # String-similar above the 0.85 cutoff, but 1 Elo token vs 3 TM tokens.
+    elo_name, stage = _map_one("Abcdefghijklmnopqrst X Y", ["Abcdefghijklmnopqrsu"])
+    assert (elo_name, stage) == (None, "unmapped")
+
+
+def test_european_league_ids_filters_by_confederation_and_type() -> None:
+    competitions = make_competitions(
+        [
+            {"competition_id": "AA1", "confederation": "europa"},
+            {"competition_id": "BRA1", "confederation": "amerika"},
+            {"competition_id": "CUP", "type": "domestic_cup", "confederation": "europa"},
+        ]
+    )
+    assert european_league_ids(competitions) == ["AA1"]
+
+
+def test_one_token_elo_still_matches_two_token_name() -> None:
+    # The Inter-Miami shape is legitimate inside Europe (e.g. "Inter Turku");
+    # outside Europe it must be caught by the confederation exclusion, not
+    # this guard.
+    assert _map_one("Inter Miami", ["Inter"]) == ("Inter", "2_token_subset")
 
 
 def test_attach_universe_flags() -> None:
@@ -155,6 +220,7 @@ def test_attach_universe_flags() -> None:
         {},
         _NO_TEAM_MAPPING,
         _NO_MANUAL,
+        _EUROPEAN,
     )
     touches = pl.DataFrame(
         [(1, 5)], schema={"club_id": pl.Int64, "universe_touches": pl.Int64}, orient="row"
@@ -180,6 +246,7 @@ def _asof_setup() -> tuple[pl.DataFrame, pl.DataFrame]:
         {},
         _NO_TEAM_MAPPING,
         _NO_MANUAL,
+        _EUROPEAN,
     )
     return unified, mapping
 

@@ -2,9 +2,10 @@
 
 Rating data comes from two public ClubElo mirrors (data: clubelo.com). Mapping
 ClubElo names to Transfermarkt clubs uses the audited ladder (committed manual
-fixes first, then seven automatic stages, each requiring a unique hit).
-Unmapped clubs stay in the output with mapped=False - a flagged fallback,
-never a silent drop.
+fixes first, then seven automatic stages, each requiring a unique hit). Clubs
+in non-UEFA leagues are structurally excluded from the automatic stages -
+ClubElo rates European clubs only. Unmapped and excluded clubs stay in the
+output with mapped=False - a flagged fallback, never a silent drop.
 """
 
 from __future__ import annotations
@@ -51,12 +52,22 @@ def _resolve_bridge_name(
     return norm_to_elo.get(normalize_club_name(bridge_name))
 
 
+def _short_vs_long(elo_tokens: frozenset[str], tm_tokens: frozenset[str]) -> bool:
+    """A 1-token Elo name may not fuzzy-match a >=3-token TM name.
+
+    Single generic tokens ("atletico", "sporting") survive inside long legal
+    names of unrelated clubs; the shipped false positives all had this shape.
+    """
+    return len(elo_tokens) == 1 and len(tm_tokens) >= 3
+
+
 def build_elo_mapping(
     clubs: pl.DataFrame,
     elo_names: Sequence[str],
     reep_bridge: Mapping[int, str],
     team_mapping: pl.DataFrame,
     manual_fixes: pl.DataFrame,
+    european_leagues: frozenset[str],
 ) -> pl.DataFrame:
     """One row per club: the matched ClubElo name and the ladder stage that won.
 
@@ -64,6 +75,9 @@ def build_elo_mapping(
     ladder (reep id-bridge, exact normalized, token subset, token prefix,
     acronym, team-mapping, difflib >= 0.85). Normalized Elo names shared by
     several distinct clubs are unsafe and excluded from all automatic stages.
+    Clubs outside `european_leagues` skip every automatic stage (stage
+    "excluded_non_uefa"): ClubElo covers Europe only, so any automatic hit
+    there is false by construction.
     """
     name_set = set(elo_names)
     norm_groups: dict[str, list[str]] = {}
@@ -97,19 +111,28 @@ def build_elo_mapping(
         hit: tuple[str, str] | None = None
         if club_id in manual:
             hit = (manual[club_id], "manual")
-        if hit is None and club_id in reep_bridge:
+        excluded = hit is None and league not in european_leagues
+        if hit is None and not excluded and club_id in reep_bridge:
             resolved = _resolve_bridge_name(reep_bridge[club_id], name_set, norm_to_elo)
             if resolved is not None:
                 hit = (resolved, "0_reep_id_bridge")
-        if hit is None:
+        if hit is None and not excluded:
             for norm in candidates:
                 if norm in norm_to_elo:
                     hit = (norm_to_elo[norm], "1_exact_normalized")
                     break
-        if hit is None:
+        if hit is None and not excluded:
             for stage_name, matcher in (
-                ("2_token_subset", lambda et, tm: bool(et) and (et <= tm or tm <= et)),
-                ("3_token_prefix", tokens_prefix_match),
+                (
+                    "2_token_subset",
+                    lambda et, tm: (
+                        not _short_vs_long(et, tm) and bool(et) and (et <= tm or tm <= et)
+                    ),
+                ),
+                (
+                    "3_token_prefix",
+                    lambda et, tm: not _short_vs_long(et, tm) and tokens_prefix_match(et, tm),
+                ),
             ):
                 stage_hits = {
                     name
@@ -120,7 +143,7 @@ def build_elo_mapping(
                 if len(stage_hits) == 1:
                     hit = (next(iter(stage_hits)), stage_name)
                     break
-        if hit is None:
+        if hit is None and not excluded:
             acro_pool = {a for norm in candidates for a in acronyms(norm.split())}
             acro_hits = {
                 name
@@ -129,17 +152,22 @@ def build_elo_mapping(
             }
             if len(acro_hits) == 1:
                 hit = (next(iter(acro_hits)), "4_acronym")
-        if hit is None:
+        if hit is None and not excluded:
             for norm in candidates:
                 if norm in opta_to_elo:
                     hit = (opta_to_elo[norm], "5_team_mapping")
                     break
-        if hit is None:
+        if hit is None and not excluded:
             close = difflib.get_close_matches(candidates[0], sorted(norm_to_elo), n=1, cutoff=0.85)
-            if close:
+            if close and not _short_vs_long(
+                frozenset(close[0].split()), frozenset(candidates[0].split())
+            ):
                 hit = (norm_to_elo[close[0]], "6_difflib")
 
-        elo_name, stage = hit if hit is not None else (None, "unmapped")
+        if hit is not None:
+            elo_name, stage = hit
+        else:
+            elo_name, stage = (None, "excluded_non_uefa" if excluded else "unmapped")
         records.append((club_id, tm_name, league, elo_name, stage))
 
     return pl.DataFrame(

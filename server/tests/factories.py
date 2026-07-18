@@ -104,6 +104,7 @@ _COMPETITIONS_DEFAULTS: dict[str, Any] = {
     "type": "domestic_league",
     "country_name": "Aland",
     "domestic_league_code": "AA1",
+    "confederation": "europa",
 }
 _COMPETITIONS_SCHEMA: dict[str, pl.DataType | type[pl.DataType]] = {
     "competition_id": pl.String,
@@ -113,6 +114,7 @@ _COMPETITIONS_SCHEMA: dict[str, pl.DataType | type[pl.DataType]] = {
     "type": pl.String,
     "country_name": pl.String,
     "domestic_league_code": pl.String,
+    "confederation": pl.String,
 }
 
 _GAMES_DEFAULTS: dict[str, Any] = {
