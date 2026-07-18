@@ -1,8 +1,8 @@
 import Badge from '../ui/Badge';
+import { Clock } from '../ui/icons';
 import { formatDate, formatEuroCompact } from '../../lib/format';
 import { positionLabel, tierLabel } from '../../lib/labels';
 import type { PlayerProfile } from '../../lib/types';
-import ValueSparkline from './ValueSparkline';
 
 interface IdentityHeaderProps {
   player: PlayerProfile;
@@ -20,7 +20,7 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
     <section className="flex flex-col gap-6 border-b border-pitch-800 pb-8 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-ink-100 sm:text-5xl">
+          <h1 className="font-display text-4xl font-medium tracking-tight text-balance text-ink-100 sm:text-5xl">
             {player.name}
           </h1>
           <Badge variant="accent" title={positionLabel(player.position_group)}>
@@ -40,16 +40,18 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
       </div>
 
       <div className="shrink-0 lg:text-right">
-        <div className="text-4xl font-semibold text-tangerine-200 tabular-nums">
+        <div className="font-display text-5xl font-medium text-tangerine-200 tabular-nums">
           {formatEuroCompact(player.market_value_eur)}
         </div>
-        <div className="mt-1 text-xs text-ink-400">
-          {player.market_value_asof
-            ? `as of ${formatDate(player.market_value_asof)}`
-            : 'no valuation on record'}
-        </div>
-        <div className="mt-3 lg:ml-auto">
-          <ValueSparkline history={player.value_history} />
+        <div className="mt-1.5 flex items-center gap-1 text-xs text-ink-500 lg:justify-end">
+          {player.market_value_asof ? (
+            <>
+              <Clock className="h-2.5 w-2.5" />
+              as of {formatDate(player.market_value_asof)}
+            </>
+          ) : (
+            'no valuation on record'
+          )}
         </div>
       </div>
     </section>

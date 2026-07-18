@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router';
 import IdentityHeader from '../components/player/IdentityHeader';
+import MarketValueChart from '../components/player/MarketValueChart';
 import PercentileBars from '../components/player/PercentileBars';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonBlock from '../components/ui/SkeletonBlock';
@@ -86,7 +87,7 @@ export default function PlayerProfilePage() {
         {canSimulate ? (
           <Link
             to={`/players/${player.player_id}/simulate`}
-            className="inline-flex items-center gap-2 rounded-lg bg-tangerine-300 px-5 py-3 text-base font-semibold text-pitch-950 hover:bg-tangerine-200"
+            className="inline-flex items-center gap-2 rounded-lg bg-tangerine-300 px-5 py-3 text-base font-semibold text-pitch-950 transition-transform duration-150 hover:bg-tangerine-200 active:scale-[0.98]"
           >
             Simulate a transfer →
           </Link>
@@ -106,6 +107,13 @@ export default function PlayerProfilePage() {
           </>
         )}
       </div>
+
+      <section>
+        <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
+        <div className="mt-4">
+          <MarketValueChart history={player.value_history} />
+        </div>
+      </section>
 
       {percentilesQuery.isPending ? (
         <div role="status" className="space-y-3" aria-label="Loading percentiles">

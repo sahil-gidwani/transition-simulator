@@ -46,7 +46,7 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
 
   return (
     <section>
-      <h2 className="text-lg font-semibold text-ink-100">Performance vs peers</h2>
+      <h2 className="font-display text-xl font-medium text-ink-100">Performance vs peers</h2>
       <p className="mt-1 text-sm text-ink-400">{subtext}</p>
       {percentiles.below_floor ? (
         <p className="mt-2 text-sm text-caution-400">
@@ -69,10 +69,10 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
 
             {metric.percentile != null ? (
               <>
-                <div className="h-2 rounded-full bg-pitch-800">
+                <div className="h-2.5 overflow-hidden rounded-full bg-pitch-800">
                   <div
                     data-testid={`percentile-fill-${metric.metric}`}
-                    className="h-2 rounded-full bg-yale-400"
+                    className="percentile-fill h-2.5 rounded-full"
                     style={{ width: `${metric.percentile}%` }}
                   />
                 </div>
