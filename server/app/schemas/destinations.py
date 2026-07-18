@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class DestinationClub(BaseModel):
     club_id: int
     name: str
-    tercile: int
+    tercile: int | None
     elo_available: bool
 
 

@@ -186,12 +186,13 @@ def _distance_terms(
     if not drop_club_terms and dest_club is not None:
         if dest_club.elo_pct is not None:
             terms.append(((pl.col("to_elo_pct") - dest_club.elo_pct).abs(), config.w_elo))
-        terms.append(
-            (
-                (pl.col("to_tercile") - dest_club.tercile).abs() / TERCILE_SCALE,
-                config.w_dest_tercile,
+        if dest_club.tercile is not None:
+            terms.append(
+                (
+                    (pl.col("to_tercile") - dest_club.tercile).abs() / TERCILE_SCALE,
+                    config.w_dest_tercile,
+                )
             )
-        )
     if not drop_club_terms and query.origin_tercile is not None:
         terms.append(
             (

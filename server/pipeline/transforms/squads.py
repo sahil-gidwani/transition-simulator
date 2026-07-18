@@ -69,12 +69,25 @@ def assemble_club_seasons(
     """Covered club-seasons with league membership, club name and squad-value tercile.
 
     League per (club, season) comes from actual games where available
-    (league_source="games"), else from the clubs.csv snapshot
-    (league_source="snapshot"). Tercile 1 is the top third by squad value
-    within (league, season); ties rank the lower club_id first.
+    (league_source="games"). Where a (league, season) has games-derived
+    membership at all, that membership is authoritative: a club the games
+    put elsewhere (or nowhere) that season is NOT a member, whatever
+    today's clubs.csv snapshot says - the snapshot is current-day only and
+    padded league-seasons with relegated/defunct "phantom" members. The
+    snapshot fallback (league_source="snapshot") survives only for
+    league-seasons with no match data at all; club-seasons with no honest
+    league assignment keep their row (squad value and Elo stay usable) with
+    league=null and league_source="none". Tercile 1 is the top third by
+    squad value within (league, season); ties rank the lower club_id first;
+    null-league rows carry a null tercile.
     """
     covered = covered_clubs(clubs, competitions).rename(
         {"name": "club_name", "domestic_competition_id": "snapshot_league"}
+    )
+    games_covered = (
+        games_leagues.select(pl.col("league").alias("snapshot_league"), "season")
+        .unique()
+        .with_columns(snapshot_has_games=pl.lit(True))
     )
     joined = (
         squads.join(covered, on="club_id", how="inner")
@@ -83,11 +96,21 @@ def assemble_club_seasons(
             on=["club_id", "season"],
             how="left",
         )
+        .join(games_covered, on=["snapshot_league", "season"], how="left")
         .with_columns(
-            league=pl.coalesce(pl.col("games_league"), pl.col("snapshot_league")),
+            league=pl.coalesce(
+                pl.col("games_league"),
+                pl.when(~pl.col("snapshot_has_games").fill_null(False)).then(
+                    pl.col("snapshot_league")
+                ),
+            )
+        )
+        .with_columns(
             league_source=pl.when(pl.col("games_league").is_not_null())
             .then(pl.lit("games"))
-            .otherwise(pl.lit("snapshot")),
+            .when(pl.col("league").is_not_null())
+            .then(pl.lit("snapshot"))
+            .otherwise(pl.lit("none")),
         )
     )
     ranked = joined.sort(
@@ -98,7 +121,11 @@ def assemble_club_seasons(
         _n=pl.len().over(["league", "season"]),
     )
     return (
-        ranked.with_columns(tercile=((pl.col("_rank") - 1) * 3 // pl.col("_n") + 1).cast(pl.Int8))
+        ranked.with_columns(
+            tercile=pl.when(pl.col("league").is_not_null())
+            .then((pl.col("_rank") - 1) * 3 // pl.col("_n") + 1)
+            .cast(pl.Int8)
+        )
         .select(
             "club_id",
             "season",

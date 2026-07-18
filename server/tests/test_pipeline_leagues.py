@@ -52,6 +52,20 @@ def test_tiers_split_eight_leagues_two_per_tier() -> None:
     assert out["tier"].dtype == pl.Int8
 
 
+def test_null_league_club_seasons_are_excluded_from_aggregation() -> None:
+    rows = [
+        {"club_id": 1, "league": "AA1", "squad_value_eur": 4_000_000},
+        {"club_id": 2, "league": "AA1", "squad_value_eur": 2_000_000},
+        {"club_id": 3, "league": None, "league_source": "none", "squad_value_eur": 90_000_000},
+    ]
+    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    # No phantom null-league league-season row, and the unassigned club's
+    # value never leaks into a median.
+    assert out["league"].to_list() == ["AA1"]
+    assert out["n_clubs"].to_list() == [2]
+    assert out["median_squad_value_eur"].to_list() == [3_000_000]
+
+
 def test_tiers_split_five_leagues_two_one_one_one() -> None:
     # Documented unevenness: with 5 leagues the top tier holds two of them.
     rows = [

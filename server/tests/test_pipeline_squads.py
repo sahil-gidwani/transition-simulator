@@ -126,6 +126,38 @@ def test_squad_value_tie_ranks_lower_club_id_first() -> None:
     assert by_club == {10: 1, 20: 2, 30: 3}
 
 
+def test_snapshot_only_member_of_games_covered_league_is_unassigned() -> None:
+    clubs = make_clubs(
+        [
+            {"club_id": 10, "name": "Club 10", "domestic_competition_id": "AA1"},
+            {"club_id": 20, "name": "Club 20", "domestic_competition_id": "AA1"},
+        ]
+    )
+    comps = make_competitions([{"competition_id": "AA1"}])
+    # AA1 has games-derived membership in 2020 (club 10 played there), so the
+    # snapshot may not pad it: club 20, with no games that season, is not a
+    # member of anything - today's snapshot league is not evidence for 2020.
+    games = make_games(
+        [{"competition_id": "AA1", "season": 2020, "home_club_id": 10, "away_club_id": 99}]
+    )
+    vals = make_valuations(
+        [
+            {"player_id": 1, "current_club_id": 10, "date": date(2020, 6, 1)},
+            {"player_id": 2, "current_club_id": 20, "date": date(2020, 6, 1)},
+        ]
+    )
+    out = assemble_club_seasons(
+        squad_values(vals, [2020]), club_league_by_season(games), clubs, comps
+    )
+    rows = {row["club_id"]: row for row in out.iter_rows(named=True)}
+    assert rows[10]["league"] == "AA1"
+    assert rows[10]["league_source"] == "games"
+    assert rows[20]["league"] is None
+    assert rows[20]["league_source"] == "none"
+    assert rows[20]["tercile"] is None
+    assert rows[20]["squad_value_eur"] is not None  # the row itself survives
+
+
 def test_games_league_preferred_snapshot_fallback() -> None:
     clubs = make_clubs(
         [

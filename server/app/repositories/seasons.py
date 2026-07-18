@@ -29,9 +29,9 @@ class LeagueSeason:
 class ClubSeason:
     club_id: int
     club_name: str
-    league: str
+    league: str | None  # null: no honest league assignment that season
     season: int
-    tercile: int
+    tercile: int | None  # null whenever league is null
     squad_value_eur: int
     elo_pct: float | None
 

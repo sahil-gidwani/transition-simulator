@@ -18,8 +18,11 @@ def league_seasons(club_seasons: pl.DataFrame, competitions: pl.DataFrame) -> pl
     league_name (the upstream name slug, e.g. "premier-league") and country
     come from the competitions table so the API can render human labels —
     the two "bundesliga" leagues disambiguate by country. Leagues missing
-    from competitions keep nulls.
+    from competitions keep nulls. Club-seasons without an honest league
+    assignment (league null, source "none") are not members of anything and
+    are excluded before aggregation.
     """
+    club_seasons = club_seasons.filter(pl.col("league").is_not_null())
     has_elo = "elo" in club_seasons.columns
     aggs: list[pl.Expr] = [
         pl.len().cast(pl.Int64).alias("n_clubs"),
