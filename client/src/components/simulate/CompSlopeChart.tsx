@@ -1,10 +1,11 @@
+import { useId } from 'react';
 import { formatEuroCompact, formatSignedPct } from '../../lib/format';
 import type { CompCard } from '../../lib/types';
 
-const W = 120;
-const H = 40;
-const PAD_X = 8;
-const PAD_Y = 8;
+const W = 132;
+const H = 44;
+const PAD_X = 9;
+const PAD_Y = 9;
 
 const TREND_COLOR = {
   rise: 'var(--color-rise-400)',
@@ -27,11 +28,14 @@ interface CompSlopeChartProps {
 /**
  * Two-point before/after slope in plain SVG (a full chart library per card
  * would be waste at up to 47 instances). Color is never the only signal:
- * the slope itself, the signed delta text and data-trend carry it too.
+ * the slope itself, the signed delta text and data-trend carry it too. The
+ * open origin dot and the filled, haloed destination dot repeat the
+ * direction without relying on hue.
  */
 export default function CompSlopeChart({ comp }: CompSlopeChartProps) {
   const trend = compTrend(comp.delta_pct);
   const color = TREND_COLOR[trend];
+  const gradientId = useId();
 
   const lo = Math.min(comp.v_before_eur, comp.v_after_eur);
   const hi = Math.max(comp.v_before_eur, comp.v_after_eur);
@@ -53,16 +57,31 @@ export default function CompSlopeChart({ comp }: CompSlopeChartProps) {
       data-trend={trend}
       className="shrink-0"
     >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={color} stopOpacity={0.45} />
+          <stop offset="100%" stopColor={color} stopOpacity={1} />
+        </linearGradient>
+      </defs>
       <line
         x1={PAD_X}
         y1={y1}
         x2={W - PAD_X}
         y2={y2}
-        stroke={color}
+        stroke={`url(#${gradientId})`}
         strokeWidth={2}
         strokeLinecap="round"
       />
-      <circle cx={PAD_X} cy={y1} r={4} fill={color} />
+      {/* Origin: open dot. Destination: filled dot with a soft halo. */}
+      <circle
+        cx={PAD_X}
+        cy={y1}
+        r={3.2}
+        fill="var(--color-pitch-950)"
+        stroke={color}
+        strokeWidth={1.6}
+      />
+      <circle cx={W - PAD_X} cy={y2} r={7.5} fill={color} opacity={0.18} />
       <circle cx={W - PAD_X} cy={y2} r={4} fill={color} />
     </svg>
   );
