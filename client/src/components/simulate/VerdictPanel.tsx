@@ -59,7 +59,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
       <div className="mt-7 text-center">
         <div className="flex items-center justify-center gap-3">
           <span aria-hidden="true" className={direction.color}>
-            <direction.Icon className="h-8 w-8 sm:h-10 sm:w-10" />
+            <direction.Icon className="h-7 w-7 sm:h-10 sm:w-10" />
           </span>
           <span className="sr-only">{`Value ${direction.label}:`}</span>
           <CountUpRange
@@ -67,7 +67,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
             high={prediction.high_eur}
             from={now}
             format={formatRange}
-            className="font-display text-6xl font-medium tracking-tight text-ink-100 tabular-nums sm:text-7xl"
+            className="font-display text-4xl font-medium tracking-tight text-ink-100 tabular-nums sm:text-6xl xl:text-7xl"
           />
         </div>
         <p className="mt-3 text-ink-400">

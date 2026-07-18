@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { formatEuroCompact, formatRange } from '../../lib/format';
 import { rangeBandLayout } from '../../lib/rangeBand';
 
@@ -15,6 +16,16 @@ interface RangeBandProps {
   now: number;
 }
 
+/**
+ * Near the track edges a centered label would hang outside the container
+ * (and widen the page on small screens), so edge labels snap to the side.
+ */
+function labelStyle(pct: number): CSSProperties {
+  if (pct < 12) return { left: 0 };
+  if (pct > 88) return { right: 0 };
+  return { left: `${pct}%`, transform: 'translateX(-50%)' };
+}
+
 export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
   const layout = rangeBandLayout({ low, mid, high, now });
 
@@ -27,10 +38,7 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
     >
       {/* Now caption */}
       <div className="relative h-5 text-xs text-ink-400">
-        <span
-          className="absolute -translate-x-1/2 whitespace-nowrap"
-          style={{ left: `${layout.nowPct}%` }}
-        >
+        <span className="absolute whitespace-nowrap" style={labelStyle(layout.nowPct)}>
           now {formatEuroCompact(now)}
         </span>
       </div>
@@ -39,7 +47,7 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
       <div className="relative h-2.5">
         <div className="absolute inset-0 rounded-full bg-pitch-800" />
         <div
-          className="absolute inset-y-0 rounded-full bg-gradient-to-r from-yale-500 to-yale-300"
+          className="absolute inset-y-0 rounded-full bg-linear-to-r from-yale-500 to-yale-300"
           style={{ left: `${layout.lowPct}%`, width: `${layout.highPct - layout.lowPct}%` }}
         />
         {/* Midpoint tick */}
@@ -56,16 +64,10 @@ export default function RangeBand({ low, mid, high, now }: RangeBandProps) {
 
       {/* Band-end labels */}
       <div className="relative mt-2 h-5 text-xs text-ink-400 tabular-nums">
-        <span
-          className="absolute -translate-x-1/2 whitespace-nowrap"
-          style={{ left: `${layout.lowPct}%` }}
-        >
+        <span className="absolute whitespace-nowrap" style={labelStyle(layout.lowPct)}>
           {formatEuroCompact(low)}
         </span>
-        <span
-          className="absolute -translate-x-1/2 whitespace-nowrap"
-          style={{ left: `${layout.highPct}%` }}
-        >
+        <span className="absolute whitespace-nowrap" style={labelStyle(layout.highPct)}>
           {formatEuroCompact(high)}
         </span>
       </div>
