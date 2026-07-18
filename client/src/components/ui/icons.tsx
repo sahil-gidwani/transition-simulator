@@ -96,6 +96,16 @@ export function Clock({ className }: IconProps) {
   );
 }
 
+/** Quoted read (an opening double quote). */
+export function Quote({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M4.6 3.4C3.1 4 2.4 5.1 2.4 6.9v1.7" />
+      <path d="M9.6 3.4C8.1 4 7.4 5.1 7.4 6.9v1.7" />
+    </Icon>
+  );
+}
+
 /** No range can be given (a slashed range bracket). */
 export function NoRange({ className }: IconProps) {
   return (

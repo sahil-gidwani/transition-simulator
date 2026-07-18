@@ -170,7 +170,7 @@ export default function SimulatePage() {
           <div className="lg:col-span-3">
             <InsufficientPanel result={state.result} leagueNames={leagueNames} />
           </div>
-          <div className="space-y-6 lg:col-span-2">
+          <div className="flex flex-col gap-6 lg:col-span-2">
             <NarrativeStrip narrative={state.result.narrative} />
             <PoolQualityBanner poolQuality={state.result.pool_quality} />
           </div>
@@ -181,7 +181,7 @@ export default function SimulatePage() {
             <div className="lg:col-span-3">
               <VerdictPanel result={state.result} prediction={state.prediction} />
             </div>
-            <div className="space-y-6 lg:col-span-2">
+            <div className="flex flex-col gap-6 lg:col-span-2">
               <NarrativeStrip narrative={state.result.narrative} />
               <PoolQualityBanner poolQuality={state.result.pool_quality} />
             </div>
