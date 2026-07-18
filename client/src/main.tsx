@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
@@ -26,16 +27,22 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<PageLayout />}>
-            <Route path="/" element={<Navigate to="/search" replace />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/players/:id" element={<PlayerProfilePage />} />
-            <Route path="/players/:id/simulate" element={<SimulatePage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      {/* reducedMotion="user": every motion component honours the OS setting.
+          LazyMotion + m.* keeps the animation runtime to the ~15kB dom subset. */}
+      <MotionConfig reducedMotion="user">
+        <LazyMotion features={domAnimation} strict>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<PageLayout />}>
+                <Route path="/" element={<Navigate to="/search" replace />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/players/:id" element={<PlayerProfilePage />} />
+                <Route path="/players/:id/simulate" element={<SimulatePage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </LazyMotion>
+      </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
 );
