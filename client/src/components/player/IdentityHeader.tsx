@@ -36,9 +36,7 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
           </span>
           {tier ? <Badge>{tier}</Badge> : null}
         </p>
-        {meta.length > 0 ? (
-          <p className="mt-1 text-sm text-ink-400/80">{meta.join(' · ')}</p>
-        ) : null}
+        {meta.length > 0 ? <p className="mt-1 text-sm text-ink-500">{meta.join(' · ')}</p> : null}
       </div>
 
       <div className="shrink-0 lg:text-right">

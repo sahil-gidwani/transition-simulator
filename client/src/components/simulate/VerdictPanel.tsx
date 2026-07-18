@@ -76,7 +76,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
           : ''}
       </p>
 
-      <p className="mt-4 max-w-xl text-sm text-ink-400/80">{confidence.note}</p>
+      <p className="mt-4 max-w-xl text-sm text-ink-500">{confidence.note}</p>
 
       <footer className="mt-6 border-t border-pitch-800 pt-3 text-xs text-ink-400">
         Range = the middle half of outcomes across {result.pool_quality.pool_size} comparable moves,

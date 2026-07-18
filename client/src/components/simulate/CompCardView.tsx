@@ -35,7 +35,7 @@ export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
             <span aria-hidden="true">→</span>
             <span>{comp.to_club}</span>
           </p>
-          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-400/80">
+          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-500">
             {comp.from_league !== null ? <Badge>{leagueName(comp.from_league)}</Badge> : null}
             <Badge>{leagueName(comp.to_league)}</Badge>
             <span>

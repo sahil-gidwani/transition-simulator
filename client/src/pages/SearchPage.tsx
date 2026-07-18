@@ -60,11 +60,11 @@ export default function SearchPage() {
             reset();
           }}
           onKeyDown={onKeyDown}
-          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-400/80 focus:border-brass-400 focus:outline-none"
+          className="w-full rounded-xl border border-pitch-800 bg-pitch-900 px-5 py-4 text-lg text-ink-100 placeholder:text-ink-500 focus:border-brass-400 focus:outline-none"
         />
 
         {!searchActive ? (
-          <p className="mt-3 text-sm text-ink-400/80">
+          <p className="mt-3 text-sm text-ink-500">
             Type at least two letters — then arrow keys and Enter take you straight to a profile.
           </p>
         ) : isError ? (
