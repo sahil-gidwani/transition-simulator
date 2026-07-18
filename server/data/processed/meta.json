@@ -36,7 +36,7 @@
       "sha256": "27e00a113f28c8de9616031330470de19ad96a853c5b370eee7dabb8a20b6c86"
     }
   },
-  "built_at": "2026-07-18T17:22:50+00:00",
+  "built_at": "2026-07-18T18:43:24+00:00",
   "constants": {
     "elo_asof_tolerance_days": 45,
     "loan_max_return_days": 548,
@@ -198,7 +198,7 @@
     {
       "actual": "0.7918",
       "detail": "touch-weighted share of the transition universe with a mapped ClubElo club",
-      "expected": ">= 0.74",
+      "expected": ">= 0.78",
       "name": "elo_touch_coverage",
       "passed": true
     },
