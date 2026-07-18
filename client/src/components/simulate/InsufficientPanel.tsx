@@ -19,8 +19,8 @@ export default function InsufficientPanel({ result, leagueNames }: InsufficientP
         </Chip>
       </div>
       <p className="mt-3 max-w-xl leading-relaxed text-ink-400">
-        Fewer than two comparable transitions survive the similarity checks for this move, even
-        after widening the search. Precedent doesn&apos;t invent a range from thin evidence.
+        Fewer than two truly comparable moves exist on record for this destination — even after
+        widening the search. Precedent won&apos;t invent a range from thin evidence.
       </p>
 
       {result.comps.length > 0 ? (

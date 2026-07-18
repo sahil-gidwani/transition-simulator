@@ -63,11 +63,11 @@ describe('PercentileBars', () => {
       />,
     );
 
-    expect(screen.getByText(/below the minutes floor/i)).toBeInTheDocument();
+    expect(screen.getByText(/too few minutes this season for a fair ranking/i)).toBeInTheDocument();
     expect(screen.getByText('0.42')).toBeInTheDocument();
-    expect(screen.getByText(/percentile withheld/i)).toBeInTheDocument();
+    expect(screen.getByText(/not ranked — too few minutes/i)).toBeInTheDocument();
     expect(screen.queryByTestId('percentile-fill-goals_p90')).not.toBeInTheDocument();
-    expect(screen.getByText(/vs 40 same-position peers/i)).toBeInTheDocument();
+    expect(screen.getByText(/against 40 players in the same position/i)).toBeInTheDocument();
   });
 
   it('renders the clean-sheet rate as a percentage', () => {
@@ -92,7 +92,9 @@ describe('PercentileBars', () => {
   it('attributes the peer group to the stats-season league when provided', () => {
     render(<PercentileBars percentiles={response({})} leagueLabel="Premier League" />);
 
-    expect(screen.getByText(/vs 40 same-position peers in Premier League/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/against 40 players in the same position in Premier League/i),
+    ).toBeInTheDocument();
   });
 
   it('shows the empty state when the player has no stats', () => {

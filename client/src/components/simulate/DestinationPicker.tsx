@@ -50,7 +50,9 @@ export default function DestinationPicker({
                 <span className="text-xs text-ink-400">{league.country}</span>
               ) : null}
             </span>
-            <Badge>{tierLabel(league.tier)}</Badge>
+            <Badge title="League strength: tiers 1–4, from squad values">
+              {tierLabel(league.tier)}
+            </Badge>
           </span>
         )}
         selectedLabel={
@@ -74,9 +76,13 @@ export default function DestinationPicker({
               <span className="flex items-center justify-between gap-3">
                 <span className="truncate text-ink-100">{club.name}</span>
                 <span className="flex shrink-0 items-center gap-1.5">
-                  {tercileLabel(club.tercile) ? <Badge>{tercileLabel(club.tercile)}</Badge> : null}
+                  {tercileLabel(club.tercile) ? (
+                    <Badge title="Squad-value rank within the league">
+                      {tercileLabel(club.tercile)}
+                    </Badge>
+                  ) : null}
                   {!club.elo_available ? (
-                    <span className="text-xs text-ink-400">no Elo</span>
+                    <span className="text-xs text-ink-400">no strength rating</span>
                   ) : null}
                 </span>
               </span>

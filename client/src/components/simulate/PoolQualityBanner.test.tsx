@@ -36,7 +36,7 @@ describe('PoolQualityBanner', () => {
       />,
     );
 
-    expect(screen.getByText('Expanded search')).toBeInTheDocument();
+    expect(screen.getByText('We widened the search')).toBeInTheDocument();
     expect(screen.getByText('included players up to 6 years older or younger')).toBeInTheDocument();
     expect(
       screen.getByText("included players valued from 0.25× to 4× this player's value"),
@@ -65,8 +65,8 @@ describe('PoolQualityBanner', () => {
       />,
     );
 
-    expect(screen.getByText(/squad-value tiers stood in/i)).toBeInTheDocument();
-    expect(screen.queryByText('Expanded search')).not.toBeInTheDocument();
+    expect(screen.getByText(/squad value stood in for club strength/i)).toBeInTheDocument();
+    expect(screen.queryByText('We widened the search')).not.toBeInTheDocument();
   });
 
   it('does not show the Elo note when no club was selected', () => {
@@ -89,9 +89,9 @@ describe('PoolQualityBanner', () => {
       />,
     );
 
-    expect(screen.getByText('Similarity caveats')).toBeInTheDocument();
+    expect(screen.getByText(/what we couldn't match/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/available for only 10% of these comparable moves/i),
+      screen.getByText(/only 10% of these moves have club-strength \(elo\) ratings/i),
     ).toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe('PoolQualityBanner', () => {
       />,
     );
 
-    expect(screen.getByText(/squad-value tiers stood in/i)).toBeInTheDocument();
+    expect(screen.getByText(/squad value stood in for club strength/i)).toBeInTheDocument();
     expect(screen.queryByText(/carried the rest/i)).not.toBeInTheDocument();
   });
 
@@ -141,9 +141,11 @@ describe('PoolQualityBanner', () => {
       <PoolQualityBanner poolQuality={poolQuality({ missing_age: true, missing_minutes: true })} />,
     );
 
-    expect(screen.getByText('Similarity caveats')).toBeInTheDocument();
-    expect(screen.getByText(/age unknown — comps were not age-matched/i)).toBeInTheDocument();
-    expect(screen.getByText(/playing time unknown/i)).toBeInTheDocument();
-    expect(screen.queryByText('Expanded search')).not.toBeInTheDocument();
+    expect(screen.getByText(/what we couldn't match/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/age is unknown, so the matches aren't age-checked/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/playing time before the move is unknown/i)).toBeInTheDocument();
+    expect(screen.queryByText('We widened the search')).not.toBeInTheDocument();
   });
 });

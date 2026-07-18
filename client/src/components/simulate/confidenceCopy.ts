@@ -16,21 +16,21 @@ export const CONFIDENCE_COPY: Record<Confidence, ConfidenceCopy> = {
   high: {
     label: 'High confidence',
     tone: 'accent',
-    note: 'Strong precedent agreement — a deep pool of comparable moves points the same way. Not a probability guarantee.',
+    note: 'Strong agreement — many closely similar moves point the same way. Not a guarantee.',
   },
   medium: {
     label: 'Medium confidence',
     tone: 'neutral',
-    note: 'Reasonable precedent — the pool is solid but comps disagree more.',
+    note: 'Reasonable evidence — a solid set of similar moves, but they disagree more.',
   },
   low: {
     label: 'Low confidence',
     tone: 'caution',
-    note: 'Weak precedent — few comps or wide disagreement. Treat the range as indicative.',
+    note: 'Weak evidence — only a few similar moves, or they point in very different directions. Treat the range as a rough guide.',
   },
   insufficient: {
     label: 'Insufficient precedent',
     tone: 'decline',
-    note: 'Fewer than two comparable transitions on record — no responsible range can be given.',
+    note: 'Fewer than two comparable moves on record — no honest range can be given.',
   },
 };

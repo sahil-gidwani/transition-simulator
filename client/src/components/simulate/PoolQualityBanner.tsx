@@ -28,15 +28,17 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
 
   const similarityCaveats: string[] = [];
   if (poolQuality.missing_age) {
-    similarityCaveats.push('Age unknown — comps were not age-matched.');
+    similarityCaveats.push("This player's age is unknown, so the matches aren't age-checked.");
   }
   if (poolQuality.missing_minutes) {
     similarityCaveats.push(
-      'Pre-move playing time unknown — the playing-time similarity term was skipped.',
+      "Playing time before the move is unknown, so it wasn't factored into the matching.",
     );
   }
   if (poolQuality.origin_tier_unknown) {
-    similarityCaveats.push('Origin league tier unknown — the origin-tier filter was skipped.');
+    similarityCaveats.push(
+      "The strength of this player's current league is unknown, so it wasn't matched.",
+    );
   }
   if (
     poolQuality.club_selected &&
@@ -44,9 +46,9 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
     poolQuality.elo_pool_coverage < LOW_ELO_POOL_COVERAGE
   ) {
     similarityCaveats.push(
-      `Club-strength (Elo) ratings were available for only ${Math.round(
+      `Only ${Math.round(
         poolQuality.elo_pool_coverage * 100,
-      )}% of these comparable moves — squad-value tiers carried the rest.`,
+      )}% of these moves have club-strength (Elo) ratings — squad value carried the rest.`,
     );
   }
 
@@ -60,10 +62,10 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
             <>
               <p className="flex items-center gap-1.5 font-semibold text-caution-400">
                 <Widen />
-                Expanded search
+                We widened the search
               </p>
               <p className="mt-1 text-ink-100">
-                Thin precedent at the strictest filters — the search was widened to build this pool:
+                Too few close matches under the strictest criteria, so the net was cast wider:
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-400">
                 {poolQuality.relaxation_steps.map((step) => (
@@ -78,8 +80,8 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
           ) : null}
           {eloFallback ? (
             <p className={poolQuality.expanded_search ? 'mt-3 text-ink-400' : 'text-ink-400'}>
-              Club-strength (Elo) ratings are unavailable for this destination club — squad-value
-              tiers stood in for them.
+              This club has no Elo strength rating on record, so squad value stood in for club
+              strength.
             </p>
           ) : null}
         </aside>
@@ -87,7 +89,7 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
 
       {similarityCaveats.length > 0 ? (
         <aside className="rounded-xl border border-pitch-800 bg-pitch-900/60 p-4 text-sm">
-          <p className="font-semibold text-ink-100">Similarity caveats</p>
+          <p className="font-semibold text-ink-100">What we couldn&apos;t match</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-400">
             {similarityCaveats.map((caveat) => (
               <li key={caveat}>{caveat}</li>

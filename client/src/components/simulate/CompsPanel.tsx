@@ -20,8 +20,8 @@ export default function CompsPanel({ comps, shownComps, leagueNames }: CompsPane
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-xl font-medium text-ink-100">The precedent</h2>
         <span className="text-sm text-ink-400">
-          {comps.length} comparable move{comps.length === 1 ? '' : 's'} — the range is computed from
-          exactly these
+          {comps.length} comparable move{comps.length === 1 ? '' : 's'} — the range above is built
+          from exactly these
         </span>
       </div>
 

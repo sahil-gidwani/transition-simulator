@@ -34,7 +34,9 @@ export default function IdentityHeader({ player }: IdentityHeaderProps) {
           <span>
             {player.club_name} · {player.league_name ?? player.league_id}
           </span>
-          {tier ? <Badge>{tier}</Badge> : null}
+          {tier ? (
+            <Badge title="League strength: tiers 1–4, from squad values">{tier}</Badge>
+          ) : null}
         </p>
         {meta.length > 0 ? <p className="mt-1 text-sm text-ink-500">{meta.join(' · ')}</p> : null}
       </div>

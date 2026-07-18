@@ -36,9 +36,11 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
   const peerN = percentiles.metrics[0]?.peer_n;
   const subtext = [
     percentiles.season != null ? `${formatSeason(percentiles.season)} season` : null,
-    percentiles.minutes != null ? `${percentiles.minutes.toLocaleString('en-GB')} min` : null,
+    percentiles.minutes != null
+      ? `${percentiles.minutes.toLocaleString('en-GB')} minutes played`
+      : null,
     peerN != null
-      ? `vs ${peerN} same-position peers${leagueLabel ? ` in ${leagueLabel}` : ''}`
+      ? `against ${peerN} players in the same position${leagueLabel ? ` in ${leagueLabel}` : ''}`
       : null,
   ]
     .filter(Boolean)
@@ -46,11 +48,11 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
 
   return (
     <section>
-      <h2 className="font-display text-xl font-medium text-ink-100">Performance vs peers</h2>
+      <h2 className="font-display text-xl font-medium text-ink-100">How they compare</h2>
       <p className="mt-1 text-sm text-ink-400">{subtext}</p>
       {percentiles.below_floor ? (
         <p className="mt-2 text-sm text-caution-400">
-          Below the minutes floor this season — values shown, percentiles withheld.
+          Too few minutes this season for a fair ranking — numbers shown, rankings withheld.
         </p>
       ) : null}
 
@@ -82,7 +84,7 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
                   </span>
                   <span
                     className="w-8 text-right text-base font-semibold text-ink-100 tabular-nums"
-                    title={`Better than ${metric.percentile}% of peers`}
+                    title={`Better than ${metric.percentile}% of comparable players`}
                   >
                     {metric.percentile}
                   </span>
@@ -91,7 +93,7 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
             ) : (
               <div className="col-span-2 text-sm text-ink-400">
                 <span className="tabular-nums">{formatMetricValue(metric)}</span>
-                <span className="ml-2 text-xs text-ink-400">percentile withheld</span>
+                <span className="ml-2 text-xs text-ink-400">not ranked — too few minutes</span>
               </div>
             )}
           </li>
