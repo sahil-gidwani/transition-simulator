@@ -71,10 +71,20 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
 
             {metric.percentile != null ? (
               <>
-                <div className="h-2.5 overflow-hidden rounded-full bg-pitch-800">
+                <div className="relative h-3 overflow-hidden rounded-full bg-pitch-800">
+                  {/* Quartile ticks; the mid line is the peer median. The fill
+                      is positioned so it paints over them. */}
+                  {[25, 50, 75].map((tick) => (
+                    <span
+                      key={tick}
+                      aria-hidden="true"
+                      className={`absolute inset-y-0 w-px ${tick === 50 ? 'bg-pitch-700' : 'bg-pitch-700/50'}`}
+                      style={{ left: `${tick}%` }}
+                    />
+                  ))}
                   <div
                     data-testid={`percentile-fill-${metric.metric}`}
-                    className="percentile-fill h-2.5 rounded-full"
+                    className="percentile-fill relative h-3 rounded-full"
                     style={{ width: `${metric.percentile}%` }}
                   />
                 </div>
@@ -99,6 +109,7 @@ export default function PercentileBars({ percentiles, leagueLabel = null }: Perc
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-xs text-ink-500">mid line = peer median</p>
     </section>
   );
 }

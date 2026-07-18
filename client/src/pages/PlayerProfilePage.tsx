@@ -55,21 +55,19 @@ export default function PlayerProfilePage() {
   if (playerQuery.isPending) {
     return (
       <div role="status" className="space-y-8" aria-label="Loading profile">
+        {/* Identity header: name row + fact strip left, value block right. */}
         <div className="flex items-end justify-between border-b border-pitch-800 pb-8">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <SkeletonBlock className="h-12 w-72" />
-            <SkeletonBlock className="h-4 w-56" />
-            <SkeletonBlock className="h-4 w-40" />
+            <SkeletonBlock className="h-10 w-96 max-w-full" />
           </div>
           <SkeletonBlock className="h-20 w-56" />
         </div>
-        <SkeletonBlock className="h-12 w-56 rounded-lg" />
-        <SkeletonBlock className="h-64 w-full rounded-2xl" />
-        <div className="space-y-3">
-          <SkeletonBlock className="h-6 w-56" />
-          {Array.from({ length: 4 }, (_, i) => (
-            <SkeletonBlock key={i} className="h-6 w-full" />
-          ))}
+        {/* CTA band, then the chart + percentile panels. */}
+        <SkeletonBlock className="h-28 w-full rounded-2xl" />
+        <div className="grid gap-6 xl:grid-cols-5">
+          <SkeletonBlock className="h-80 w-full rounded-2xl xl:col-span-3" />
+          <SkeletonBlock className="h-80 w-full rounded-2xl xl:col-span-2" />
         </div>
       </div>
     );
@@ -122,43 +120,47 @@ export default function PlayerProfilePage() {
         </section>
       )}
 
-      <section>
-        <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
-        <div className="mt-4">
-          <MarketValueChart history={player.value_history} />
-        </div>
-      </section>
+      <div className="grid gap-6 xl:grid-cols-5">
+        <section className="rounded-2xl border border-pitch-800 bg-pitch-900/40 p-6 xl:col-span-3">
+          <h2 className="font-display text-xl font-medium text-ink-100">Market value</h2>
+          <div className="mt-4">
+            <MarketValueChart history={player.value_history} />
+          </div>
+        </section>
 
-      {percentilesQuery.isPending ? (
-        <div role="status" className="space-y-3" aria-label="Loading percentiles">
-          <SkeletonBlock className="h-6 w-56" />
-          {Array.from({ length: 4 }, (_, i) => (
-            <SkeletonBlock key={i} className="h-6 w-full" />
-          ))}
+        <div className="rounded-2xl border border-pitch-800 bg-pitch-900/40 p-6 xl:col-span-2">
+          {percentilesQuery.isPending ? (
+            <div role="status" className="space-y-3" aria-label="Loading percentiles">
+              <SkeletonBlock className="h-6 w-56" />
+              {Array.from({ length: 4 }, (_, i) => (
+                <SkeletonBlock key={i} className="h-6 w-full" />
+              ))}
+            </div>
+          ) : percentilesQuery.isError ? (
+            <div role="alert" className="flex items-center gap-4">
+              <p className="text-sm text-ink-400">Peer percentiles are unavailable right now.</p>
+              <button
+                type="button"
+                onClick={() => void percentilesQuery.refetch()}
+                className={secondaryActionCompact}
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <PercentileBars
+              percentiles={percentilesQuery.data}
+              leagueLabel={
+                percentilesQuery.data.league_id === null
+                  ? null
+                  : percentilesQuery.data.league_id === player.league_id
+                    ? (player.league_name ?? player.league_id)
+                    : percentilesQuery.data.league_id
+              }
+            />
+          )}
         </div>
-      ) : percentilesQuery.isError ? (
-        <div role="alert" className="flex items-center gap-4">
-          <p className="text-sm text-ink-400">Peer percentiles are unavailable right now.</p>
-          <button
-            type="button"
-            onClick={() => void percentilesQuery.refetch()}
-            className={secondaryActionCompact}
-          >
-            Retry
-          </button>
-        </div>
-      ) : (
-        <PercentileBars
-          percentiles={percentilesQuery.data}
-          leagueLabel={
-            percentilesQuery.data.league_id === null
-              ? null
-              : percentilesQuery.data.league_id === player.league_id
-                ? (player.league_name ?? player.league_id)
-                : percentilesQuery.data.league_id
-          }
-        />
-      )}
+      </div>
     </div>
   );
 }
