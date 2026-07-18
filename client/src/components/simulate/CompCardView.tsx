@@ -3,8 +3,15 @@ import Badge from '../ui/Badge';
 import Chip from '../ui/Chip';
 import { ArrowDownRight, ArrowFlat, ArrowUpRight } from '../ui/icons';
 import { formatAge, formatEuroCompact, formatSeason, formatSignedPct } from '../../lib/format';
+import { compTrend } from '../../lib/trend';
 import type { CompCard } from '../../lib/types';
 import CompSlopeChart from './CompSlopeChart';
+
+const TREND_STYLE = {
+  rise: { color: 'text-rise-400', Icon: ArrowUpRight },
+  decline: { color: 'text-decline-400', Icon: ArrowDownRight },
+  flat: { color: 'text-ink-400', Icon: ArrowFlat },
+} as const;
 
 interface CompCardViewProps {
   comp: CompCard;
@@ -17,12 +24,7 @@ interface CompCardViewProps {
  * a color, not a demotion (survivorship principle).
  */
 export default function CompCardView({ comp, leagueNames }: CompCardViewProps) {
-  const delta =
-    comp.delta_pct > 0
-      ? { color: 'text-rise-400', Icon: ArrowUpRight }
-      : comp.delta_pct < 0
-        ? { color: 'text-decline-400', Icon: ArrowDownRight }
-        : { color: 'text-ink-400', Icon: ArrowFlat };
+  const delta = TREND_STYLE[compTrend(comp.delta_pct)];
   const leagueName = (id: string) => leagueNames?.get(id) ?? id;
 
   return (

@@ -1,4 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router';
+import { secondaryAction, secondaryActionCompact } from '../components/ui/actions';
 import CompsPanel from '../components/simulate/CompsPanel';
 import DestinationPicker from '../components/simulate/DestinationPicker';
 import InsufficientPanel from '../components/simulate/InsufficientPanel';
@@ -77,10 +78,7 @@ export default function SimulatePage() {
       <EmptyState
         heading="Player not found"
         action={
-          <Link
-            to="/search"
-            className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
-          >
+          <Link to="/search" className={secondaryAction}>
             ← Back to search
           </Link>
         }
@@ -126,7 +124,7 @@ export default function SimulatePage() {
           <button
             type="button"
             onClick={() => void destinationsQuery.refetch()}
-            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-ink-100 hover:border-yale-400"
+            className={secondaryActionCompact}
           >
             Retry
           </button>
@@ -160,7 +158,7 @@ export default function SimulatePage() {
             <button
               type="button"
               onClick={() => void simulationQuery.refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
+              className={secondaryAction}
             >
               Retry
             </button>

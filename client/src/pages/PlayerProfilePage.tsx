@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { secondaryAction, secondaryActionCompact } from '../components/ui/actions';
 import IdentityHeader from '../components/player/IdentityHeader';
 import MarketValueChart from '../components/player/MarketValueChart';
 import PercentileBars from '../components/player/PercentileBars';
@@ -10,10 +11,7 @@ import { usePercentiles, usePlayer } from '../lib/queries';
 
 function BackToSearch() {
   return (
-    <Link
-      to="/search"
-      className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
-    >
+    <Link to="/search" className={secondaryAction}>
       ← Back to search
     </Link>
   );
@@ -43,7 +41,7 @@ export default function PlayerProfilePage() {
             <button
               type="button"
               onClick={() => void playerQuery.refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
+              className={secondaryAction}
             >
               Retry
             </button>
@@ -128,7 +126,7 @@ export default function PlayerProfilePage() {
           <button
             type="button"
             onClick={() => void percentilesQuery.refetch()}
-            className="rounded border border-pitch-800 bg-pitch-900 px-3 py-1.5 text-sm text-ink-100 hover:border-yale-400"
+            className={secondaryActionCompact}
           >
             Retry
           </button>

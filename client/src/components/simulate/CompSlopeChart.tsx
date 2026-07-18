@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { formatEuroCompact, formatSignedPct } from '../../lib/format';
+import { compTrend } from '../../lib/trend';
 import type { CompCard } from '../../lib/types';
 
 const W = 132;
@@ -12,14 +13,6 @@ const TREND_COLOR = {
   decline: 'var(--color-decline-400)',
   flat: 'var(--color-ink-400)',
 } as const;
-
-type Trend = keyof typeof TREND_COLOR;
-
-function compTrend(deltaPct: number): Trend {
-  if (deltaPct > 0) return 'rise';
-  if (deltaPct < 0) return 'decline';
-  return 'flat';
-}
 
 interface CompSlopeChartProps {
   comp: CompCard;

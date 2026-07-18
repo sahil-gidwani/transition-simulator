@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { Transition, Variants } from 'motion/react';
+import type { Transition } from 'motion/react';
 
 /**
  * Shared motion vocabulary — one rhythm for the whole app.
@@ -11,27 +11,12 @@ import type { Transition, Variants } from 'motion/react';
  */
 export const EASE_OUT: Transition['ease'] = [0.16, 1, 0.3, 1];
 
-/** Container for a staggered list/grid entrance. */
-export const revealGroup: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } },
-};
-
-/** One item inside a `revealGroup`: fade + 8px rise. */
-export const revealItem: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: EASE_OUT } },
-};
-
 /** Route-level page entrance (enter-only; exits are instant by design). */
 export const pageEnter = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.28, ease: EASE_OUT },
 } as const;
-
-/** Spring for pressable elements (CTAs, expander buttons). */
-export const pressSpring: Transition = { type: 'spring', stiffness: 500, damping: 30 };
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 

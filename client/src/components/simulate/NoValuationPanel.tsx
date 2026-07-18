@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { secondaryAction } from '../ui/actions';
 import EmptyState from '../ui/EmptyState';
 
 interface NoValuationPanelProps {
@@ -15,10 +16,7 @@ export default function NoValuationPanel({ playerId, playerName }: NoValuationPa
         playerName ?? 'this player'
       } has none in the dataset, so there's nothing honest to project from.`}
       action={
-        <Link
-          to={`/players/${playerId}`}
-          className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
-        >
+        <Link to={`/players/${playerId}`} className={secondaryAction}>
           ← Back to profile
         </Link>
       }

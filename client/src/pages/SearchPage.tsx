@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { secondaryAction } from '../components/ui/actions';
 import { useNavigate } from 'react-router';
 import SearchResultsList from '../components/search/SearchResultsList';
 import EmptyState from '../components/ui/EmptyState';
@@ -69,11 +70,7 @@ export default function SearchPage() {
         ) : isError ? (
           <div role="alert" className="mt-6 flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-decline-400">The search request failed.</p>
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
-            >
+            <button type="button" onClick={() => void refetch()} className={secondaryAction}>
               Retry
             </button>
           </div>

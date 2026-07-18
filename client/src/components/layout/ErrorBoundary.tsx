@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { secondaryAction } from '../ui/actions';
 
 interface Props {
   children: ReactNode;
@@ -29,7 +30,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded border border-pitch-800 bg-pitch-900 px-4 py-2 text-sm text-ink-100 hover:border-yale-400"
+            className={secondaryAction}
           >
             Reload
           </button>

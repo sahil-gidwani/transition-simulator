@@ -1,5 +1,5 @@
 import { animate } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EASE_OUT, usePrefersReducedMotion } from '../../lib/motion';
 
 /**
@@ -27,39 +27,18 @@ interface CountUpProps {
   className?: string;
 }
 
+/** Single-value numeral: a degenerate range where both ends are the value. */
 export function CountUp({ value, format, from = null, durationS = 0.8, className }: CountUpProps) {
-  const reduced = usePrefersReducedMotion();
-  const willAnimate = !reduced && from !== null && from !== value;
-  // `reduced` is part of the key so a mid-animation OS toggle invalidates the
-  // in-flight frame and the render falls back to the exact final value.
-  const key = `${from ?? 'static'}->${value}:${reduced}`;
-  const [frame, setFrame] = useState<Frame | null>(null);
-
-  useEffect(() => {
-    if (reduced || from === null || from === value) return;
-    const controls = animate(from, value, {
-      duration: durationS,
-      ease: EASE_OUT,
-      onUpdate: (v) => setFrame({ key, text: format(v) }),
-      onComplete: () => setFrame({ key, text: format(value) }),
-    });
-    return () => controls.stop();
-  }, [reduced, from, value, key, format, durationS]);
-
-  const text =
-    frame && frame.key === key
-      ? frame.text
-      : willAnimate && from !== null
-        ? format(from)
-        : format(value);
-
+  const rangeFormat = useCallback((lo: number) => format(lo), [format]);
   return (
-    <span
-      className={`inline-block ${className ?? ''}`}
-      style={{ minWidth: `${format(value).length}ch` }}
-    >
-      {text}
-    </span>
+    <CountUpRange
+      low={value}
+      high={value}
+      from={from}
+      durationS={durationS}
+      className={className}
+      format={rangeFormat}
+    />
   );
 }
 
