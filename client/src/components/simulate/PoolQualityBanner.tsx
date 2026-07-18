@@ -51,9 +51,17 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
       )}% of these moves have club-strength (Elo) ratings — squad value carried the rest.`,
     );
   }
-  if (poolQuality.club_indistinct) {
+  // Club-level honesty, cause first: zero comps near the chosen club's
+  // standing means the club term extrapolated (worth saying even when the
+  // midpoint moved); otherwise an indistinct pick means the standing signal
+  // exists but didn't move the answer.
+  if (poolQuality.club_standing_support === 0) {
     similarityCaveats.push(
-      'Precedent this rare doesn’t distinguish destinations this fine: the club choice barely moves the league-level answer.',
+      'No comparable move went to a club of this standing in its league — the range reflects the league more than the club.',
+    );
+  } else if (poolQuality.club_indistinct) {
+    similarityCaveats.push(
+      'The club choice barely moves the league-level answer: outcomes among these moves hardly varied with club standing.',
     );
   }
 

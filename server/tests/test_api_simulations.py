@@ -196,8 +196,61 @@ def test_simulation_with_club_activates_club_context() -> None:
     assert body["pool_quality"]["dest_elo_available"] is True
     assert body["pool_quality"]["elo_pool_coverage"] == 1.0
     # The club selection is judged against the league-only search; with this
-    # tiny universe the pool is identical and the midpoint barely moves.
+    # tiny universe the midpoint barely moves.
     assert body["pool_quality"]["club_indistinct"] is True
+    # Beta United sits at pct 0.9 while every comp went to a pct-0.5 club:
+    # no precedent AT this standing, and the narrative says which cause.
+    assert body["pool_quality"]["club_standing_support"] == 0
+    assert "No comparable move on record went to a club of" in body["narrative"]
+
+
+def test_club_indistinct_fires_even_when_the_pool_cap_reshuffles_membership() -> None:
+    # Above POOL_K candidates the club terms reshuffle which comps make the
+    # cap; the flag keys on midpoint drift alone, so an unmoved answer is
+    # still flagged (a same-pool requirement would silently suppress this).
+    from app.services.constants import POOL_K
+
+    base: dict[str, Any] = {
+        "multiplier": 1.1,
+        "delta_pct": 0.1,
+        "sub_position": "Second Striker",
+        "to_club_value_pct": 0.9,
+    }
+    rows: list[dict[str, Any]] = [
+        {
+            **base,
+            "player_id": 100 + i,
+            "player_name": f"Bulk {i:02d}",
+            "v_before": 10_000_000,
+            "v_after": 11_000_000,
+            "to_elo_pct": None,
+        }
+        for i in range(POOL_K)
+    ] + [
+        # Worse on value league-only (out of the cap), but an exact Elo match
+        # for Beta United - the club terms pull these six into the pool.
+        {
+            **base,
+            "player_id": 500 + i,
+            "player_name": f"Elo Match {i}",
+            "v_before": 14_000_000,
+            "v_after": 15_400_000,
+            "to_elo_pct": 0.9,
+        }
+        for i in range(6)
+    ]
+    client = make_client(_full_store(rows))
+    league_only = _post(client, 1, "BB1").json()
+    clubbed = _post(client, 1, "BB1", club_id=21).json()
+
+    def pool_ids(body: Any) -> set[tuple[int, str]]:
+        return {(c["player_id"], c["transfer_date"]) for c in body["comps"]}
+
+    assert pool_ids(clubbed) != pool_ids(league_only)  # the cap genuinely reshuffled
+    assert clubbed["prediction"]["mid_eur"] == league_only["prediction"]["mid_eur"]
+    assert clubbed["pool_quality"]["club_indistinct"] is True
+    # An indistinct pick must never outrank the league-only confidence.
+    assert clubbed["confidence"] == league_only["confidence"]
 
 
 def test_unknown_player_is_404() -> None:

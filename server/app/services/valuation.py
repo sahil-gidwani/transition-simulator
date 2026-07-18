@@ -34,6 +34,18 @@ from app.services.constants import (
 Confidence = Literal["high", "medium", "low", "insufficient"]
 Direction = Literal["rise", "decline", "flat"]
 
+_CONFIDENCE_RANK: dict[Confidence, int] = {"insufficient": 0, "low": 1, "medium": 2, "high": 3}
+
+
+def weaker_confidence(a: Confidence, b: Confidence) -> Confidence:
+    """The more cautious of two tiers.
+
+    Used when a club selection is indistinct: reweighting the same evidence
+    by club terms must never RAISE the stated confidence above what the
+    league-only search earns (the pool dispersion sits on a tier boundary
+    for some queries, and a no-information club pick would flip it)."""
+    return a if _CONFIDENCE_RANK[a] <= _CONFIDENCE_RANK[b] else b
+
 
 def direction_of(q50_multiplier: float) -> Direction:
     """The verdict direction, served as data: the narrative's wording and the

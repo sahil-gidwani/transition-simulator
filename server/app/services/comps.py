@@ -26,6 +26,7 @@ from app.repositories.seasons import ClubSeason, LeagueSeason
 from app.repositories.store import DataStore
 from app.services.constants import (
     AGE_SCALE,
+    CLUB_STANDING_ALIKE,
     DEFAULT_RETRIEVAL,
     LN_VALUE_SCALE,
     RECENCY_SCALE,
@@ -83,6 +84,11 @@ class PoolQuality:
     missing_age: bool
     missing_minutes: bool
     origin_tier_unknown: bool
+    # How many pool comps went to a club within CLUB_STANDING_ALIKE of the
+    # selected club's within-league standing; None when no club was selected,
+    # the club has no percentile, or club terms were dropped by the ladder.
+    # 0 means the club term is extrapolating - no precedent AT this standing.
+    club_standing_support: int | None = None
 
 
 @dataclass(frozen=True)
@@ -289,7 +295,7 @@ def _tags(
         if (
             dest_club.club_value_pct is not None
             and row["to_club_value_pct"] is not None
-            and abs(row["to_club_value_pct"] - dest_club.club_value_pct) <= 0.15
+            and abs(row["to_club_value_pct"] - dest_club.club_value_pct) <= CLUB_STANDING_ALIKE
         ):
             tags.append("similar standing in league")
     if (
@@ -367,6 +373,19 @@ def find_comps(
         )
         for row in pool_df.iter_rows(named=True)
     ]
+    club_standing_support: int | None = None
+    if dest_club is not None and dest_club.club_value_pct is not None and not step.drop_club_terms:
+        # Boolean sum skips nulls: a comp without a percentile is not
+        # evidence about the selected club's standing.
+        club_standing_support = int(
+            pool_df.select(
+                (
+                    (pl.col("to_club_value_pct") - dest_club.club_value_pct).abs()
+                    <= CLUB_STANDING_ALIKE
+                ).sum()
+            ).item()
+            or 0
+        )
     elo_used = sum(1 for comp in pool if comp.elo_term_used)
     quality = PoolQuality(
         pool_size=len(pool),
@@ -379,5 +398,6 @@ def find_comps(
         missing_age=query.age is None,
         missing_minutes=query.minutes_share is None,
         origin_tier_unknown=query.origin_tier is None,
+        club_standing_support=club_standing_support,
     )
     return CompsResult(pool=pool, quality=quality)

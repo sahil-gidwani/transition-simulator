@@ -23,7 +23,7 @@ from app.services.constants import CLUB_INDISTINCT_MAX_MID_DRIFT, SHOWN_COMPS_DE
 from app.services.destinations import league_label, resolve_destination
 from app.services.narrative import build_narrative
 from app.services.players import age_on
-from app.services.valuation import direction_of, summarize_pool
+from app.services.valuation import direction_of, summarize_pool, weaker_confidence
 
 
 def run_simulation(
@@ -49,9 +49,12 @@ def run_simulation(
     club_indistinct = False
     if club is not None and value_range is not None:
         # Honesty check on the PAIR of searches: if withholding the club
-        # returns the same pool and barely moves the midpoint, the club
-        # choice is below what this precedent can resolve - say so instead
-        # of presenting reordered noise as club-level differentiation.
+        # barely moves the midpoint, the club choice is below what this
+        # precedent can resolve - say so instead of presenting reordered
+        # noise as club-level differentiation. Judged on midpoint drift
+        # alone: pool identity is irrelevant, because above POOL_K
+        # candidates the club terms reshuffle which comps make the cap even
+        # when the answer is unmoved.
         league_only = find_comps(
             query,
             league,
@@ -59,15 +62,16 @@ def run_simulation(
             store.transitions.comps_universe,
             store.build_info.season_min,
         )
-        league_range, _ = summarize_pool(
+        league_range, league_confidence = summarize_pool(
             league_only.pool, query.value_eur, league_only.quality.relaxation_level
         )
         if league_range is not None:
-            same_pool = {(c.player_id, c.transfer_date) for c in result.pool} == {
-                (c.player_id, c.transfer_date) for c in league_only.pool
-            }
             drift = abs(value_range.q50_multiplier / league_range.q50_multiplier - 1)
-            club_indistinct = same_pool and drift <= CLUB_INDISTINCT_MAX_MID_DRIFT
+            club_indistinct = drift <= CLUB_INDISTINCT_MAX_MID_DRIFT
+        if club_indistinct:
+            # An indistinct club pick adds no information, so it must not
+            # RAISE the stated confidence above the league-only tier.
+            confidence = weaker_confidence(confidence, league_confidence)
     dest_label = club.club_name if club is not None else league_label(league)
     narrative = build_narrative(
         player,
@@ -147,6 +151,7 @@ def run_simulation(
             missing_minutes=result.quality.missing_minutes,
             origin_tier_unknown=result.quality.origin_tier_unknown,
             club_indistinct=club_indistinct,
+            club_standing_support=result.quality.club_standing_support,
         ),
         narrative=narrative,
     )

@@ -69,6 +69,7 @@ function simulationResponse(overrides: Partial<SimulationResponse> = {}): Simula
       missing_minutes: false,
       origin_tier_unknown: false,
       club_indistinct: false,
+      club_standing_support: null,
     },
     narrative: 'The precedent points up.',
     ...overrides,

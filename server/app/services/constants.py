@@ -91,6 +91,12 @@ RECENCY_SCALE = 13.0  # seasons spanned by the transition universe
 POOL_K = 41  # comps entering the quantile pool; the API returns all of them
 SHOWN_COMPS_DEFAULT = 6  # UI default: closest shown, rest expandable
 
+# Within-league standing gap (club_value_pct units) under which a comp counts
+# as evidence ABOUT the selected club's standing: drives the "similar standing
+# in league" tag and pool_quality.club_standing_support. A pool with zero
+# support means the club term is extrapolating - the caveats say so.
+CLUB_STANDING_ALIKE = 0.15
+
 
 @dataclass(frozen=True)
 class RetrievalConfig:
@@ -159,10 +165,12 @@ CONF_MED_MAX_RELAXATION = 2
 
 DIRECTION_UP = 1.05  # q50 multiplier at/above this reads as a rise
 DIRECTION_DOWN = 0.95  # at/below this reads as a decline
-# A selected club is "indistinct" when the league-only search returns the
-# same pool and the midpoint moves less than this: precedent that rare
-# cannot distinguish destinations that fine, and the response says so
-# rather than dressing up noise as club-level insight (principles 3-4).
+# A selected club is "indistinct" when its midpoint sits within this of the
+# league-only answer: the precedent cannot distinguish destinations that
+# fine, and the response says so rather than dressing up noise as club-level
+# insight (principles 3-4). Judged on midpoint drift alone - pool identity
+# deliberately does NOT matter, because above POOL_K candidates the club
+# terms reshuffle which comps make the cap even when the answer is unmoved.
 CLUB_INDISTINCT_MAX_MID_DRIFT = 0.02
 SMALL_POOL_MAX = 5  # pools this small get an explicit caveat
 DECLINER_CAVEAT_MIN_SHARE = 0.2  # decliner share that triggers "X of Y lost value"

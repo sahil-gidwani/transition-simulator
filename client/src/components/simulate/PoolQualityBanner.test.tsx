@@ -16,6 +16,7 @@ function poolQuality(overrides: Partial<PoolQuality>): PoolQuality {
     missing_minutes: false,
     origin_tier_unknown: false,
     club_indistinct: false,
+    club_standing_support: null,
     ...overrides,
   };
 }
@@ -49,14 +50,49 @@ describe('PoolQualityBanner', () => {
   it('says when the club choice cannot be distinguished from the league', () => {
     render(
       <PoolQualityBanner
-        poolQuality={poolQuality({ club_selected: true, club_indistinct: true })}
+        poolQuality={poolQuality({
+          club_selected: true,
+          club_indistinct: true,
+          club_standing_support: 5,
+        })}
       />,
     );
     expect(
       screen.getByText(
-        'Precedent this rare doesn’t distinguish destinations this fine: the club choice barely moves the league-level answer.',
+        'The club choice barely moves the league-level answer: outcomes among these moves hardly varied with club standing.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('says when no precedent exists at the chosen club standing, even if the answer moved', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: true,
+          club_indistinct: false,
+          club_standing_support: 0,
+        })}
+      />,
+    );
+    expect(
+      screen.getByText(
+        'No comparable move went to a club of this standing in its league — the range reflects the league more than the club.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('lets the unsupported-standing caveat subsume the indistinct one', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({
+          club_selected: true,
+          club_indistinct: true,
+          club_standing_support: 0,
+        })}
+      />,
+    );
+    expect(screen.getByText(/No comparable move went to a club/)).toBeInTheDocument();
+    expect(screen.queryByText(/barely moves the league-level answer/)).not.toBeInTheDocument();
   });
 
   it('passes unknown relaxation steps through verbatim', () => {

@@ -184,8 +184,14 @@ export interface PoolQuality {
   missing_age: boolean;
   missing_minutes: boolean;
   origin_tier_unknown: boolean;
-  /** The chosen club returned the league-only pool with a near-identical midpoint. */
+  /** The chosen club's midpoint sits within the drift threshold of the league-only answer. */
   club_indistinct: boolean;
+  /**
+   * Pool comps whose destination stood near the chosen club's within-league
+   * standing; 0 = no precedent at this standing (the club term extrapolated),
+   * null = no club/percentile in play.
+   */
+  club_standing_support: number | null;
 }
 
 export type Confidence = 'high' | 'medium' | 'low' | 'insufficient';

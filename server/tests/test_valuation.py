@@ -9,7 +9,12 @@ import pytest
 
 from app.services import constants
 from app.services.comps import ScoredComp
-from app.services.valuation import direction_of, summarize_pool, weighted_quantile
+from app.services.valuation import (
+    direction_of,
+    summarize_pool,
+    weaker_confidence,
+    weighted_quantile,
+)
 
 
 def _comp(multiplier: float, similarity: float = 1.0, **overrides: Any) -> ScoredComp:
@@ -213,3 +218,10 @@ def test_unshifted_tiers_are_untouched(monkeypatch: pytest.MonkeyPatch) -> None:
     unshifted_range, _ = summarize_pool(pool, 10_000_000, 0)
     assert baseline_range is not None and unshifted_range is not None
     assert baseline_range == unshifted_range  # only the low shift was set
+
+
+def test_weaker_confidence_returns_the_more_cautious_tier() -> None:
+    assert weaker_confidence("high", "medium") == "medium"
+    assert weaker_confidence("low", "medium") == "low"
+    assert weaker_confidence("insufficient", "high") == "insufficient"
+    assert weaker_confidence("medium", "medium") == "medium"

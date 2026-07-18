@@ -104,10 +104,20 @@ def build_narrative(
                 "range as indicative, not bankable."
             )
 
-    if club_indistinct:
+    # Club-level honesty, cause first: with zero comps near the selected
+    # club's standing the club term extrapolated (say that, whatever the
+    # midpoint did); otherwise an indistinct pick means the standing signal
+    # exists but did not move the answer.
+    if value_range is not None and quality.club_standing_support == 0:
         sentences.append(
-            f"Precedent this rare doesn't distinguish destinations this fine: choosing "
-            f"{dest_label} barely moves the league-level answer."
+            f"No comparable move on record went to a club of {dest_label}'s standing in "
+            "its league, so this range reflects the league more than the club."
+        )
+    elif club_indistinct:
+        sentences.append(
+            f"Choosing {dest_label} barely moves the league-level answer: across these "
+            f"{quality.pool_size} moves, outcomes hardly varied with the destination "
+            "club's standing."
         )
     if quality.expanded_search and quality.relaxation_steps:
         sentences.append(

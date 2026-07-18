@@ -164,7 +164,7 @@ def test_expanded_search_caveat_names_the_last_step() -> None:
     assert "the search was expanded (value bracket widened to 0.25-4x)" in text
 
 
-def test_club_indistinct_caveat_names_the_destination() -> None:
+def test_club_indistinct_caveat_names_the_destination_and_the_cause() -> None:
     pool = [_comp("A", 0.1) for _ in range(6)]
     text = build_narrative(
         _player(),
@@ -172,13 +172,13 @@ def test_club_indistinct_caveat_names_the_destination() -> None:
         _range(1.0, 1.1, 1.2),
         "medium",
         pool,
-        _quality(club_selected=True),
+        _quality(club_selected=True, club_standing_support=4),
         TODAY,
         club_indistinct=True,
     )
     assert (
-        "Precedent this rare doesn't distinguish destinations this fine: "
-        "choosing Beta United barely moves the league-level answer." in text
+        "Choosing Beta United barely moves the league-level answer: across these "
+        "8 moves, outcomes hardly varied with the destination club's standing." in text
     )
     without = build_narrative(
         _player(),
@@ -186,10 +186,45 @@ def test_club_indistinct_caveat_names_the_destination() -> None:
         _range(1.0, 1.1, 1.2),
         "medium",
         pool,
-        _quality(club_selected=True),
+        _quality(club_selected=True, club_standing_support=4),
         TODAY,
     )
-    assert "doesn't distinguish destinations" not in without
+    assert "barely moves the league-level answer" not in without
+
+
+def test_unsupported_club_standing_caveat_fires_regardless_of_drift() -> None:
+    # Zero comps near the selected club's standing means the club term
+    # extrapolated; that is said out loud even when the midpoint DID move.
+    pool = [_comp("A", 0.1) for _ in range(6)]
+    text = build_narrative(
+        _player(),
+        "Bottom FC",
+        _range(1.0, 1.1, 1.2),
+        "medium",
+        pool,
+        _quality(club_selected=True, club_standing_support=0),
+        TODAY,
+    )
+    assert (
+        "No comparable move on record went to a club of Bottom FC's standing in its "
+        "league, so this range reflects the league more than the club." in text
+    )
+
+
+def test_unsupported_standing_subsumes_the_indistinct_sentence() -> None:
+    pool = [_comp("A", 0.1) for _ in range(6)]
+    text = build_narrative(
+        _player(),
+        "Bottom FC",
+        _range(1.0, 1.1, 1.2),
+        "medium",
+        pool,
+        _quality(club_selected=True, club_standing_support=0),
+        TODAY,
+        club_indistinct=True,
+    )
+    assert "No comparable move on record" in text
+    assert "barely moves the league-level answer" not in text
 
 
 def test_elo_fallback_caveat_only_when_a_club_was_selected() -> None:

@@ -73,10 +73,14 @@ class PoolQualityOut(BaseModel):
     missing_age: bool
     missing_minutes: bool
     origin_tier_unknown: bool
-    # True when the selected club returned the same pool as the league-only
-    # search with a near-identical midpoint: precedent this rare does not
-    # distinguish destinations this fine.
+    # True when the selected club's midpoint sits within the drift threshold
+    # of the league-only answer: the precedent does not distinguish
+    # destinations this fine, whatever the club terms reshuffled.
     club_indistinct: bool
+    # Pool comps whose destination stood within CLUB_STANDING_ALIKE of the
+    # selected club's within-league standing; 0 = the club term extrapolated
+    # (no precedent AT this standing), null = no club/percentile in play.
+    club_standing_support: int | None
 
 
 class SimulationResponse(BaseModel):

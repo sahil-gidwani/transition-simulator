@@ -719,3 +719,37 @@ def test_build_query_context_tolerates_missing_context_rows() -> None:
     assert query.origin_tier is None
     assert query.origin_club_value_pct is None
     assert query.minutes_share is None
+
+
+# --- club standing support --------------------------------------------------------
+
+
+def test_club_standing_support_counts_comps_near_the_selected_standing() -> None:
+    universe = make_transitions(
+        [
+            {"player_id": 100, "to_club_value_pct": 0.5},  # exact match counts
+            {"player_id": 101, "to_club_value_pct": 0.6},  # within 0.15 counts
+            {"player_id": 102, "to_club_value_pct": 0.9},  # too far
+            {"player_id": 103, "to_club_value_pct": None},  # null is not evidence
+        ]
+    )
+    result = _find(universe, club=_DEST_CLUB)
+    assert result.quality.club_standing_support == 2
+
+
+def test_club_standing_support_is_null_without_a_club_or_percentile() -> None:
+    universe = make_transitions(_conforming(3))
+    assert _find(universe).quality.club_standing_support is None
+    no_pct = replace(_DEST_CLUB, club_value_pct=None)
+    assert _find(universe, club=no_pct).quality.club_standing_support is None
+
+
+def test_club_standing_support_is_null_once_club_terms_drop() -> None:
+    # These comps qualify only at the terminal ladder level, where club-level
+    # terms are ignored: support is then not computable - null, never zero.
+    universe = make_transitions(
+        [{"player_id": 100 + i, "from_tier": None, "from_league": None} for i in range(2)]
+    )
+    result = _find(universe, club=_DEST_CLUB)
+    assert result.quality.relaxation_level == len(_LADDER) - 1
+    assert result.quality.club_standing_support is None
