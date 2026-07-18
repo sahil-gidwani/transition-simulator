@@ -4,6 +4,7 @@ import { formatDate } from '../../lib/format';
 import { pageEnter } from '../../lib/motion';
 import { useHealth } from '../../lib/queries';
 import ErrorBoundary from './ErrorBoundary';
+import Logo from './Logo';
 
 function FooterFreshness() {
   const { data } = useHealth();
@@ -18,16 +19,17 @@ function FooterFreshness() {
 export default function PageLayout() {
   const location = useLocation();
   return (
-    <div className="flex min-h-screen flex-col bg-pitch-950 text-ink-100">
-      <header className="border-b border-pitch-800">
-        <div className="mx-auto flex w-full max-w-6xl items-baseline justify-between px-6 py-4">
+    <div className="mesh-hero relative flex min-h-screen flex-col text-ink-100">
+      <div aria-hidden="true" className="noise-overlay pointer-events-none fixed inset-0 z-50" />
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-pitch-950/70 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5">
           <Link
             to="/"
-            className="font-display text-xl font-semibold tracking-[0.18em] text-tangerine-300"
+            className="rounded text-ink-100 transition-colors duration-150 hover:text-tangerine-200"
           >
-            PRECEDENT
+            <Logo />
           </Link>
-          <span className="text-xs tracking-[0.3em] text-ink-400 uppercase max-sm:hidden">
+          <span className="text-xs tracking-[0.25em] text-ink-500 uppercase max-sm:hidden">
             Transfer valuations
           </span>
         </div>
@@ -42,8 +44,8 @@ export default function PageLayout() {
           </ErrorBoundary>
         </m.div>
       </main>
-      <footer className="border-t border-pitch-800">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-6 py-4 text-xs text-ink-400 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="border-t border-pitch-800/70">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-6 py-4 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <span>
             Player and market-value data: Transfermarkt, via the player-scores dataset · Club
             strength: ClubElo — clubelo.com
