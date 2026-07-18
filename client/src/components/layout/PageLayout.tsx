@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router';
 import { Search } from '../ui/icons';
 import { secondaryActionCompact } from '../ui/actions';
 import { pageEnter } from '../../lib/motion';
+import CompareTray from './CompareTray';
 import ErrorBoundary from './ErrorBoundary';
 import Logo from './Logo';
 
@@ -103,6 +104,7 @@ export default function PageLayout() {
           </ErrorBoundary>
         </m.div>
       </main>
+      <CompareTray />
       <footer>
         <Hairline />
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8 sm:flex-row sm:items-end sm:justify-between">

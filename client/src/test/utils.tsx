@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
+import { CompareProvider } from '../lib/compare';
 
 interface RenderOptions {
   initialEntries?: string[];
@@ -27,7 +28,9 @@ export function renderWithProviders(
       <QueryClientProvider client={queryClient}>
         <MotionConfig reducedMotion="user">
           <LazyMotion features={domAnimation} strict>
-            <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+            <CompareProvider>
+              <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+            </CompareProvider>
           </LazyMotion>
         </MotionConfig>
       </QueryClientProvider>

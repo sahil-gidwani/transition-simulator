@@ -6,6 +6,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import PageLayout from './components/layout/PageLayout';
 import './index.css';
 import { ApiError } from './lib/api';
+import { CompareProvider } from './lib/compare';
 import PlayerProfilePage from './pages/PlayerProfilePage';
 import SearchPage from './pages/SearchPage';
 import SimulatePage from './pages/SimulatePage';
@@ -31,16 +32,18 @@ createRoot(document.getElementById('root')!).render(
           LazyMotion + m.* keeps the animation runtime to the ~15kB dom subset. */}
       <MotionConfig reducedMotion="user">
         <LazyMotion features={domAnimation} strict>
-          <BrowserRouter>
-            <Routes>
-              <Route element={<PageLayout />}>
-                <Route path="/" element={<Navigate to="/search" replace />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/players/:id" element={<PlayerProfilePage />} />
-                <Route path="/players/:id/simulate" element={<SimulatePage />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
+          <CompareProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route element={<PageLayout />}>
+                  <Route path="/" element={<Navigate to="/search" replace />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/players/:id" element={<PlayerProfilePage />} />
+                  <Route path="/players/:id/simulate" element={<SimulatePage />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </CompareProvider>
         </LazyMotion>
       </MotionConfig>
     </QueryClientProvider>

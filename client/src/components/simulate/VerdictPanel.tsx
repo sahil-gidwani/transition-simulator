@@ -1,7 +1,10 @@
 import Badge from '../ui/Badge';
 import Chip from '../ui/Chip';
 import { AlertRing, ArrowDownRight, ArrowFlat, ArrowUpRight, Clock, SealCheck } from '../ui/icons';
+import { secondaryActionCompact } from '../ui/actions';
 import { CountUpRange } from '../motion/CountUp';
+import { useCompare } from '../../lib/compareContext';
+import { hasPin, pinKey } from '../../lib/comparePins';
 import {
   formatDate,
   formatEuroCompact,
@@ -39,9 +42,19 @@ interface VerdictPanelProps {
 export default function VerdictPanel({ result, prediction }: VerdictPanelProps) {
   const confidence = CONFIDENCE_COPY[result.confidence];
   const direction = DIRECTION_VIEW[result.direction ?? 'flat'];
+  const { pins, pin, unpin } = useCompare();
 
   const destinationLabel = result.destination.club_name ?? result.destination.league_name;
   const now = result.player.market_value_eur;
+  const compareKey = pinKey(
+    result.player.player_id,
+    result.destination.league_id,
+    result.destination.club_id,
+  );
+  const pinned = hasPin(pins, compareKey);
+  const simulateUrl =
+    `/players/${result.player.player_id}/simulate?league=${result.destination.league_id}` +
+    (result.destination.club_id != null ? `&club=${result.destination.club_id}` : '');
   // Concrete horizon: "12 months" only means something against the value's
   // as-of date, so say which month that actually is.
   const horizonBy = horizonMonthYear(result.player.market_value_asof, prediction.horizon_months);
@@ -58,15 +71,38 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
             {tierLabel(result.destination.tier)}
           </Badge>
         </p>
-        <Chip
-          tone={confidence.tone}
-          title={confidence.note}
-          // Weak-evidence tiers must not wear a verified-looking seal.
-          icon={confidence.tone === 'caution' ? <AlertRing /> : <SealCheck />}
-          elevated
-        >
-          {confidence.label}
-        </Chip>
+        <span className="flex items-center gap-2">
+          <Chip
+            tone={confidence.tone}
+            title={confidence.note}
+            // Weak-evidence tiers must not wear a verified-looking seal.
+            icon={confidence.tone === 'caution' ? <AlertRing /> : <SealCheck />}
+            elevated
+          >
+            {confidence.label}
+          </Chip>
+          <button
+            type="button"
+            onClick={() =>
+              pinned
+                ? unpin(compareKey)
+                : pin({
+                    key: compareKey,
+                    playerName: result.player.name,
+                    destinationLabel,
+                    url: simulateUrl,
+                    lowEur: prediction.low_eur,
+                    midEur: prediction.mid_eur,
+                    highEur: prediction.high_eur,
+                    confidence: result.confidence,
+                  })
+            }
+            title="Pin this verdict to compare it against another destination"
+            className={secondaryActionCompact}
+          >
+            {pinned ? 'Pinned ✓' : 'Compare'}
+          </button>
+        </span>
       </div>
 
       <div className="mt-7 text-center">
