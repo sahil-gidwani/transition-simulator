@@ -28,7 +28,7 @@ class SimDestination(BaseModel):
     league_id: str
     league_name: str
     country: str | None
-    tier: int
+    tier: int | None
     club_id: int | None
     club_name: str | None
     club_tercile: int | None

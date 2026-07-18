@@ -300,6 +300,21 @@ def _tags(
     return tags
 
 
+def _empty_pool_quality(query: QueryContext, dest_club: ClubSeason | None) -> PoolQuality:
+    return PoolQuality(
+        pool_size=0,
+        relaxation_level=0,
+        relaxation_steps=[],
+        expanded_search=False,
+        club_selected=dest_club is not None,
+        elo_pool_coverage=0.0,
+        dest_elo_available=dest_club is not None and dest_club.elo_pct is not None,
+        missing_age=query.age is None,
+        missing_minutes=query.minutes_share is None,
+        origin_tier_unknown=query.origin_tier is None,
+    )
+
+
 def find_comps(
     query: QueryContext,
     dest_league: LeagueSeason,
@@ -309,6 +324,11 @@ def find_comps(
     season_min: int,
     config: RetrievalConfig = DEFAULT_RETRIEVAL,
 ) -> CompsResult:
+    if dest_league.tier is None:
+        # Below the pipeline's minimum-club floor the league has no honest
+        # strength stats, so there is no honest precedent pool either; the
+        # empty pool surfaces as "insufficient precedent" downstream.
+        return CompsResult(pool=[], quality=_empty_pool_quality(query, dest_club))
     level = 0
     step = config.ladder[0]
     filtered = _hard_filter(universe, query, dest_league.tier, step, season_min)

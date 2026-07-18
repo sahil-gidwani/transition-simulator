@@ -38,6 +38,13 @@ SEASON_START_MONTH = 7  # seasons run July-June; label = starting year
 
 ELO_ASOF_TOLERANCE_DAYS = 45
 SQUAD_VALUE_STALENESS_DAYS = 365  # a valuation older than this at season start is ignored
+
+# League-season stats (median/strength/tier) and within-league terciles are
+# only meaningful over a real membership. The smallest genuine covered top
+# flight has 10+ clubs; every observed league-season below 8 members is a
+# snapshot-era stub (RSK1 2013 had one member). Below the floor the stats are
+# null and league_seasons.stats_valid flags it.
+MIN_CLUBS_FOR_LEAGUE_STATS = 8
 MINUTES_WINDOW_DAYS = 365  # minutes_share_pre looks back this far from the transfer
 PROFILE_MIN_MINUTES = 450  # percentile floor for profile stats peer groups
 

@@ -4,16 +4,26 @@ from __future__ import annotations
 
 import polars as pl
 
+from pipeline.config import MIN_CLUBS_FOR_LEAGUE_STATS
 
-def league_seasons(club_seasons: pl.DataFrame, competitions: pl.DataFrame) -> pl.DataFrame:
+
+def league_seasons(
+    club_seasons: pl.DataFrame,
+    competitions: pl.DataFrame,
+    min_clubs: int = MIN_CLUBS_FOR_LEAGUE_STATS,
+) -> pl.DataFrame:
     """Per-league-season strength summary from member clubs' derived squad values.
 
-    Tier buckets leagues within each season into quartiles of median squad
-    value (1 = strongest; ties broken by league code ascending) — the same
-    formula as the audit's tier preview. strength is the natural log of the
-    median (null when the median is not positive). When the input carries an
-    "elo" column, median_elo and elo_club_coverage summarise it; otherwise
-    they are emitted as null / 0.0 so the output schema is stable.
+    A league-season with fewer than min_clubs members has no meaningful
+    median: strength and tier are null and stats_valid flags it, and such
+    rows do not consume a rank slot in the season's tier quartiles. Tier
+    buckets the remaining leagues within each season into quartiles of
+    median squad value (1 = strongest; ties broken by league code
+    ascending) — the same formula as the audit's tier preview. strength is
+    the natural log of the median (null when the median is not positive).
+    When the input carries an "elo" column, median_elo and
+    elo_club_coverage summarise it; otherwise they are emitted as null /
+    0.0 so the output schema is stable.
 
     league_name (the upstream name slug, e.g. "premier-league") and country
     come from the competitions table so the API can render human labels —
@@ -41,12 +51,15 @@ def league_seasons(club_seasons: pl.DataFrame, competitions: pl.DataFrame) -> pl
             median_elo=pl.lit(None, dtype=pl.Float64),
             elo_club_coverage=pl.lit(0.0, dtype=pl.Float64),
         )
-    ranked = grouped.sort(
+    # Ranking partitions on stats_valid too, so a below-floor stub never
+    # consumes a rank slot in the quartiles of the season's real leagues.
+    ranked = grouped.with_columns(stats_valid=pl.col("n_clubs") >= min_clubs).sort(
         ["season", "median_squad_value_eur", "league"],
         descending=[False, True, False],
-    ).with_columns(
-        _rank=pl.int_range(1, pl.len() + 1).over("season"),
-        _n=pl.len().over("season"),
+    )
+    ranked = ranked.with_columns(
+        _rank=pl.int_range(1, pl.len() + 1).over("season", "stats_valid"),
+        _n=pl.len().over("season", "stats_valid"),
     )
     labels = competitions.select(
         pl.col("competition_id").alias("league"),
@@ -55,10 +68,12 @@ def league_seasons(club_seasons: pl.DataFrame, competitions: pl.DataFrame) -> pl
     )
     return (
         ranked.with_columns(
-            strength=pl.when(pl.col("median_squad_value_eur") > 0)
+            strength=pl.when(pl.col("stats_valid") & (pl.col("median_squad_value_eur") > 0))
             .then(pl.col("median_squad_value_eur").log())
             .otherwise(None),
-            tier=((pl.col("_rank") - 1) * 4 // pl.col("_n") + 1).cast(pl.Int8),
+            tier=pl.when(pl.col("stats_valid"))
+            .then((pl.col("_rank") - 1) * 4 // pl.col("_n") + 1)
+            .cast(pl.Int8),
         )
         .join(labels, on="league", how="left")
         .select(
@@ -68,6 +83,7 @@ def league_seasons(club_seasons: pl.DataFrame, competitions: pl.DataFrame) -> pl
             "median_squad_value_eur",
             "strength",
             "tier",
+            "stats_valid",
             "median_elo",
             "elo_club_coverage",
             "league_name",

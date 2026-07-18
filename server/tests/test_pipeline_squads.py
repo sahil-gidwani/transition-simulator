@@ -94,7 +94,9 @@ def test_terciles_split_seven_clubs_three_two_two() -> None:
             for i in range(1, 8)
         ]
     )
-    out = assemble_club_seasons(squad_values(vals, [2020]), _no_games_leagues(), clubs, comps)
+    out = assemble_club_seasons(
+        squad_values(vals, [2020]), _no_games_leagues(), clubs, comps, min_clubs=1
+    )
     assert out.columns == [
         "club_id",
         "season",
@@ -121,9 +123,33 @@ def test_squad_value_tie_ranks_lower_club_id_first() -> None:
             {"player_id": 3, "current_club_id": 30, "market_value_in_eur": 1_000_000},
         ]
     )
-    out = assemble_club_seasons(squad_values(vals, [2020]), _no_games_leagues(), clubs, comps)
+    out = assemble_club_seasons(
+        squad_values(vals, [2020]), _no_games_leagues(), clubs, comps, min_clubs=1
+    )
     by_club = {row["club_id"]: row["tercile"] for row in out.iter_rows(named=True)}
     assert by_club == {10: 1, 20: 2, 30: 3}
+
+
+def test_terciles_null_below_min_clubs_floor() -> None:
+    clubs = make_clubs([{"club_id": i, "name": f"Club {i}"} for i in (1, 2, 3)])
+    comps = make_competitions([{}])
+    vals = make_valuations(
+        [
+            {
+                "player_id": i,
+                "current_club_id": i,
+                "market_value_in_eur": i * 1_000_000,
+                "date": date(2020, 6, 1),
+            }
+            for i in (1, 2, 3)
+        ]
+    )
+    squads = squad_values(vals, [2020])
+    below = assemble_club_seasons(squads, _no_games_leagues(), clubs, comps, min_clubs=4)
+    assert below["tercile"].to_list() == [None, None, None]
+    assert below["league"].to_list() == ["AA1", "AA1", "AA1"]  # membership itself survives
+    at_floor = assemble_club_seasons(squads, _no_games_leagues(), clubs, comps, min_clubs=3)
+    assert at_floor["tercile"].to_list() == [3, 2, 1]
 
 
 def test_snapshot_only_member_of_games_covered_league_is_unassigned() -> None:

@@ -24,6 +24,7 @@ from pipeline.config import (
     HF_REPO,
     LEGACY_LEAGUES,
     MANUAL_ELO_FIXES_CSV,
+    MIN_CLUBS_FOR_LEAGUE_STATS,
     PINNED_EXPECTATIONS,
     PINNED_HF_REVISION,
     PROCESSED_DIR_DEFAULT,
@@ -103,6 +104,7 @@ LEAGUE_SEASONS_SCHEMA: dict[str, pl.DataType] = {
     "median_squad_value_eur": pl.Int64(),
     "strength": pl.Float64(),
     "tier": pl.Int8(),
+    "stats_valid": pl.Boolean(),
     "median_elo": pl.Float32(),
     "elo_club_coverage": pl.Float32(),
     "league_name": pl.String(),
@@ -405,7 +407,9 @@ def run_build(
     latest_season = int(latest_season_raw) if isinstance(latest_season_raw, int) else 0
     tier_boundaries = [
         f"- Tier {tier}: {n} leagues, median club squad value €{lo:,.0f} - €{hi:,.0f}"
-        for tier, n, lo, hi in league_seasons_final.filter(pl.col("season") == latest_season)
+        for tier, n, lo, hi in league_seasons_final.filter(
+            (pl.col("season") == latest_season) & pl.col("tier").is_not_null()
+        )
         .group_by("tier")
         .agg(
             n=pl.len(),
@@ -442,6 +446,7 @@ def run_build(
             "squad_value_staleness_days": 365,
             "minutes_window_days": 365,
             "profile_min_minutes": 450,
+            "min_clubs_for_league_stats": MIN_CLUBS_FOR_LEAGUE_STATS,
         },
         artifacts=artifacts,
         warnings=warnings,

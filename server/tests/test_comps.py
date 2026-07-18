@@ -197,6 +197,24 @@ def test_null_destination_tier_is_never_eligible() -> None:
     assert result.pool == []
 
 
+def test_below_floor_destination_league_returns_empty_pool() -> None:
+    # A destination league below the pipeline's minimum-club floor carries a
+    # null tier; the engine refuses outright rather than filtering on a
+    # meaningless tier, and the empty pool reads as insufficient precedent.
+    result = find_comps(
+        _query(),
+        replace(_DEST_LEAGUE, tier=None, strength=None),
+        None,
+        make_transitions(_conforming(5)),
+        _strengths(),
+        SEASON_MIN,
+        config=_TEST_CONFIG,
+    )
+    assert result.pool == []
+    assert result.quality.pool_size == 0
+    assert result.quality.relaxation_steps == []
+
+
 def test_pre_scope_seasons_are_excluded() -> None:
     universe = make_transitions(
         [*_conforming(3), {"player_id": 200, "season": 2011, "transfer_date": date(2011, 8, 1)}]

@@ -20,7 +20,7 @@ class LeagueSeason:
     league_name: str | None
     country: str | None
     season: int
-    tier: int
+    tier: int | None  # null below the pipeline's minimum-club floor
     strength: float | None
     n_clubs: int
 

@@ -11,7 +11,7 @@ from datetime import timedelta
 
 import polars as pl
 
-from pipeline.config import SQUAD_VALUE_STALENESS_DAYS
+from pipeline.config import MIN_CLUBS_FOR_LEAGUE_STATS, SQUAD_VALUE_STALENESS_DAYS
 from pipeline.transforms.common import covered_clubs, season_start
 
 _SQUAD_SCHEMA: dict[str, type[pl.DataType]] = {
@@ -65,6 +65,7 @@ def assemble_club_seasons(
     games_leagues: pl.DataFrame,
     clubs: pl.DataFrame,
     competitions: pl.DataFrame,
+    min_clubs: int = MIN_CLUBS_FOR_LEAGUE_STATS,
 ) -> pl.DataFrame:
     """Covered club-seasons with league membership, club name and squad-value tercile.
 
@@ -79,7 +80,8 @@ def assemble_club_seasons(
     league assignment keep their row (squad value and Elo stay usable) with
     league=null and league_source="none". Tercile 1 is the top third by
     squad value within (league, season); ties rank the lower club_id first;
-    null-league rows carry a null tercile.
+    null-league rows and members of league-seasons below min_clubs carry a
+    null tercile (a rank within a stub membership is not a strength signal).
     """
     covered = covered_clubs(clubs, competitions).rename(
         {"name": "club_name", "domestic_competition_id": "snapshot_league"}
@@ -122,7 +124,7 @@ def assemble_club_seasons(
     )
     return (
         ranked.with_columns(
-            tercile=pl.when(pl.col("league").is_not_null())
+            tercile=pl.when(pl.col("league").is_not_null() & (pl.col("_n") >= min_clubs))
             .then((pl.col("_rank") - 1) * 3 // pl.col("_n") + 1)
             .cast(pl.Int8)
         )

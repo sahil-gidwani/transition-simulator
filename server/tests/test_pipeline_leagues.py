@@ -45,7 +45,7 @@ def test_tiers_split_eight_leagues_two_per_tier() -> None:
         {"club_id": i, "league": f"L{i}", "squad_value_eur": (9 - i) * 1_000_000}
         for i in range(1, 9)
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
     # Sorted by league code, and league Li has the i-th highest median.
     assert out["league"].to_list() == [f"L{i}" for i in range(1, 9)]
     assert out["tier"].to_list() == [1, 1, 2, 2, 3, 3, 4, 4]
@@ -58,7 +58,7 @@ def test_null_league_club_seasons_are_excluded_from_aggregation() -> None:
         {"club_id": 2, "league": "AA1", "squad_value_eur": 2_000_000},
         {"club_id": 3, "league": None, "league_source": "none", "squad_value_eur": 90_000_000},
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
     # No phantom null-league league-season row, and the unassigned club's
     # value never leaks into a median.
     assert out["league"].to_list() == ["AA1"]
@@ -72,7 +72,7 @@ def test_tiers_split_five_leagues_two_one_one_one() -> None:
         {"club_id": i, "league": f"L{i}", "squad_value_eur": (6 - i) * 1_000_000}
         for i in range(1, 6)
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
     assert out["tier"].to_list() == [1, 1, 2, 3, 4]
 
 
@@ -83,7 +83,7 @@ def test_median_tie_broken_by_league_code_ascending() -> None:
         {"club_id": 3, "league": "CC1", "squad_value_eur": 2_000_000},
         {"club_id": 4, "league": "DD1", "squad_value_eur": 1_000_000},
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
     tiers = dict(zip(out["league"].to_list(), out["tier"].to_list(), strict=True))
     assert tiers == {"AA1": 1, "BB1": 2, "CC1": 3, "DD1": 4}
 
@@ -94,7 +94,7 @@ def test_strength_is_natural_log_of_median_null_when_not_positive() -> None:
         {"club_id": 2, "league": "AA1", "squad_value_eur": 3_000_000},
         {"club_id": 3, "league": "ZZ1", "squad_value_eur": 0},
     ]
-    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows), _NO_LABELS, min_clubs=1)
     aa = out.filter(pl.col("league") == "AA1")
     assert aa["n_clubs"].item() == 2
     assert aa["median_squad_value_eur"].item() == 2_000_000
@@ -104,6 +104,36 @@ def test_strength_is_natural_log_of_median_null_when_not_positive() -> None:
     assert zz["strength"].item() is None
 
 
+def test_below_floor_league_season_gets_null_stats_and_flag() -> None:
+    rows = [{"club_id": i, "league": "AA1", "squad_value_eur": 2_000_000} for i in range(1, 8)] + [
+        {"club_id": 10 + i, "league": "BB1", "squad_value_eur": 1_000_000} for i in range(1, 9)
+    ]
+    out = league_seasons(_club_seasons(rows), _NO_LABELS)  # default floor (8)
+    aa = out.filter(pl.col("league") == "AA1")  # 7 members: below the floor
+    assert aa["stats_valid"].item() is False
+    assert aa["strength"].item() is None
+    assert aa["tier"].item() is None
+    assert aa["median_squad_value_eur"].item() == 2_000_000  # raw median still reported
+    bb = out.filter(pl.col("league") == "BB1")  # 8 members: at the floor, valid
+    assert bb["stats_valid"].item() is True
+    assert bb["tier"].item() == 1
+
+
+def test_below_floor_league_does_not_consume_a_tier_rank_slot() -> None:
+    # 4 valid leagues + 1 stub with the highest value: the valid four must
+    # split 1/2/3/4 exactly as if the stub were absent.
+    rows: list[dict[str, Any]] = []
+    for j, lg in enumerate(["AA1", "BB1", "CC1", "DD1"]):
+        rows += [
+            {"club_id": 100 * (j + 1) + i, "league": lg, "squad_value_eur": (9 - j) * 1_000_000}
+            for i in range(1, 9)
+        ]
+    rows.append({"club_id": 999, "league": "ZZ1", "squad_value_eur": 50_000_000})
+    out = league_seasons(_club_seasons(rows), _NO_LABELS)
+    tiers = dict(zip(out["league"].to_list(), out["tier"].to_list(), strict=True))
+    assert tiers == {"AA1": 1, "BB1": 2, "CC1": 3, "DD1": 4, "ZZ1": None}
+
+
 def test_median_elo_ignores_nulls_and_coverage_counts_mapped_clubs() -> None:
     rows: list[dict[str, Any]] = [
         {"club_id": 1, "elo": 1500.0, "elo_mapped": True},
@@ -111,7 +141,7 @@ def test_median_elo_ignores_nulls_and_coverage_counts_mapped_clubs() -> None:
         {"club_id": 3, "elo": None},
         {"club_id": 4, "elo": None},
     ]
-    out = league_seasons(_club_seasons(rows, with_elo=True), _NO_LABELS)
+    out = league_seasons(_club_seasons(rows, with_elo=True), _NO_LABELS, min_clubs=1)
     assert out.height == 1
     assert out["n_clubs"].item() == 4
     assert out["median_elo"].item() == pytest.approx(1600.0)
@@ -119,7 +149,7 @@ def test_median_elo_ignores_nulls_and_coverage_counts_mapped_clubs() -> None:
 
 
 def test_missing_elo_columns_yield_null_median_and_zero_coverage() -> None:
-    out = league_seasons(_club_seasons([{"club_id": 1}, {"club_id": 2}]), _NO_LABELS)
+    out = league_seasons(_club_seasons([{"club_id": 1}, {"club_id": 2}]), _NO_LABELS, min_clubs=1)
     assert out.columns == [
         "league",
         "season",
@@ -127,6 +157,7 @@ def test_missing_elo_columns_yield_null_median_and_zero_coverage() -> None:
         "median_squad_value_eur",
         "strength",
         "tier",
+        "stats_valid",
         "median_elo",
         "elo_club_coverage",
         "league_name",
@@ -141,7 +172,7 @@ def test_league_name_and_country_come_from_competitions() -> None:
     competitions = make_competitions(
         [{"competition_id": "AA1", "name": "premier-league", "country_name": "England"}]
     )
-    out = league_seasons(_club_seasons([{"club_id": 1}]), competitions)
+    out = league_seasons(_club_seasons([{"club_id": 1}]), competitions, min_clubs=1)
     assert out["league_name"].to_list() == ["premier-league"]
     assert out["country"].to_list() == ["England"]
 
@@ -150,6 +181,6 @@ def test_league_missing_from_competitions_keeps_null_labels() -> None:
     competitions = make_competitions(
         [{"competition_id": "ZZ9", "name": "other", "country_name": "Nowhere"}]
     )
-    out = league_seasons(_club_seasons([{"club_id": 1}]), competitions)
+    out = league_seasons(_club_seasons([{"club_id": 1}]), competitions, min_clubs=1)
     assert out["league_name"].to_list() == [None]
     assert out["country"].to_list() == [None]
