@@ -5,6 +5,15 @@ actually asks — "if we sign this player, what happens to their value?" — wit
 named players who made comparable moves, and what happened to their market value in the
 12 months after.
 
+## Documentation
+
+The full docs map (with reading paths) lives at [docs/README.md](docs/README.md):
+[architecture](docs/architecture.md) · [methodology](docs/methodology.md) ·
+[API reference](docs/api.md) · [pipeline](docs/pipeline.md) ·
+[frontend](docs/frontend.md) · [decision log](docs/decisions.md) ·
+[future scope](docs/future-scope.md) · [data notes](docs/data-notes.md) ·
+[eval report](docs/eval-report.md) · [pipeline report](docs/pipeline-report.md).
+
 ## Quickstart
 
 ### Dev
@@ -44,7 +53,8 @@ publish a different port. If your network uses a TLS-inspecting proxy, see
 
 The server reads **only** the lean parquet artifacts committed in `server/data/processed/`
 (about 6 MB), so cloning the repo is enough to run the app — no data download needed.
-Rebuilding those artifacts from raw data is an offline concern:
+Rebuilding those artifacts from raw data is an offline concern (full stage walkthrough and
+data dictionary: [docs/pipeline.md](docs/pipeline.md)):
 
 ```bash
 cd server
@@ -70,7 +80,10 @@ clubelo.com) and the reep cross-provider ID register (CC0).
 **Gates.** `pipeline.build` fails loudly — non-zero exit, nothing written — unless every
 gate passes: the source pin matches, row-count floors hold, the measured valuation
 freshness equals the pinned date (catching frozen-valuation vintages), and the transfer
-funnel reproduces the audited counts **exactly** (175,043 raw → 19,706 comps universe).
+funnel reproduces the audited counts **exactly** (175,043 raw → 19,706 non-loan
+transitions across all seasons; the *shipped* comps universe is the 19,407 of those from
+season 2012/13 on, inside a 37,602-row transitions table that keeps loans flagged — the
+distinction, precisely: [docs/pipeline.md](docs/pipeline.md#the-funnel-precisely)).
 The full gate table, funnel, coverage stats and caveats land in
 [docs/pipeline-report.md](docs/pipeline-report.md) and `data/processed/meta.json`.
 
@@ -100,6 +113,10 @@ comp eligibility. `server/data/manual/elo_manual_fixes.csv` (committed) carries 
 ClubElo name fixes automation cannot make; the build validates every row.
 
 ## Methodology
+
+This section is the compressed version; the full detail — exact ladder labels, the ten
+distance terms with tuned weights, the quantile math, the club-honesty decision flow and
+the destination-sensitivity evidence — is in [docs/methodology.md](docs/methodology.md).
 
 **What "comparable" means.** A comp is a historical transition (see the definitions above)
 that passes every hard filter: same position group; age at transfer within ±4 years of the
@@ -201,17 +218,23 @@ discover it the hard way:
   both move real prices. Market-wide inflation: outcomes are 12-month *multipliers*, which
   is relative and therefore partially normalizes market drift, and the recency term
   down-weights old comps — but nothing in the engine models inflation explicitly; that is
-  the exact extent of the control, no more.
+  the exact extent of the control, no more. (Roadmap: injury data and era-normalized
+  strength, [docs/future-scope.md](docs/future-scope.md).)
 - **Valuation-source circularity.** Transfermarkt values partly reflect crowd
   expectations, and Precedent both predicts them and conditions on them. If the crowd is
   systematically wrong about a class of player, this product will be confidently wrong
   alongside it — market value is also not the same thing as a transfer fee, which embeds
-  contract leverage, fees structure and negotiation.
+  contract leverage, fees structure and negotiation. (Roadmap: fee-vs-value modeling,
+  [docs/future-scope.md](docs/future-scope.md).)
 - **Per-tier calibration gaps.** The pooled interval is honest (~50% coverage), but the
   *high*-confidence tier under-covers (~42–45%) — tight, unrelaxed pools are systematically
   overconfident. Until a per-tier calibration lands, read confidence tiers as evidence
-  agreement, not probability guarantees.
+  agreement, not probability guarantees. (Roadmap: the calibration machinery already
+  exists, switched off by evidence — [docs/future-scope.md](docs/future-scope.md).)
 - **A real deployment needs a live feed and monitoring.** The repo ships a pinned,
   audit-gated snapshot (values as of the date shown in the footer). Real money needs
   scheduled re-ingestion behind those same gates, drift monitors on coverage and interval
   width, and re-tuning on a cadence — none of which exists here by design.
+
+How each of these would be addressed, with the evidence that motivates it:
+[docs/future-scope.md](docs/future-scope.md).
