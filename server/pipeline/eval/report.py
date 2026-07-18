@@ -83,6 +83,8 @@ def build_summary(eval_dir: Path, store: DataStore) -> EvalSummary:
     skyline_test = skyline.filter(pl.col("season").is_in(list(TEST_SEASONS)))
     skyline_val = skyline.filter(pl.col("season").is_in(list(VALIDATION_SEASONS)))
 
+    trials = json.loads((eval_dir / "trials_20260718.json").read_text(encoding="utf-8"))
+    winner_hash = next(t["hash"] for t in trials["trials"] if t["index"] == trials["winner_index"])
     headline = [
         _pooled(test, "Precedent (tuned comps engine)"),
         _b0(test),
@@ -92,7 +94,7 @@ def build_summary(eval_dir: Path, store: DataStore) -> EvalSummary:
     ]
     validation = [
         _pooled(val_handset, "Hand-set priors"),
-        _pooled(val_tuned, "Tuned (winner ff9f546e0b3c)"),
+        _pooled(val_tuned, f"Tuned (winner {winner_hash})"),
         _pooled(val_league, "Tuned, league-only ablation (club withheld)"),
         _pooled(skyline_val, "Skyline reference"),
     ]
@@ -121,7 +123,7 @@ def build_summary(eval_dir: Path, store: DataStore) -> EvalSummary:
         test_by_season=aggregate(test, ["season"], min_cell=1).sort("season"),
         test_by_confidence=aggregate(test, ["confidence"], min_cell=1),
         segments=segments,
-        trials=json.loads((eval_dir / "trials_20260718.json").read_text(encoding="utf-8")),
+        trials=trials,
         thresholds=json.loads((eval_dir / "thresholds_tuned.json").read_text(encoding="utf-8")),
         importances=json.loads((eval_dir / "skyline_importances.json").read_text(encoding="utf-8")),
         censor=censor,
@@ -193,12 +195,20 @@ def render_report(summary: EvalSummary) -> str:
         ("W_DEST_STRENGTH", constants.W_DEST_STRENGTH),
         ("W_ORIGIN_STRENGTH", constants.W_ORIGIN_STRENGTH),
         ("W_ELO", constants.W_ELO),
-        ("W_DEST_TERCILE", constants.W_DEST_TERCILE),
-        ("W_ORIGIN_TERCILE", constants.W_ORIGIN_TERCILE),
+        ("W_DEST_CLUB_VALUE", constants.W_DEST_CLUB_VALUE),
+        ("W_ORIGIN_CLUB_VALUE", constants.W_ORIGIN_CLUB_VALUE),
         ("W_MINUTES", constants.W_MINUTES),
         ("W_SUB_POSITION", constants.W_SUB_POSITION),
         ("W_RECENCY", constants.W_RECENCY),
     ]
+    precedent = summary.headline[0]
+    skyline_row = summary.headline[-1]
+    skyline_gap = 1.0 - skyline_row["pinball_mean"] / precedent["pinball_mean"]
+    winner_gain = 1.0 - winner["score"] / hand["score"]
+    top_weights = ", ".join(
+        f"{name} {value:.2f}" for name, value in sorted(weights, key=lambda item: -item[1])[:3]
+    )
+    top_features = ", ".join(row["feature"] for row in summary.importances[:3])
 
     sections = [
         "# Precedent - temporal backtest report",
@@ -244,14 +254,16 @@ def render_report(summary: EvalSummary) -> str:
         "",
         _method_table(summary.headline),
         "",
-        "Precedent's range is honest out-of-sample: **50.5% of actual "
-        "12-month outcomes land inside the served q25-q75 band** (nominal "
-        "50%). It beats every naive baseline on every metric while refusing "
-        "only 0.1% of queries. The LightGBM skyline - same features, same "
-        "availability discipline, no traceability - is ~3.4% better on "
-        "pinball but materially *miscalibrated* (43% coverage): the "
-        "traceability tax on sharpness is small, and the comp-pool "
-        "quantiles buy back honest uncertainty.",
+        f"Precedent's range is honest out-of-sample: **{precedent['coverage']:.1%} "
+        "of actual 12-month outcomes land inside the served q25-q75 band** "
+        "(nominal 50%). It beats or matches every naive baseline on every "
+        f"metric while refusing only {precedent['insufficient_rate']:.2%} of "
+        "queries. The "
+        "LightGBM skyline - same features, same availability discipline, no "
+        f"traceability - is ~{skyline_gap:.1%} better on pinball but "
+        f"materially *miscalibrated* ({skyline_row['coverage']:.0%} "
+        "coverage): the traceability tax on sharpness is small, and the "
+        "comp-pool quantiles buy back honest uncertainty.",
         "",
         "## Test seasons, by season",
         "",
@@ -278,11 +290,14 @@ def render_report(summary: EvalSummary) -> str:
         "",
         f"Winner: trial {winner['index']}, config hash `{winner['hash']}` "
         f"(imputed score {winner['score']:.5f} vs hand-set {hand['score']:.5f}, "
-        "~1.4% better with half the refusals). The tuned weights moved the "
-        "priors substantially: age similarity and destination-club tercile "
-        "matter most; sub-position, minutes share and recency matter far "
-        "less than assumed. Frozen into `app/services/constants.py` "
-        "(provenance comment + hash) before any test query was scored.",
+        f"~{winner_gain:.1%} better). The tuned weights moved the priors "
+        f"substantially - the heaviest terms are now {top_weights}: with the "
+        "destination a continuous question (strength band + club value "
+        "percentile), destination-club similarity carries most of the "
+        "distance mass, while the age and value gaps matter less than "
+        "assumed once their hard filters have done the bounding. Frozen "
+        "into `app/services/constants.py` (provenance comment + hash) "
+        "before any test query was scored.",
         "",
         "Top 10 trials by validation score:",
         "",
@@ -304,8 +319,9 @@ def render_report(summary: EvalSummary) -> str:
         "honest when its validation coverage brackets the nominal 50% and "
         "higher confidence means narrower ranges. **No setting was honest "
         f"({thresholds['n_honest']}/{thresholds['n_candidates']})**: under "
-        "every candidate, the high tier under-covers (33.8% at the hand-set "
-        "thresholds, n=151) - tight, unrelaxed pools are systematically "
+        "every candidate, the high tier under-covers "
+        f"({thresholds['tier_coverage']['high']:.1%} on validation at the "
+        "hand-set thresholds) - tight, unrelaxed pools are systematically "
         "overconfident. The hand-set thresholds were therefore kept, and "
         "this is an open finding, not a hidden one: treat the *high* label "
         'as "strong precedent agreement", not "50% band guaranteed".',
@@ -325,7 +341,8 @@ def render_report(summary: EvalSummary) -> str:
         "of the shown comps. Re-deciding it per-tier after seeing the tier "
         "table above would be post-hoc fitting, so it is left as the "
         "documented next step for the high tier.) Test coverage came in at "
-        "50.5% pooled - the uncalibrated intervals are honest.",
+        f"{precedent['coverage']:.1%} pooled - the uncalibrated intervals "
+        "are honest.",
         "",
         "## Skyline cross-check: importances vs tuned weights",
         "",
@@ -348,12 +365,13 @@ def render_report(summary: EvalSummary) -> str:
             [("distance weight", "method", "s"), ("tuned value", "weight", ".3f")],
         ),
         "",
-        "Agreements: age dominates both; value and destination strength "
-        "matter in both. Divergences worth knowing: the GBM leans on Elo "
-        "percentiles (raw features, 31% missing) where retrieval tuning "
-        "kept W_ELO low, and the GBM finds minutes_share_pre informative "
-        "while the tuned W_MINUTES is small - candidates for a future "
-        "search round with wider ranges.",
+        f"The GBM's top gain features ({top_features}) and the heaviest "
+        f"tuned weights ({top_weights}) can be read side by side. Where "
+        "both agree the signal is robust; where the GBM leans on a feature "
+        "the tuned weights keep small (or vice versa), that term is the "
+        "candidate for the next search round with wider ranges - the "
+        "comparison is printed here precisely so those divergences stay "
+        "visible rather than smoothed over.",
         "",
         "## Horizon and right-censoring",
         "",
