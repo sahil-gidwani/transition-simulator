@@ -29,8 +29,12 @@ TRANSITIONS_SCHEMA: dict[str, pl.DataType] = {
     "to_league": pl.String(),
     "from_tier": pl.Int8(),
     "to_tier": pl.Int8(),
+    "from_strength": pl.Float32(),
+    "to_strength": pl.Float32(),
     "from_tercile": pl.Int8(),
     "to_tercile": pl.Int8(),
+    "from_club_value_pct": pl.Float32(),
+    "to_club_value_pct": pl.Float32(),
     "from_elo": pl.Float32(),
     "from_elo_pct": pl.Float32(),
     "to_elo": pl.Float32(),
@@ -103,16 +107,25 @@ def elo_keys(rows: pl.DataFrame, side: str) -> pl.DataFrame:
 def _side_context(
     club_seasons: pl.DataFrame, league_seasons: pl.DataFrame, side: str
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Baked per-side context: league membership and club/league strength.
+
+    strength and club_value_pct are baked into the artifact (as-of the
+    comp's own season) so the serving engine filters and ranks without a
+    runtime join; one source of truth for what the comp's destination was
+    worth at the time.
+    """
     club_part = club_seasons.select(
         pl.col("club_id").alias(f"{side}_club_id"),
         "season",
         pl.col("league").alias(f"{side}_league"),
         pl.col("tercile").alias(f"{side}_tercile"),
+        pl.col("club_value_pct").alias(f"{side}_club_value_pct"),
     )
     league_part = league_seasons.select(
         pl.col("league").alias(f"{side}_league"),
         "season",
         pl.col("tier").alias(f"{side}_tier"),
+        pl.col("strength").alias(f"{side}_strength"),
     )
     return club_part, league_part
 

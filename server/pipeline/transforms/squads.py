@@ -82,6 +82,13 @@ def assemble_club_seasons(
     squad value within (league, season); ties rank the lower club_id first;
     null-league rows and members of league-seasons below min_clubs carry a
     null tercile (a rank within a stub membership is not a strength signal).
+
+    club_value_pct is the continuous version of the tercile: the club's
+    squad-value percentile within its (league, season), (n - rank)/(n - 1),
+    1.0 = richest (same orientation as elo_pct). It is what separates a
+    Real Madrid (far above the league median) from a mid-table budget
+    without depending on sparse Elo. Null under exactly the tercile's
+    conditions.
     """
     covered = covered_clubs(clubs, competitions).rename(
         {"name": "club_name", "domestic_competition_id": "snapshot_league"}
@@ -122,11 +129,15 @@ def assemble_club_seasons(
         _rank=pl.int_range(1, pl.len() + 1).over(["league", "season"]),
         _n=pl.len().over(["league", "season"]),
     )
+    stats_ok = pl.col("league").is_not_null() & (pl.col("_n") >= min_clubs)
     return (
         ranked.with_columns(
-            tercile=pl.when(pl.col("league").is_not_null() & (pl.col("_n") >= min_clubs))
+            tercile=pl.when(stats_ok)
             .then((pl.col("_rank") - 1) * 3 // pl.col("_n") + 1)
-            .cast(pl.Int8)
+            .cast(pl.Int8),
+            club_value_pct=pl.when(stats_ok & (pl.col("_n") > 1))
+            .then((pl.col("_n") - pl.col("_rank")) / (pl.col("_n") - 1))
+            .cast(pl.Float32),
         )
         .select(
             "club_id",
@@ -137,6 +148,7 @@ def assemble_club_seasons(
             "squad_value_eur",
             "n_valued_players",
             "tercile",
+            "club_value_pct",
         )
         .sort(["season", "league", "club_id"])
     )

@@ -91,6 +91,7 @@ CLUB_SEASONS_SCHEMA: dict[str, pl.DataType] = {
     "squad_value_eur": pl.Int64(),
     "n_valued_players": pl.Int16(),
     "tercile": pl.Int8(),
+    "club_value_pct": pl.Float32(),
     "elo": pl.Float32(),
     "elo_pct": pl.Float32(),
     "elo_date": pl.Date(),

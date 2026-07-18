@@ -1,6 +1,7 @@
 from datetime import date
 
 import polars as pl
+import pytest
 from factories import make_players, make_transfers, make_valuations
 
 from pipeline.transforms.loans import flag_suspected_loans
@@ -49,9 +50,17 @@ def _empty_enrichment(rows: pl.DataFrame) -> tuple[pl.DataFrame, ...]:
             "season": pl.Int32,
             "league": pl.String,
             "tercile": pl.Int8,
+            "club_value_pct": pl.Float32,
         }
     )
-    league_seasons = pl.DataFrame(schema={"league": pl.String, "season": pl.Int32, "tier": pl.Int8})
+    league_seasons = pl.DataFrame(
+        schema={
+            "league": pl.String,
+            "season": pl.Int32,
+            "tier": pl.Int8,
+            "strength": pl.Float64,
+        }
+    )
     minutes = pl.DataFrame(schema={"anchor_id": pl.Int64, "minutes_share": pl.Float64})
     elo = rows.select(
         "row_idx",
@@ -105,18 +114,19 @@ def test_missing_enrichment_never_drops_rows() -> None:
 def test_enrichment_joins_land_on_the_right_side() -> None:
     rows = filter_universe_rows(_base_rows([{"player_id": 1, "transfer_date": _T}]))
     club_seasons = pl.DataFrame(
-        [(10, 2020, "AA1", 1), (20, 2020, "BB1", 3)],
+        [(10, 2020, "AA1", 1, 0.95), (20, 2020, "BB1", 3, 0.25)],
         schema={
             "club_id": pl.Int64,
             "season": pl.Int32,
             "league": pl.String,
             "tercile": pl.Int8,
+            "club_value_pct": pl.Float32,
         },
         orient="row",
     )
     league_seasons = pl.DataFrame(
-        [("AA1", 2020, 1), ("BB1", 2020, 2)],
-        schema={"league": pl.String, "season": pl.Int32, "tier": pl.Int8},
+        [("AA1", 2020, 1, 19.5), ("BB1", 2020, 2, 17.0)],
+        schema={"league": pl.String, "season": pl.Int32, "tier": pl.Int8, "strength": pl.Float64},
         orient="row",
     )
     minutes = pl.DataFrame(
@@ -130,7 +140,15 @@ def test_enrichment_joins_land_on_the_right_side() -> None:
     row = out.row(0, named=True)
     assert (row["from_league"], row["to_league"]) == ("AA1", "BB1")
     assert (row["from_tier"], row["to_tier"]) == (1, 2)
+    assert (row["from_strength"], row["to_strength"]) == (
+        pytest.approx(19.5),
+        pytest.approx(17.0),
+    )
     assert (row["from_tercile"], row["to_tercile"]) == (1, 3)
+    assert (row["from_club_value_pct"], row["to_club_value_pct"]) == (
+        pytest.approx(0.95),
+        pytest.approx(0.25),
+    )
     assert (row["from_elo"], row["to_elo"]) == (1800.0, 1500.0)
     assert row["minutes_share_pre"] == 0.75
     assert row["multiplier"] == 2.5

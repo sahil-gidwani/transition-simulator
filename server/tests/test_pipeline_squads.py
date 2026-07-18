@@ -106,6 +106,7 @@ def test_terciles_split_seven_clubs_three_two_two() -> None:
         "squad_value_eur",
         "n_valued_players",
         "tercile",
+        "club_value_pct",
     ]
     # Output is sorted by club_id, and club i has the i-th highest squad value.
     assert out["club_id"].to_list() == [1, 2, 3, 4, 5, 6, 7]
@@ -128,6 +129,41 @@ def test_squad_value_tie_ranks_lower_club_id_first() -> None:
     )
     by_club = {row["club_id"]: row["tercile"] for row in out.iter_rows(named=True)}
     assert by_club == {10: 1, 20: 2, 30: 3}
+
+
+def test_club_value_pct_is_within_league_percentile_top_is_one() -> None:
+    clubs = make_clubs([{"club_id": i, "name": f"Club {i}"} for i in (1, 2, 3, 4, 5)])
+    comps = make_competitions([{}])
+    vals = make_valuations(
+        [
+            {
+                "player_id": i,
+                "current_club_id": i,
+                "market_value_in_eur": i * 1_000_000,
+                "date": date(2020, 6, 1),
+            }
+            for i in (1, 2, 3, 4, 5)
+        ]
+    )
+    out = assemble_club_seasons(
+        squad_values(vals, [2020]), _no_games_leagues(), clubs, comps, min_clubs=1
+    )
+    # Sorted by club_id; club 5 is the richest -> 1.0, club 1 the poorest -> 0.0.
+    assert out["club_value_pct"].to_list() == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert out["club_value_pct"].dtype == pl.Float32
+
+
+def test_club_value_pct_null_for_single_member_league() -> None:
+    clubs = make_clubs([{"club_id": 1, "name": "Solo FC"}])
+    comps = make_competitions([{}])
+    vals = make_valuations([{"player_id": 1, "current_club_id": 1, "date": date(2020, 6, 1)}])
+    out = assemble_club_seasons(
+        squad_values(vals, [2020]), _no_games_leagues(), clubs, comps, min_clubs=1
+    )
+    # (rank-1)/(n-1) is undefined at n=1; a percentile of a one-club league
+    # carries no information either way.
+    assert out["club_value_pct"].to_list() == [None]
+    assert out["tercile"].to_list() == [1]
 
 
 def test_terciles_null_below_min_clubs_floor() -> None:
