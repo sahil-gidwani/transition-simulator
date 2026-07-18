@@ -57,6 +57,7 @@ def build_narrative(
     pool: Sequence[ScoredComp],
     quality: PoolQuality,
     today: date,
+    club_indistinct: bool = False,
 ) -> str:
     sentences: list[str] = []
 
@@ -103,6 +104,11 @@ def build_narrative(
                 "range as indicative, not bankable."
             )
 
+    if club_indistinct:
+        sentences.append(
+            f"Precedent this rare doesn't distinguish destinations this fine: choosing "
+            f"{dest_label} barely moves the league-level answer."
+        )
     if quality.expanded_search and quality.relaxation_steps:
         sentences.append(
             f"To find this precedent the search was expanded ({quality.relaxation_steps[-1]})."

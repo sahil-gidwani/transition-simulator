@@ -15,6 +15,7 @@ function poolQuality(overrides: Partial<PoolQuality>): PoolQuality {
     missing_age: false,
     missing_minutes: false,
     origin_tier_unknown: false,
+    club_indistinct: false,
     ...overrides,
   };
 }
@@ -43,6 +44,19 @@ describe('PoolQualityBanner', () => {
     ).toBeInTheDocument();
     // The server's exact wording stays reachable as a tooltip breadcrumb.
     expect(screen.getByTitle('age band widened to +/-6 years')).toBeInTheDocument();
+  });
+
+  it('says when the club choice cannot be distinguished from the league', () => {
+    render(
+      <PoolQualityBanner
+        poolQuality={poolQuality({ club_selected: true, club_indistinct: true })}
+      />,
+    );
+    expect(
+      screen.getByText(
+        'Precedent this rare doesn’t distinguish destinations this fine: the club choice barely moves the league-level answer.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('passes unknown relaxation steps through verbatim', () => {

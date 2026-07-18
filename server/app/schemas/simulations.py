@@ -73,6 +73,10 @@ class PoolQualityOut(BaseModel):
     missing_age: bool
     missing_minutes: bool
     origin_tier_unknown: bool
+    # True when the selected club returned the same pool as the league-only
+    # search with a near-identical midpoint: precedent this rare does not
+    # distinguish destinations this fine.
+    club_indistinct: bool
 
 
 class SimulationResponse(BaseModel):

@@ -168,6 +168,8 @@ export interface PoolQuality {
   missing_age: boolean;
   missing_minutes: boolean;
   origin_tier_unknown: boolean;
+  /** The chosen club returned the league-only pool with a near-identical midpoint. */
+  club_indistinct: boolean;
 }
 
 export type Confidence = 'high' | 'medium' | 'low' | 'insufficient';

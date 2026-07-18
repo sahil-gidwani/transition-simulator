@@ -19,7 +19,7 @@ from app.schemas.simulations import (
     SimulationResponse,
 )
 from app.services.comps import build_query_context, find_comps
-from app.services.constants import SHOWN_COMPS_DEFAULT
+from app.services.constants import CLUB_INDISTINCT_MAX_MID_DRIFT, SHOWN_COMPS_DEFAULT
 from app.services.destinations import league_label, resolve_destination
 from app.services.narrative import build_narrative
 from app.services.players import age_on
@@ -46,9 +46,38 @@ def run_simulation(
     value_range, confidence = summarize_pool(
         result.pool, query.value_eur, result.quality.relaxation_level
     )
+    club_indistinct = False
+    if club is not None and value_range is not None:
+        # Honesty check on the PAIR of searches: if withholding the club
+        # returns the same pool and barely moves the midpoint, the club
+        # choice is below what this precedent can resolve - say so instead
+        # of presenting reordered noise as club-level differentiation.
+        league_only = find_comps(
+            query,
+            league,
+            None,
+            store.transitions.comps_universe,
+            store.build_info.season_min,
+        )
+        league_range, _ = summarize_pool(
+            league_only.pool, query.value_eur, league_only.quality.relaxation_level
+        )
+        if league_range is not None:
+            same_pool = {(c.player_id, c.transfer_date) for c in result.pool} == {
+                (c.player_id, c.transfer_date) for c in league_only.pool
+            }
+            drift = abs(value_range.q50_multiplier / league_range.q50_multiplier - 1)
+            club_indistinct = same_pool and drift <= CLUB_INDISTINCT_MAX_MID_DRIFT
     dest_label = club.club_name if club is not None else league_label(league)
     narrative = build_narrative(
-        player, dest_label, value_range, confidence, result.pool, result.quality, clock.today()
+        player,
+        dest_label,
+        value_range,
+        confidence,
+        result.pool,
+        result.quality,
+        clock.today(),
+        club_indistinct=club_indistinct,
     )
 
     prediction = None
@@ -117,6 +146,7 @@ def run_simulation(
             missing_age=result.quality.missing_age,
             missing_minutes=result.quality.missing_minutes,
             origin_tier_unknown=result.quality.origin_tier_unknown,
+            club_indistinct=club_indistinct,
         ),
         narrative=narrative,
     )

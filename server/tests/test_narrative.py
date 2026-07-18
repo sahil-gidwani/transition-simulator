@@ -164,6 +164,34 @@ def test_expanded_search_caveat_names_the_last_step() -> None:
     assert "the search was expanded (value bracket widened to 0.25-4x)" in text
 
 
+def test_club_indistinct_caveat_names_the_destination() -> None:
+    pool = [_comp("A", 0.1) for _ in range(6)]
+    text = build_narrative(
+        _player(),
+        "Beta United",
+        _range(1.0, 1.1, 1.2),
+        "medium",
+        pool,
+        _quality(club_selected=True),
+        TODAY,
+        club_indistinct=True,
+    )
+    assert (
+        "Precedent this rare doesn't distinguish destinations this fine: "
+        "choosing Beta United barely moves the league-level answer." in text
+    )
+    without = build_narrative(
+        _player(),
+        "Beta United",
+        _range(1.0, 1.1, 1.2),
+        "medium",
+        pool,
+        _quality(club_selected=True),
+        TODAY,
+    )
+    assert "doesn't distinguish destinations" not in without
+
+
 def test_elo_fallback_caveat_only_when_a_club_was_selected() -> None:
     pool = [_comp("A", 0.1) for _ in range(6)]
     with_club = build_narrative(

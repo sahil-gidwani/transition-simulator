@@ -176,6 +176,7 @@ def test_league_only_simulation_returns_range_comps_and_narrative() -> None:
     assert body["confidence"] in ("high", "medium", "low")
     assert body["pool_quality"]["pool_size"] == 6
     assert body["pool_quality"]["club_selected"] is False
+    assert body["pool_quality"]["club_indistinct"] is False  # league-only: no club to judge
     assert body["shown_comps"] == 6
     # Comps arrive most-similar first and include the decliner, shown honestly.
     similarities = [c["similarity"] for c in body["comps"]]
@@ -194,6 +195,9 @@ def test_simulation_with_club_activates_club_context() -> None:
     assert body["pool_quality"]["club_selected"] is True
     assert body["pool_quality"]["dest_elo_available"] is True
     assert body["pool_quality"]["elo_pool_coverage"] == 1.0
+    # The club selection is judged against the league-only search; with this
+    # tiny universe the pool is identical and the midpoint barely moves.
+    assert body["pool_quality"]["club_indistinct"] is True
 
 
 def test_unknown_player_is_404() -> None:

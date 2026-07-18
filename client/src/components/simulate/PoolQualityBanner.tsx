@@ -51,6 +51,11 @@ export default function PoolQualityBanner({ poolQuality }: PoolQualityBannerProp
       )}% of these moves have club-strength (Elo) ratings — squad value carried the rest.`,
     );
   }
+  if (poolQuality.club_indistinct) {
+    similarityCaveats.push(
+      'Precedent this rare doesn’t distinguish destinations this fine: the club choice barely moves the league-level answer.',
+    );
+  }
 
   if (!poolQuality.expanded_search && !eloFallback && similarityCaveats.length === 0) return null;
 
