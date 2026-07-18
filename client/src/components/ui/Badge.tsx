@@ -6,16 +6,20 @@ interface BadgeProps {
   title?: string;
 }
 
-/** Bordered pill for compact identity labels (position codes, leagues, tiers). */
+/**
+ * Identity family: squared, hairline-bordered labels for who/where facts
+ * (position codes, leagues, tiers). States and outcomes use the round Chip;
+ * the shape difference is deliberate so the two never read as one another.
+ */
 export default function Badge({ children, variant = 'neutral', title }: BadgeProps) {
   const tone =
     variant === 'accent'
       ? 'border-tangerine-300/40 text-tangerine-300'
-      : 'border-pitch-800 text-ink-400';
+      : 'border-pitch-700 text-ink-400';
   return (
     <span
       title={title}
-      className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium tracking-wide whitespace-nowrap ${tone}`}
+      className={`inline-flex items-center rounded-sm border bg-pitch-900/40 px-1.5 py-0.5 text-xs font-medium tracking-wide whitespace-nowrap ${tone}`}
     >
       {children}
     </span>

@@ -1,5 +1,6 @@
 import Badge from '../ui/Badge';
 import Chip from '../ui/Chip';
+import { SealCheck } from '../ui/icons';
 import { formatDate, formatEuroCompact, formatRange, formatSignedPct } from '../../lib/format';
 import { tierLabel } from '../../lib/labels';
 import { useHealth } from '../../lib/queries';
@@ -45,7 +46,7 @@ export default function VerdictPanel({ result, prediction }: VerdictPanelProps) 
           </span>
           <Badge>{tierLabel(result.destination.tier)}</Badge>
         </p>
-        <Chip tone={confidence.tone} title={confidence.note}>
+        <Chip tone={confidence.tone} title={confidence.note} icon={<SealCheck />} elevated>
           {confidence.label}
         </Chip>
       </div>
