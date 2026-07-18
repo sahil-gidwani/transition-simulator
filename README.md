@@ -60,9 +60,12 @@ downloaded from a Hugging Face mirror **pinned to an immutable revision** (the e
 lives in `pipeline/config.py` and is recorded in `data/raw/MANIFEST.json`). Kaggle builds of
 the same dataset have shipped regressions (a collapsed transfers table; frozen valuations),
 so the pipeline refuses to run against anything but the pinned, audit-gated revision — see
-`docs/data-notes.md` for the audit. Club strength is enriched with rating history from
-public [ClubElo](http://clubelo.com) mirrors (data: clubelo.com) and the reep cross-provider
-ID register (CC0).
+`docs/data-notes.md` for the audit. Club and league strength are **derived from player
+valuations** (squad value = sum of members' latest valuations at season start) rather than
+read from the upstream clubs table, whose market-value field is unreliable, or from wage
+bills and federation coefficients, which the dataset simply does not carry. That strength is
+enriched with rating history from public [ClubElo](http://clubelo.com) mirrors (data:
+clubelo.com) and the reep cross-provider ID register (CC0).
 
 **Gates.** `pipeline.build` fails loudly — non-zero exit, nothing written — unless every
 gate passes: the source pin matches, row-count floors hold, the measured valuation
@@ -86,7 +89,10 @@ The full gate table, funnel, coverage stats and caveats land in
 Key definitions (applied uniformly, everywhere): **v_before** = last valuation in the 180
 days strictly before the transfer (transfer-day revaluations are excluded — they already
 price the move); **v_after** = valuation nearest 12 months after, within a 6–18 month
-window; **suspected loan** = both legs of a zero-fee round-trip within 18 months (excluded
+window (the window is deliberate: Transfermarkt revaluations land roughly twice a season,
+so a hard 12-month cut would drop comps whose nearest honest valuation arrives a few months
+either side — the realized horizon centers near 10 months, see `docs/eval-report.md`);
+**suspected loan** = both legs of a zero-fee round-trip within 18 months (excluded
 from the comps universe; loans converted to permanent moves are structurally invisible —
 stated, not papered over). Playing-time features are nullable by design: appearance
 coverage only exists for 14 legacy leagues from 2012 (all 31 from 2024) and never gates
@@ -96,23 +102,42 @@ ClubElo name fixes automation cannot make; the build validates every row.
 ## Methodology
 
 **What "comparable" means.** A comp is a historical transition (see the definitions above)
-that passes every hard filter: same position group; age at transfer within ±2.5 years of the
-player's age today; origin league tier within ±1 of the player's current league; destination
-league tier equal to the target league's; pre-move value within 0.4–2.5× of the player's
-current value; suspected loans excluded; seasons 2012/13 onward. When fewer than 6 comps
-match, the search widens one step at a time — age ±6 years → value bracket 0.25–4× →
-origin tier ±2 → origin-league filter dropped (club-level terms ignored) — and every
-widening is labelled in the response (`pool_quality.relaxation_steps`), never silent.
+that passes every hard filter: same position group; age at transfer within ±4 years of the
+player's age today; origin league tier within ±1 of the player's current league;
+**destination league strength within ±0.5 of the target league's** (ln squad-value units,
+so ±0.5 ≈ a 1.6× median-squad-value band — a continuous band, not a tier match, which is
+what makes a Premier League query different from an MLS query); pre-move value within
+0.5–3× of the player's current value; suspected loans excluded; seasons 2012/13 onward.
+When fewer than 6 comps match, the search widens one step at a time — age ±4.5 years →
+value bracket 0.2–5× → origin tier ±2 → destination band ±0.9 → destination band ±1.0 +
+origin-league filter dropped (club-level terms ignored) — and every widening is labelled in
+the response (`pool_quality.relaxation_steps`), never silent. Two asymmetries are
+deliberate: the destination is the question the user asked, so its band widens last and is
+never dropped (a comp with no honest destination strength is never eligible), while the
+origin is a control, so a coarse tier band plus a continuous origin-strength ranking term
+is enough.
 
 **Ranking.** Matched comps are ordered by a weighted distance over: log-value gap, age gap,
-origin and destination league strength gaps (log median derived squad value, read at the
-comp's own season; Elo percentile added when both sides have one), destination/origin club
-tercile gaps (only when a target club is chosen), sub-position mismatch, pre-move
-playing-time gap, and recency. A missing feature drops its term for that comp with weight
-renormalization — nulls never gate eligibility and never penalize. The weights are tuned by
-the temporal backtest (random search on validation seasons 2020–21 under a date-exact
-availability rule) and frozen with a provenance comment and config hash (`ff9f546e0b3c`) in
-`server/app/services/constants.py`.
+origin and destination league strength gaps (log median derived squad value, baked into the
+artifact as-of the comp's own season; Elo percentile added when both sides have one),
+destination/origin **club value percentile** gaps (the club's squad-value percentile within
+its league-season, 1.0 = richest — the continuous signal that separates a Real Madrid from
+a relegation budget; used only when a target club is chosen), sub-position mismatch,
+pre-move playing-time gap, and recency. A missing feature drops its term for that comp with
+weight renormalization — nulls never gate eligibility and never penalize. The weights and
+band widths are tuned by the temporal backtest (random search on validation seasons 2020–21
+under a date-exact availability rule) and frozen with a provenance comment and config hash
+(`7309dc25f471`) in `server/app/services/constants.py`. When a chosen club returns the same
+pool as the league-only search with a near-identical midpoint, the response says so
+(`pool_quality.club_indistinct`): precedent that rare doesn't distinguish destinations that
+fine, and pretending otherwise would be false precision.
+
+**League tiers** (display and origin-filter semantics only — the engine's destination side
+is continuous): fixed ln-strength thresholds pinned in `pipeline/config.py` (anchored in
+the observed natural gaps, ≈ €98M/€24M/€12M median squad value), with two-season
+hysteresis so a knife-edge league doesn't flap tiers year to year. Thresholds are nominal
+EUR by design — "no covered league had an Elite-sized median in 2012" is the honest
+statement, and the origin filter's ±1 band absorbs that drift.
 
 **The range.** The prediction is the similarity-weighted 25th/50th/75th percentile of the
 comp pool's 12-month value multipliers, applied to the player's current value — a weighted-
@@ -129,18 +154,59 @@ the API says "insufficient precedent" and shows the closest evidence it has inst
 **No survivorship bias.** Outcomes never enter the similarity distance: a decliner ranks
 exactly as its similarity earns, and declines are shown, not filtered.
 
-**Validation.** A temporal backtest replays 8,299 held-out transfers from test seasons
+**Validation.** A temporal backtest replays 7,376 held-out transfers from test seasons
 2022–24 through the exact serving code, each simulated at its own transfer date with a
 date-exact availability rule (a comp is usable only once its 12-month outcome was
-observable at that date). The served q25–q75 range covered **50.5% of actual outcomes
-against a nominal 50%**, with a median width of ×1.7 and a 28.5% median absolute error on
-the midpoint — beating the value-unchanged, global-quantile and age×position-quantile
-baselines on every metric while refusing only 0.1% of queries. A LightGBM quantile
-regressor on the same features (built offline as a reference, never served) is ~3% sharper
-on pinball loss but materially miscalibrated (43% coverage): the price of full traceability
-is small, and the comp-pool quantiles keep the uncertainty honest. Weights were tuned on
-validation seasons 2020–21, strictly before all test seasons, and frozen before test was
-scored exactly once. One honest gap, reported rather than hidden: the *high* confidence
-tier under-covers (42% on test) — read it as "strong precedent agreement", not a
-guaranteed 50% band. Full protocol, per-segment tables and known biases:
-[docs/eval-report.md](docs/eval-report.md).
+observable at that date). The served q25–q75 range covered **50.7% of actual outcomes
+against a nominal 50%**, with a median width of ×1.7 and a 28.6% median absolute error on
+the midpoint — beating or matching the value-unchanged, global-quantile and
+age×position-quantile baselines on every metric while refusing only 0.01% of queries. A
+LightGBM quantile regressor on the same features (built offline as a reference, never
+served) is ~4% sharper on pinball loss but materially miscalibrated (43.5% coverage): the
+price of full traceability is small, and the comp-pool quantiles keep the uncertainty
+honest. Weights were tuned on validation seasons 2020–21, strictly before all test seasons,
+and frozen before test was scored exactly once. One honest gap, reported rather than
+hidden: the *high* confidence tier under-covers (44% on validation) — read it as "strong
+precedent agreement", not a guaranteed 50% band. Full protocol, per-segment tables and
+known biases: [docs/eval-report.md](docs/eval-report.md).
+
+**Known biases** (also quantified in the eval report): Transfermarkt values are validated
+but systematically underestimate realized fees, with bias varying by tier and value decile
+— and Precedent both predicts and conditions on them (circularity, more below). Injuries
+and contract situations are not controlled; playing time only partially
+(`minutes_share_pre`). Comp availability shrinks as a backtest query moves back in time, so
+backtest pools are thinner than serving pools for the same player today — reported refusal
+rates are upper bounds for serving.
+
+## Limitations — what would need to change to trust this with real money
+
+Precedent is an evidence tool, not a valuation oracle. The gap between "useful in a
+boardroom conversation" and "bankable" is exactly the list below, stated so nobody has to
+discover it the hard way:
+
+- **Matching is not causation.** Comps answer "what happened to similar players who made
+  similar moves", not "what this move would cause". Players who moved to a given
+  destination were selected by clubs (and agents) on information the dataset cannot see;
+  no matching on observables removes that selection.
+- **The confounders, named.** Age is controlled (hard filter + ranking term). Playing time
+  is partially controlled: `minutes_share_pre` covers ~53% of the evaluated queries and is
+  skipped (and flagged) where unknown. Injuries are NOT controlled — the
+  dataset has no injury table, and a value collapse after a cruciate tear looks identical
+  to a footballing decline. Contract length and agent dynamics are absent entirely, and
+  both move real prices. Market-wide inflation: outcomes are 12-month *multipliers*, which
+  is relative and therefore partially normalizes market drift, and the recency term
+  down-weights old comps — but nothing in the engine models inflation explicitly; that is
+  the exact extent of the control, no more.
+- **Valuation-source circularity.** Transfermarkt values partly reflect crowd
+  expectations, and Precedent both predicts them and conditions on them. If the crowd is
+  systematically wrong about a class of player, this product will be confidently wrong
+  alongside it — market value is also not the same thing as a transfer fee, which embeds
+  contract leverage, fees structure and negotiation.
+- **Per-tier calibration gaps.** The pooled interval is honest (~50% coverage), but the
+  *high*-confidence tier under-covers (~44%) — tight, unrelaxed pools are systematically
+  overconfident. Until a per-tier calibration lands, read confidence tiers as evidence
+  agreement, not probability guarantees.
+- **A real deployment needs a live feed and monitoring.** The repo ships a pinned,
+  audit-gated snapshot (values as of the date shown in the footer). Real money needs
+  scheduled re-ingestion behind those same gates, drift monitors on coverage and interval
+  width, and re-tuning on a cadence — none of which exists here by design.
